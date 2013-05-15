@@ -43,7 +43,7 @@ g_MandatoryTools=( 	'md5sum' 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.5"
+g_Revison="v1.1.6"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -340,13 +340,12 @@ function download_subs
 						;;
 					
 					*)
-						cp $output "$conv_output"
+						cp "$output" "$conv_output"
 						outputSubs="$output"
 						output="$conv_output"
 						;;
 					esac
 																	
-					subotage_c1="subotage.sh -i '$output' -of $g_Format -o '$outputSubs'"
 					f_detect_fps "$file"
 					if [[ "$g_Fps" != "0" ]]; then
 						echo " -- FPS okreslony na podstawie pliku wideo: [$g_Fps]"
@@ -358,8 +357,7 @@ function download_subs
 							
 					echo " -- Wolam subotage.sh"
 					echo " -- =================="
-					subotage_call="$subotage_c1 $subotage_c2"					
-					eval $subotage_call
+					subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
 					echo " -- =================="
 		fi
             else
@@ -395,6 +393,9 @@ function f_check_for_fps_detectors
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
         return
     
+    elif [[ -n $(builtin type -P mplayer2) ]]; then    
+        g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
+        return                
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
         return                
