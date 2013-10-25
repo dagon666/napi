@@ -1,4 +1,4 @@
-napiprojekt.pl client
+** napiprojekt.pl client
 =====================
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
@@ -26,6 +26,7 @@ dir3/
 
 
 subotage.sh - universal subtitle format converter
+=====
 
 Usage
 =====
@@ -46,19 +47,19 @@ Examples
 
 1. Convert from microdvd 23.98 fps to subrip. Subrip is default output format so it doesnt have to be specified. The input frame rate is also equal to the default one, so no addition specification in the command line has been made.
 
-# subotage.sh -i input_file.txt -o output_file.srt
+-- subotage.sh -i input_file.txt -o output_file.srt
 
 2. Convert from microdvd 25 fps to subviewer
 
-# subotage.sh -i input_file.txt -fi 25 -of subviewer -o output_file.sub
+-- subotage.sh -i input_file.txt -fi 25 -of subviewer -o output_file.sub
 
 3. Convert from subrip to fab
 
-# subotage.sh -i input_file.srt -of fab -o output_file.fab
+-- subotage.sh -i input_file.srt -of fab -o output_file.fab
 
 4. Convert from microdvd 25 fps to microdvd 29.98 fps:
 
-# subotage.sh -i input_file.txt -fi 25 -fo 29.98 -of microdvd -o output_file.txt
+-- subotage.sh -i input_file.txt -fi 25 -fo 29.98 -of microdvd -o output_file.txt
 
 Required External Tools
 =======================
