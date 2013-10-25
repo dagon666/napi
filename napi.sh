@@ -358,6 +358,9 @@ function download_subs
 					echo " -- Wolam subotage.sh"
 					echo " -- =================="
 					subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
+
+					# remove the old format if conversion was successful
+					[[ $? -eq 0 ]] && rm -f "$output"
 					echo " -- =================="
 		fi
             else
