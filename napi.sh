@@ -43,7 +43,7 @@ g_MandatoryTools=( 	'md5sum' 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.6"
+g_Revison="v1.1.7"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -63,6 +63,9 @@ g_FpsTool=""
 g_Fps=0
 g_LogFile="none"
 
+# default extension
+g_DefaultExt="txt"
+
 # statistical data
 g_Skipped=0
 g_Downloaded=0
@@ -78,6 +81,7 @@ function display_help
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
+	echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
@@ -301,9 +305,9 @@ function download_subs
         # input/output filename manipulation
         base=$(basename "$file")
         output_path=$(dirname "$file")
-        output="$output_path/${base%.*}.txt"
-        output_img="$output_path/${base%.*}.jpg"
-        conv_output="$output_path/ORIG_${base%.*}.txt"
+        output="$output_path/${base%.*}.$g_DefaultExt"
+		output_img="$output_path/${base%.*}.jpg"
+		conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
 	fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
@@ -311,7 +315,7 @@ function download_subs
 	fi
 
 	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
-            echo -e "[SKIP]\t[${base%.*}.txt]:\tPlik z napisami juz istnieje !!!"
+            echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
 	    g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
@@ -329,7 +333,7 @@ function download_subs
 					echo " -- Konwertuje napisy do formatu: [$g_Format]"
 				
 					# determine the output extention and the output filename
-					# if ext == txt then copy the original with a ORIG_ prefix
+					# if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
 					case "$g_Format" in
 					"subrip")
 						outputSubs="$output_path/${base%.*}.srt"
@@ -497,6 +501,17 @@ while [ $# -gt 0 ]; do
         fi      
         g_Pass="$1"     
         ;;
+
+		# extension
+		"-e" | "--ext")
+		shift
+		if [[ -z "$1" ]]; then
+			f_printf_error "Nie okreslono domyslnego rozszerzenia dla pobranych plikow"
+			exit
+		fi
+		g_DefaultExt="$1"
+		;;
+
 
         # logfile
         "-l" | "--log")
