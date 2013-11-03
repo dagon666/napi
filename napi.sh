@@ -94,6 +94,7 @@ function display_help
         
     echo "=============================================================="
     echo
+
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "Obslugiwane formaty konwersji napisow"
         subotage.sh -gl
@@ -319,16 +320,17 @@ function download_subs
 	    	g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
+
             # md5sum and hash calculation
-	    sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
-	    hash=$(f $sum)        
-	    napiStatus=$(get_subtitles $sum $hash "$output")       
+			sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+			hash=$(f $sum)        
+			napiStatus=$(get_subtitles $sum $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-		g_Downloaded=$(( $g_Downloaded + 1 ))
+				g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-		# conversion to different format requested
+				# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
 					echo " -- Konwertuje napisy do formatu: [$g_Format]"
 				
@@ -366,17 +368,21 @@ function download_subs
 					# remove the old format if conversion was successful
 					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
-		fi
-            else
+				fi
+
+            else # [[ $napiStatus = "1" ]]
+
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
 				g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
-            fi
+
+            fi # [[ $napiStatus = "1" ]]
             
             if [[ $g_Cover = "1" ]]; then
                 get_cover $sum "$output_img"
             fi
-        fi
+
+        fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
 
     done    
 }
@@ -403,6 +409,7 @@ function f_check_for_fps_detectors
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
         return                
+
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
         return                
