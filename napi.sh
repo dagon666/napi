@@ -49,7 +49,7 @@ g_Version="pynapi"
 
 # global file list
 g_FileList=( )
-g_Okladka=""
+g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Formats=( )
@@ -166,7 +166,7 @@ function f
     t_idx=( 0xe 0x3 0x6 0x8 0x2 )
     t_mul=( 2 2 5 4 3 )
     t_add=( 0 0xd 0x10 0xb 0x5 )
-    suma=$1
+    sum=$1
     b=""    
 
     for i in $(seq 0 4); do
@@ -174,8 +174,8 @@ function f
         m=${t_mul[$i]}
         g=${t_idx[$i]}
         
-        t=$(( a + 16#${suma:$g:1}))
-        v=$((16#${suma:$t:2} ))
+        t=$(( a + 16#${sum:$g:1}))
+        v=$((16#${sum:$t:2} ))
         
         x=$(( (v*m) % 0x10 ))
         z=$(printf "%X" $x)
@@ -308,21 +308,21 @@ function download_subs
         output="$output_path/${base%.*}.$g_DefaultExt"
 		output_img="$output_path/${base%.*}.jpg"
 		conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
-	fExists=0
+		fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-		fExists=1
-	fi
+			fExists=1
+		fi
 
-	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
+		if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
             echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
-	    g_Skipped=$(( $g_Skipped + 1 ))
+	    	g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
             # md5sum and hash calculation
-	    suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
-	    hash=$(f $suma)        
-	    napiStatus=$(get_subtitles $suma $hash "$output")       
+	    sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+	    hash=$(f $sum)        
+	    napiStatus=$(get_subtitles $sum $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
@@ -369,12 +369,12 @@ function download_subs
 		fi
             else
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-		g_Unavailable=$(( $g_Unavailable + 1 ))
+				g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
             fi
             
-            if [[ $g_Okladka = "1" ]]; then
-                get_cover $suma "$output_img"
+            if [[ $g_Cover = "1" ]]; then
+                get_cover $sum "$output_img"
             fi
         fi
 
@@ -473,7 +473,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         # cover download
         "-c" | "--cover")
-        g_Okladka=1
+        g_Cover=1
         ;;
 
         # skip flag
