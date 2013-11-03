@@ -43,7 +43,7 @@ g_MandatoryTools=( 	'md5sum' 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.7"
+g_Revison="v1.1.8"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -364,7 +364,7 @@ function download_subs
 					subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
 
 					# remove the old format if conversion was successful
-					[[ $? -eq 0 ]] && rm -f "$output"
+					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
 		fi
             else
