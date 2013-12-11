@@ -327,7 +327,9 @@ function f_read_subviewer_format
     echo "secs" > "$g_ProcTmpFile"
 
     tail -n +"$2" "$1" | tr -d '\r' | 
-    awk "BEGIN { FS=\"\n\"; RS=\"\"; linecc=1; };
+    awk "BEGIN { 
+		FS=\"\n\"; RS=\"\"; linecc=1; 
+		};
         {   split(\$1, start, \",\");
             split(start[1], tm_start, \":\");
             split(start[2], tm_stop, \":\");
@@ -366,15 +368,18 @@ function f_read_tmplayer_format
     
         if [[ $delimiter = ":" ]]; then
             tail -n +"$2" "$1" | tr -d '\r' | 
-                awk "BEGIN { FS=\"$delimiter\" }; 
-                { 
-                    x=(\$1*3600+\$2*60+\$3 + ($g_LastingTime/1000));
-                    printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", NR, 
-                    \$1,\$2,\$3,
-                    (x/3600), ((x/60)%60), (x%60));
-                    for (i=4; i<=NF; i++) printf(\"%s\", \$i);
-                    printf \"\n\"; 
-                }" >> "$g_ProcTmpFile"      
+                awk "BEGIN { FS=\"$delimiter\" 
+					}; 
+                	{ 
+						x=(\$1*3600+\$2*60+\$3 + ($g_LastingTime/1000));
+						printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", NR, 
+							\$1,\$2,\$3,
+							(x/3600), ((x/60)%60), (x%60));
+
+						for (i=4; i<=NF; i++) 
+							printf(\"%s\", \$i);
+						printf \"\n\"; 
+                	}" >> "$g_ProcTmpFile"      
         else
             tail -n +"$2" "$1" | tr -d '\r' | 
                 awk "BEGIN { FS=\"$delimiter\" }; 
@@ -444,9 +449,27 @@ function f_read_microdvd_format
 {   
     echo "secs" > $g_ProcTmpFile
     tail -n +"$2" "$1" | tr -d '\r' | 
-        awk "BEGIN { FS=\"[{}]+\" }; { printf \"%s %s %s \", NR, (\$2/$g_InputFrameRate), (\$3/$g_InputFrameRate);
-            for (i=4; i<=NF; i++) printf(\"%s\", \$i);
-            printf \"\n\"; }" >> "$g_ProcTmpFile"
+        awk "BEGIN { 
+				FS=\"[{}]+\";
+				txt_begin = 0;
+			}; 
+			{
+				fstart=\$2;
+				if (\$3+0) {
+					txt_begin=4;
+					fend=\$3;
+				}
+				else {
+	 				txt_begin=3;
+					fend = \$2 + 5*$g_InputFrameRate;
+				}
+
+			   	printf \"%s %s %s \", NR, (fstart/$g_InputFrameRate), (fend/$g_InputFrameRate);
+
+            	for (i=txt_begin; i<=NF; i++) 
+					printf(\"%s\", \$i);
+            	printf \"\n\"; 
+			}" >> "$g_ProcTmpFile"
     echo 0
 }
 
