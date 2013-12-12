@@ -368,18 +368,23 @@ function f_read_tmplayer_format
     
         if [[ $delimiter = ":" ]]; then
             tail -n +"$2" "$1" | tr -d '\r' | 
-                awk "BEGIN { FS=\"$delimiter\" 
+                awk "BEGIN { 
+						FS=\"$delimiter\";
+						line_processed = 1;
 					}; 
-                	{ 
+					/^ *$/ {
+						next;
+					};
+					length { 
 						x=(\$1*3600+\$2*60+\$3 + ($g_LastingTime/1000));
-						printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", NR, 
+						printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", line_processed++, 
 							\$1,\$2,\$3,
 							(x/3600), ((x/60)%60), (x%60));
 
 						for (i=4; i<=NF; i++) 
 							printf(\"%s\", \$i);
 						printf \"\n\"; 
-                	}" >> "$g_ProcTmpFile"      
+					}" >> "$g_ProcTmpFile"      
         else
             tail -n +"$2" "$1" | tr -d '\r' | 
                 awk "BEGIN { FS=\"$delimiter\" }; 
@@ -452,7 +457,11 @@ function f_read_microdvd_format
         awk "BEGIN { 
 				FS=\"[{}]+\";
 				txt_begin = 0;
+				line_processed = 1;
 			}; 
+			/^ *$/ {
+				next;
+			}
 			{
 				fstart=\$2;
 				if (\$3+0) {
@@ -460,15 +469,16 @@ function f_read_microdvd_format
 					fend=\$3;
 				}
 				else {
-	 				txt_begin=3;
+					txt_begin=3;
 					fend = \$2 + 5*$g_InputFrameRate;
 				}
 
-			   	printf \"%s %s %s \", NR, (fstart/$g_InputFrameRate), (fend/$g_InputFrameRate);
+			   	printf \"%s %s %s \", line_processed++, 
+					(fstart/$g_InputFrameRate), (fend/$g_InputFrameRate);
 
             	for (i=txt_begin; i<=NF; i++) 
 					printf(\"%s\", \$i);
-            	printf \"\n\"; 
+				printf \"\n\"; 
 			}" >> "$g_ProcTmpFile"
     echo 0
 }
@@ -478,9 +488,18 @@ function f_read_mpl2_format
 {
     echo "secs" > $g_ProcTmpFile
     tail -n +"$2" "$1" | tr -d '\r' | 
-        awk "BEGIN { FS=\"[][]+\" }; { printf \"%s %s %s \", NR, (\$2/10), (\$3/10);
-            for (i=4; i<=NF; i++) printf(\"%s\", \$i);
-            printf \"\n\"; }" >> "$g_ProcTmpFile"
+        awk "BEGIN { 
+				FS=\"[][]+\";
+				line_processed = 1;
+			}; 
+			/^ *$/ {
+				next;
+			}
+			length { 
+				printf \"%s %s %s \", line_processed++, (\$2/10), (\$3/10);
+				for (i=4; i<=NF; i++) printf(\"%s\", \$i);
+				printf \"\n\"; 
+			}" >> "$g_ProcTmpFile"
     echo 0
 }
 
@@ -492,8 +511,12 @@ function f_read_subrip_format
     if [[ "$3" == "inline" ]]; then
     
         tail -n +"$2" "$1" | tr -d '\r' | 
-            awk "BEGIN { FS=\"\n\"; RS=\"\"; };
-                {   gsub(\",\", \".\", \$1);
+            awk "BEGIN { 
+					FS=\"\n\"; 
+					RS=\"\"; 
+				};
+                length {  
+					gsub(\",\", \".\", \$1);
                     printf(\"%s \", \$1);
                     for (i=2; i<=NF; i++) {
                         if (i>2) printf(\"|\");
@@ -598,11 +621,13 @@ function f_write_tmplayer_format
     
     case $time_type in
     "secs")
-        tail -n +2  "$g_ProcTmpFile" |  tr -d '\r' |
-        awk "{ printf(\"%02d:%02d:%02d:\", 
-                (\$2/3600),((\$2/60)%60),(\$2%60));
-                for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-                printf \"\n\" }" > "$1" 
+        tail -n +2  "$g_ProcTmpFile" | tr -d '\r' |
+        awk "{ 
+				printf(\"%02d:%02d:%02d:\", 
+					(\$2/3600),((\$2/60)%60),(\$2%60));
+				for (i=4; i<=NF; i++) printf(\"%s \", \$i);
+				printf \"\n\";
+			}" > "$1" 
     ;;
     
     "hms" | "hmsms")
@@ -935,6 +960,11 @@ function f_guess_format
     done
 
     echo $detected_format
+}
+
+function f_correct_overlaps
+{
+	echo "not implemented yet"
 }
 
 ###############################################################################
