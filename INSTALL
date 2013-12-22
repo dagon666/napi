@@ -3,8 +3,8 @@ Simply place the napi.sh, subotage.sh under your local or system global bin dire
 3rd_party tools required:
 
 - bash shell
-- wget
+- wget (can be installed via Homebrew/Macports)
 - find tool
 - dd (coreutils)
-- md5sum
+- md5sum (in OS X, it's md5)
 - cut

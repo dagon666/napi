@@ -37,7 +37,7 @@ g_Lang="PL"
 g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # list of all mandatory to basic functionality tools
-g_MandatoryTools=( 	'md5sum' 'tr' 'printf' 
+g_MandatoryTools=( 	'md5' 'tr' 'printf' 
 					'wget' 'find' 'dd' 
 					'grep' 'sed' 'cut' 'seq' )
 
@@ -159,7 +159,7 @@ function check_extention
 
 #
 # @brief: mysterious f() function
-# @param: md5sum
+# @param: md5
 #
 function f
 {
@@ -186,7 +186,7 @@ function f
 
 #
 # @brief: retrieve subtitles
-# @param: md5sum
+# @param: md5
 # @param: hash
 # @param: outputfile
 #
@@ -213,7 +213,7 @@ function get_subtitles
         fi
     else
         wget -q -O "$3" $url
-        size=$(stat -c%s "$3")
+        size=$(stat -f "%z" "$3")
     
         if [[ $size -le 4 ]]; then
             echo "0"
@@ -226,7 +226,7 @@ function get_subtitles
 
 #
 # @brief: retrieve cover
-# @param: md5sum
+# @param: md5
 # @param: outputfile
 #
 function get_cover
@@ -319,8 +319,8 @@ function download_subs
 	    g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
-            # md5sum and hash calculation
-	    suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+            # md5 and hash calculation
+	    suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5 | cut -d ' ' -f 1)
 	    hash=$(f $suma)        
 	    napiStatus=$(get_subtitles $suma $hash "$output")       
 			
