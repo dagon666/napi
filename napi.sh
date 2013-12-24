@@ -225,7 +225,6 @@ function get_subtitles
         fi
     else
         wget -q -O "$3" $url
-        # size=$(stat -c%s "$3")
         size=$(stat $g_StatParams "$3")
     
         if [[ $size -le 4 ]]; then
