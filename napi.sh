@@ -33,11 +33,23 @@ g_Pass=""
 g_NapiPass="iBlm8NTigvru0Jr0"
 g_Lang="PL"
 
+#system detection
+g_System=$(uname | tr '[:upper:]' '[:lower:]')
+
+if [ $g_System = "darwin" ]; then 
+    g_Md5="md5"
+    g_StatParams="-f%z "
+else
+    g_Md5="md5sum"
+    g_StatParams="-c%s "
+fi
+
+
 # supported video file extentions
 g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # list of all mandatory to basic functionality tools
-g_MandatoryTools=( 	'md5sum' 'tr' 'printf' 
+g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
 					'wget' 'find' 'dd' 
 					'grep' 'sed' 'cut' 'seq' )
 
@@ -94,7 +106,6 @@ function display_help
         
     echo "=============================================================="
     echo
-
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "Obslugiwane formaty konwersji napisow"
         subotage.sh -gl
@@ -214,7 +225,8 @@ function get_subtitles
         fi
     else
         wget -q -O "$3" $url
-        size=$(stat -c%s "$3")
+        # size=$(stat -c%s "$3")
+        size=$(stat $g_StatParams "$3")
     
         if [[ $size -le 4 ]]; then
             echo "0"
@@ -309,28 +321,27 @@ function download_subs
         output="$output_path/${base%.*}.$g_DefaultExt"
 		output_img="$output_path/${base%.*}.jpg"
 		conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
-		fExists=0
+	fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-			fExists=1
-		fi
+		fExists=1
+	fi
 
-		if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
+	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
             echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
-	    	g_Skipped=$(( $g_Skipped + 1 ))
+	    g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
-
             # md5sum and hash calculation
-			sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+			sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
 			hash=$(f $sum)        
 			napiStatus=$(get_subtitles $sum $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-				g_Downloaded=$(( $g_Downloaded + 1 ))
+		g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-				# conversion to different format requested
+		# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
 					echo " -- Konwertuje napisy do formatu: [$g_Format]"
 				
@@ -368,20 +379,17 @@ function download_subs
 					# remove the old format if conversion was successful
 					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
-				fi
-
+		fi
             else # [[ $napiStatus = "1" ]]
-
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-				g_Unavailable=$(( $g_Unavailable + 1 ))
+		g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
-
+            
             fi # [[ $napiStatus = "1" ]]
             
             if [[ $g_Cover = "1" ]]; then
                 get_cover $sum "$output_img"
             fi
-
         fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
 
     done    
@@ -409,7 +417,6 @@ function f_check_for_fps_detectors
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
         return                
-
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
         return                
