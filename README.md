@@ -3,6 +3,8 @@
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
 
+This fork works on OS X.
+
 Usage example:
 ==============
 
@@ -71,3 +73,4 @@ Required External Tools
 - awk
 
 To check if the listed tools are available in your system and their functionality meets the subotage.sh script requirements please use the attached test_tools.sh script.
+
