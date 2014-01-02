@@ -55,7 +55,7 @@ g_MandatoryTools=(  $g_Md5 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.8"
+g_Revison="v1.1.9"
 g_Version="pynapi"
 #g_Version="other"
 
