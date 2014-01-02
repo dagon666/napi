@@ -33,11 +33,23 @@ g_Pass=""
 g_NapiPass="iBlm8NTigvru0Jr0"
 g_Lang="PL"
 
+#system detection
+g_System=$(uname | tr '[:upper:]' '[:lower:]')
+
+if [ $g_System = "darwin" ]; then 
+    g_Md5="md5"
+    g_StatParams="-f%z "
+else
+    g_Md5="md5sum"
+    g_StatParams="-c%s "
+fi
+
+
 # supported video file extentions
 g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # list of all mandatory to basic functionality tools
-g_MandatoryTools=( 	'md5sum' 'tr' 'printf' 
+g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
 					'wget' 'find' 'dd' 
 					'grep' 'sed' 'cut' 'seq' )
 
@@ -49,7 +61,7 @@ g_Version="pynapi"
 
 # global file list
 g_FileList=( )
-g_Okladka=""
+g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Formats=( )
@@ -166,7 +178,7 @@ function f
     t_idx=( 0xe 0x3 0x6 0x8 0x2 )
     t_mul=( 2 2 5 4 3 )
     t_add=( 0 0xd 0x10 0xb 0x5 )
-    suma=$1
+    sum=$1
     b=""    
 
     for i in $(seq 0 4); do
@@ -174,8 +186,8 @@ function f
         m=${t_mul[$i]}
         g=${t_idx[$i]}
         
-        t=$(( a + 16#${suma:$g:1}))
-        v=$((16#${suma:$t:2} ))
+        t=$(( a + 16#${sum:$g:1}))
+        v=$((16#${sum:$t:2} ))
         
         x=$(( (v*m) % 0x10 ))
         z=$(printf "%X" $x)
@@ -213,7 +225,7 @@ function get_subtitles
         fi
     else
         wget -q -O "$3" $url
-        size=$(stat -c%s "$3")
+        size=$(stat $g_StatParams "$3")
     
         if [[ $size -le 4 ]]; then
             echo "0"
@@ -320,9 +332,9 @@ function download_subs
             continue    
         else
             # md5sum and hash calculation
-	    suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
-	    hash=$(f $suma)        
-	    napiStatus=$(get_subtitles $suma $hash "$output")       
+			sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
+			hash=$(f $sum)        
+			napiStatus=$(get_subtitles $sum $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
@@ -367,16 +379,17 @@ function download_subs
 					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
 		fi
-            else
+            else # [[ $napiStatus = "1" ]]
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
 		g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
-            fi
             
-            if [[ $g_Okladka = "1" ]]; then
-                get_cover $suma "$output_img"
+            fi # [[ $napiStatus = "1" ]]
+            
+            if [[ $g_Cover = "1" ]]; then
+                get_cover $sum "$output_img"
             fi
-        fi
+        fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
 
     done    
 }
@@ -473,7 +486,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         # cover download
         "-c" | "--cover")
-        g_Okladka=1
+        g_Cover=1
         ;;
 
         # skip flag
