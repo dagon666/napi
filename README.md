@@ -74,7 +74,8 @@ Required External Tools
 
 To check if the listed tools are available in your system and their functionality meets the subotage.sh script requirements please use the attached test_tools.sh script.
 
-5. Availability
+Availability
+============
 
 napi.sh & subotage.sh are available in bundle in AUR - Arch Linux User Repository. The package is named bashnapi and can be installed through yaourt:
 
