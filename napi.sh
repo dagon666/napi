@@ -159,7 +159,7 @@ function check_extention
 {
     is_video=0  
     filename=$(basename "$1")
-        extention=$(echo "${filename##*.}" | tr [A-Z] [a-z])
+        extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
 
     for ext in "${g_VideoUris[@]}"; do
         if [[ "$ext" = "$extention" ]]; then
