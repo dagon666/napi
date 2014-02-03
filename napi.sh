@@ -55,7 +55,7 @@ g_MandatoryTools=(  $g_Md5 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.8"
+g_Revison="v1.1.10"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -78,6 +78,9 @@ g_LogFile="none"
 # default extension
 g_DefaultExt="txt"
 
+# minimum size
+g_MinimumSize=0;
+
 # statistical data
 g_Skipped=0
 g_Downloaded=0
@@ -93,6 +96,7 @@ function display_help
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
+    echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
 	echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
@@ -253,51 +257,28 @@ function get_cover
 #
 function prepare_file_list
 {
-    list_creation_info=0
-
-    if [[ $# -gt 1 ]] && [[ ! -d "$1" ]] ; then
-	list_creation_info=1
-    	echo "=================="
-    	echo "Tworzenie listy plikow..."
-    	echo "=================="
-    	echo
-    fi
-                
     for file in "$@"; do
         
         # check if file exists, if not skip it
-        if [[ ! -s "$file" ]]; then
+        if [[ -e "$file" ]] && [[ ! -s "$file" ]]; then
             echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik nie istnieje lub jest pusty !!!"
             continue
 
         # check if is a directory
         # if so, then recursively search the dir
         elif [[ -d "$file" ]]; then
-            echo "Przeszukuje zawartosc katalogu: [\"$file\"]..."
-            
-            unset templist i
-            while IFS= read -r file2; do
-            
-                # check if the respective file is a video file (by extention)       
-                if [[ $(check_extention "$file2") == 1 ]]; then
-                    templist[i++]="$file2"
-                fi
-     
-            done < <(find "$file" -type f)
+			local tmp="$file"
+			prepare_file_list "$tmp"/*
 
-            echo "Katalog zawiera ${#templist[*]} plikow"
-            g_FileList=( "${g_FileList[@]}" "${templist[@]}" )
         else
             # check if the respective file is a video file (by extention)       
-            if [[ $(check_extention "$file") -eq 1 ]]; then
+            if [[ $(check_extention "$file") -eq 1 ]] &&
+			   [[ $(stat $g_StatParams "$file") -ge $(( $g_MinimumSize*1024*1024 )) ]]; then
                 g_FileList=( "${g_FileList[@]}" "$file" )
             fi
+
         fi
     done
-
-    if [[ $list_creation_info -eq 1 ]]; then
-    	echo "Lista gotowa."
-    fi
 }
 
 #
@@ -523,6 +504,15 @@ while [ $# -gt 0 ]; do
 			exit
 		fi
 		g_DefaultExt="$1"
+		;;
+
+		"-b" | "--bigger-than")
+		shift
+		if [[ -z "$1" ]]; then
+			f_printf_error "Nie okreslono minimalnego rozmiaru"
+			exit
+		fi
+		g_MinimumSize="$1"
 		;;
 
 
