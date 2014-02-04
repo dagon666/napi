@@ -51,7 +51,7 @@ g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 # list of all mandatory to basic functionality tools
 g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
 					'wget' 'find' 'dd' 
-					'grep' 'sed' 'cut' 'seq' )
+					'grep' 'sed' 'cut' )
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
@@ -157,9 +157,10 @@ function display_help
 # @return: bool 1 - is video file, 0 - is not a video file
 function check_extention
 {
-    is_video=0  
-    filename=$(basename "$1")
-        extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
+    local is_video=0  
+    local filename=$(basename "$1")
+	local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
+	local ext
 
     for ext in "${g_VideoUris[@]}"; do
         if [[ "$ext" = "$extention" ]]; then
@@ -179,25 +180,26 @@ function check_extention
 #
 function f
 {
-    t_idx=( 0xe 0x3 0x6 0x8 0x2 )
-    t_mul=( 2 2 5 4 3 )
-    t_add=( 0 0xd 0x10 0xb 0x5 )
-    sum=$1
-    b=""    
+    local t_idx=( 0xe 0x3 0x6 0x8 0x2 )
+    local t_mul=( 2 2 5 4 3 )
+    local t_add=( 0 0xd 0x10 0xb 0x5 )
+    local sum="$1"
+    local b=""    
+	local i=0
 
-    for i in $(seq 0 4); do
-        a=${t_add[$i]}
-        m=${t_mul[$i]}
-        g=${t_idx[$i]}
+    for i in {0..4}; do
+        local a=${t_add[$i]}
+        local m=${t_mul[$i]}
+        local g=${t_idx[$i]}
         
-        t=$(( a + 16#${sum:$g:1}))
-        v=$((16#${sum:$t:2} ))
+        local t=$(( a + 16#${sum:$g:1}))
+        local v=$((16#${sum:$t:2} ))
         
-        x=$(( (v*m) % 0x10 ))
-        z=$(printf "%X" $x)
+        local x=$(( (v*m) % 0x10 ))
+        local z=$(printf "%X" $x)
         b="$b$(echo $z | tr '[A-Z]' '[a-z]')"
     done
-    echo $b
+    echo "$b"
 }
 
 #
@@ -208,17 +210,17 @@ function f
 #
 function get_subtitles
 {   
-    url="http://napiprojekt.pl/unit_napisy/dl.php?l=$g_Lang&f=$1&t=$2&v=$g_Version&kolejka=false&nick=$g_User&pass=$g_Pass&napios=posix"
+    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$g_Lang&f=$1&t=$2&v=$g_Version&kolejka=false&nick=$g_User&pass=$g_Pass&napios=posix"
 
     if [[ $g_Version = "other" ]]; then
-        wget -q -O napisy.7z $url
+        wget -q -O napisy.7z "$url"
         
         if [[ -z "$(builtin type -P 7z)" ]]; then
 			f_print_error "7zip jest niedostepny\nzmodyfikuj zmienna g_Version tak by napi.sh identyfikowal sie jako \"pynapi\"" 
 			exit
         fi
                 
-        7z x -y -so -p$g_NapiPass napisy.7z 2> /dev/null > "$3"
+        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null > "$3"
         rm -rf napisy.7z
     
         if [[ -s "$3" ]]; then
@@ -228,8 +230,8 @@ function get_subtitles
             rm -rf "$3"     
         fi
     else
-        wget -q -O "$3" $url
-        size=$(stat $g_StatParams "$3")
+        wget -q -O "$3" "$url"
+        local size=$(stat $g_StatParams "$3")
     
         if [[ $size -le 4 ]]; then
             echo "0"
@@ -247,7 +249,7 @@ function get_subtitles
 #
 function get_cover
 {
-    url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
+    local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     wget -q -O "$2" "$url"
 }
 
@@ -257,6 +259,7 @@ function get_cover
 #
 function prepare_file_list
 {
+	local file
     for file in "$@"; do
         
         # check if file exists, if not skip it
@@ -286,6 +289,8 @@ function prepare_file_list
 #
 function download_subs
 {   
+	local file=""
+	
     if [[ ${#g_FileList[*]} -gt 0 ]]; then
     	echo "=================="
     	echo "Pobieram napisy..."
@@ -296,33 +301,36 @@ function download_subs
     for file in "${g_FileList[@]}"; do
         
         # input/output filename manipulation
-        base=$(basename "$file")
-        output_path=$(dirname "$file")
-        output="$output_path/${base%.*}.$g_DefaultExt"
-		output_img="$output_path/${base%.*}.jpg"
-		conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
-	fExists=0
+        local base=$(basename "$file")
+        local output_path=$(dirname "$file")
+        local output="$output_path/${base%.*}.$g_DefaultExt"
+		local output_img="$output_path/${base%.*}.jpg"
+		local conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
+		local fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-		fExists=1
-	fi
+			fExists=1
+		fi
 
-	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
+		if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
             echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
-	    g_Skipped=$(( $g_Skipped + 1 ))
+			g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
             # md5sum and hash calculation
-			sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
-			hash=$(f $sum)        
-			napiStatus=$(get_subtitles $sum $hash "$output")       
+			local sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
+			local hash=$(f $sum)        
+			local napiStatus=$(get_subtitles $sum $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-		g_Downloaded=$(( $g_Downloaded + 1 ))
+				g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-		# conversion to different format requested
+				# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
+					local outputSubs=""
+					local subotage_c2=""
+
 					echo " -- Konwertuje napisy do formatu: [$g_Format]"
 				
 					# determine the output extention and the output filename
@@ -359,19 +367,17 @@ function download_subs
 					# remove the old format if conversion was successful
 					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
-		fi
+				fi
             else # [[ $napiStatus = "1" ]]
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-		g_Unavailable=$(( $g_Unavailable + 1 ))
+				g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
-            
             fi # [[ $napiStatus = "1" ]]
             
             if [[ $g_Cover = "1" ]]; then
-                get_cover $sum "$output_img"
+                get_cover "$sum" "$output_img"
             fi
         fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
-
     done    
 }
 
@@ -392,14 +398,10 @@ function f_check_for_fps_detectors
 {
     if [[ -n $(builtin type -P mediainfo) ]]; then
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
-        return
-    
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
-        return                
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
-        return                
     fi
 }
 
@@ -418,8 +420,8 @@ function f_detect_fps
 {
    if [[ -n $g_FpsTool ]]; then
 		echo "Okreslam FPS na podstawie pliku video"
-		cmd=${g_FpsTool/\{\}/"$1"}		
-		tmpFps=$(eval $cmd)
+		local cmd=${g_FpsTool/\{\}/"$1"}		
+		local tmpFps=$(eval $cmd)
 		
 		if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
 			g_Fps=$tmpFps
@@ -432,6 +434,8 @@ function f_detect_fps
 # scan if all needed tools are available
 function f_check_mandatory_tools
 {
+	local elem=""
+
 	for elem in "${g_MandatoryTools[@]}"; do
 		if [[ -z "$(builtin type -P $elem)" ]]; then
 			f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
