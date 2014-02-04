@@ -50,30 +50,30 @@ g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # list of all mandatory to basic functionality tools
 g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
-					'wget' 'find' 'dd' 
-					'grep' 'sed' 'cut' )
+                    'wget' 'find' 'dd' 
+                    'grep' 'sed' 'cut' )
 
 # language code arrays
 g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
-		'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
-		'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
-		'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
-		'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' 
-		'Niemiecki' 'Norweski' 'Oksytański' 'Perski' 
-		'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' 
-		'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
-		'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
+        'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
+        'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
+        'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
+        'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' 
+        'Niemiecki' 'Norweski' 'Oksytański' 'Perski' 
+        'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' 
+        'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
+        'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
 
 g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
-				    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
-					'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
-					'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
+                    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
+                    'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
+                    'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
 
 g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
-					'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
-					'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
-					'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
-					'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
+                    'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
+                    'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
+                    'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
+                    'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
@@ -119,7 +119,7 @@ function display_help
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
     echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
-	echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
+    echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
@@ -159,8 +159,8 @@ function display_help
         echo "http://sourceforge.net/projects/subotage/"
         echo
     else
-		echo " napi.sh -f subrip *		 - sciaga napisy dla kazdego znalezionego pliku"
-		echo "                           po czym konwertuje je do formatu subrip"
+        echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
+        echo "                           po czym konwertuje je do formatu subrip"
     
         if [[ -z $g_FpsTool ]]; then 
             echo
@@ -179,37 +179,38 @@ function display_help
 #
 function list_languages
 {
-	local i=0
-	while [[ $i -lt ${#g_Language[@]} ]]; do
-		echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
-		i=$(( $i + 1 ))
-	done
+    local i=0
+    while [[ $i -lt ${#g_Language[@]} ]]; do
+        echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
+        i=$(( $i + 1 ))
+    done
 }
 
 
 #
 # @brief verify that the given language code is supported
+#
 function check_language
 {
-	local lang="$1"
-	local l_arr=(  )
-	local l_arr_name=""
-	local i=0
-	
-	if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
-		return
-	fi
+    local lang="$1"
+    local l_arr=(  )
+    local l_arr_name=""
+    local i=0
+    
+    if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
+        return
+    fi
 
-	l_arr_name="g_LanguageCodes${#lang}L";
-	eval l_arr=\( \${${l_arr_name}[@]} \)
+    l_arr_name="g_LanguageCodes${#lang}L";
+    eval l_arr=\( \${${l_arr_name}[@]} \)
 
-	while [[ $i -lt ${#l_arr[@]} ]]; do
-		if [[ "${l_arr[$i]}" = "$lang" ]]; then
-			echo "$i"
-			return
-		fi
-		i=$(( $i + 1 ))
-	done
+    while [[ $i -lt ${#l_arr[@]} ]]; do
+        if [[ "${l_arr[$i]}" = "$lang" ]]; then
+            echo "$i"
+            return
+        fi
+        i=$(( $i + 1 ))
+    done
 }
 
 
@@ -217,12 +218,13 @@ function check_language
 # @brief: check if the given file is a video file
 # @param: video filename
 # @return: bool 1 - is video file, 0 - is not a video file
+#
 function check_extention
 {
     local is_video=0  
     local filename=$(basename "$1")
-	local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
-	local ext
+    local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
+    local ext
 
     for ext in "${g_VideoUris[@]}"; do
         if [[ "$ext" = "$extention" ]]; then
@@ -247,7 +249,7 @@ function f
     local t_add=( 0 0xd 0x10 0xb 0x5 )
     local sum="$1"
     local b=""    
-	local i=0
+    local i=0
 
     for i in {0..4}; do
         local a=${t_add[$i]}
@@ -264,6 +266,7 @@ function f
     echo "$b"
 }
 
+
 #
 # @brief: retrieve subtitles
 # @param: md5sum
@@ -278,8 +281,8 @@ function get_subtitles
         wget -q -O napisy.7z "$url"
         
         if [[ -z "$(builtin type -P 7z)" ]]; then
-			f_print_error "7zip jest niedostepny\nzmodyfikuj zmienna g_Version tak by napi.sh identyfikowal sie jako \"pynapi\"" 
-			exit
+            f_print_error "7zip jest niedostepny\nzmodyfikuj zmienna g_Version tak by napi.sh identyfikowal sie jako \"pynapi\"" 
+            exit
         fi
                 
         7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null > "$3"
@@ -304,6 +307,7 @@ function get_subtitles
     fi      
 }
 
+
 #
 # @brief: retrieve cover
 # @param: md5sum
@@ -315,13 +319,14 @@ function get_cover
     wget -q -O "$2" "$url"
 }
 
+
 #
 # @brief prepare a list of file which require processing
 # @param space delimited file list string
 #
 function prepare_file_list
 {
-	local file
+    local file
     for file in "$@"; do
         
         # check if file exists, if not skip it
@@ -332,13 +337,13 @@ function prepare_file_list
         # check if is a directory
         # if so, then recursively search the dir
         elif [[ -d "$file" ]]; then
-			local tmp="$file"
-			prepare_file_list "$tmp"/*
+            local tmp="$file"
+            prepare_file_list "$tmp"/*
 
         else
             # check if the respective file is a video file (by extention)       
             if [[ $(check_extention "$file") -eq 1 ]] &&
-			   [[ $(stat $g_StatParams "$file") -ge $(( $g_MinimumSize*1024*1024 )) ]]; then
+               [[ $(stat $g_StatParams "$file") -ge $(( $g_MinimumSize*1024*1024 )) ]]; then
                 g_FileList=( "${g_FileList[@]}" "$file" )
             fi
 
@@ -347,17 +352,17 @@ function prepare_file_list
 }
 
 #
-# @ brief try to download subs for all the files present in the list
+# @brief try to download subs for all the files present in the list
 #
 function download_subs
 {   
-	local file=""
+    local file=""
 
     if [[ ${#g_FileList[*]} -gt 0 ]]; then
-    	echo "=================="
-    	echo "Pobieram napisy..."
-    	echo "=================="
-    	echo
+        echo "=================="
+        echo "Pobieram napisy..."
+        echo "=================="
+        echo
     fi
         
     for file in "${g_FileList[@]}"; do
@@ -366,75 +371,74 @@ function download_subs
         local base=$(basename "$file")
         local output_path=$(dirname "$file")
         local output="$output_path/${base%.*}.$g_DefaultExt"
-		local output_img="$output_path/${base%.*}.jpg"
-		local conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
-		local fExists=0
+        local output_img="$output_path/${base%.*}.jpg"
+        local conv_output="$output_path/ORIG_${base%.*}.$g_DefaultExt"
+        local fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-		fExists=1
-	fi
+        fExists=1
+    fi
 
-	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
-            echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
-	    g_Skipped=$(( $g_Skipped + 1 ))
-            continue    
-        else
-            # md5sum and hash calculation
-			local sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
-			local hash=$(f $sum)        
-			local napiStatus=$(get_subtitles $sum $hash "$output")       
-			
-            if [[ $napiStatus = "1" ]]; then
-                echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-		g_Downloaded=$(( $g_Downloaded + 1 ))
+    if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then    
+        echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
+        g_Skipped=$(( $g_Skipped + 1 ))
+        continue    
+    else
+        # md5sum and hash calculation
+        local sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
+        local hash=$(f $sum)        
+        local napiStatus=$(get_subtitles $sum $hash "$output")       
+        
+        if [[ $napiStatus = "1" ]]; then
+            echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
+            g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-		# conversion to different format requested
-                if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
-					local outputSubs=""
-					local subotage_c2=""
+            # conversion to different format requested
+            if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
+                local outputSubs=""
+                local subotage_c2=""
 
-					echo " -- Konwertuje napisy do formatu: [$g_Format]"
-				
-					# determine the output extention and the output filename
-					# if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-					case "$g_Format" in
-					"subrip")
-						outputSubs="$output_path/${base%.*}.srt"
-						;;
-							
-					"subviewer")
-						outputSubs="$output_path/${base%.*}.sub"
-						;;
-					
-					*)
-						cp "$output" "$conv_output"
-						outputSubs="$output"
-						output="$conv_output"
-						;;
-					esac
-																	
-					f_detect_fps "$file"
-					if [[ "$g_Fps" != "0" ]]; then
-						echo " -- FPS okreslony na podstawie pliku wideo: [$g_Fps]"
-						subotage_c2="-fi $g_Fps"
-					else
-						echo " -- Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
-						subotage_c2=""
-					fi
-							
-					echo " -- Wolam subotage.sh"
-					echo " -- =================="
-					subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
+                echo " -- Konwertuje napisy do formatu: [$g_Format]"
+            
+                # determine the output extention and the output filename
+                # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
+                case "$g_Format" in
+                "subrip")
+                    outputSubs="$output_path/${base%.*}.srt"
+                    ;;
+                        
+                "subviewer")
+                    outputSubs="$output_path/${base%.*}.sub"
+                    ;;
+                
+                *)
+                    cp "$output" "$conv_output"
+                    outputSubs="$output"
+                    output="$conv_output"
+                    ;;
+                esac
+                                                                
+                f_detect_fps "$file"
+                if [[ "$g_Fps" != "0" ]]; then
+                    echo " -- FPS okreslony na podstawie pliku wideo: [$g_Fps]"
+                    subotage_c2="-fi $g_Fps"
+                else
+                    echo " -- Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
+                    subotage_c2=""
+                fi
+                        
+                echo " -- Wolam subotage.sh"
+                echo " -- =================="
+                subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
 
-					# remove the old format if conversion was successful
-					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
-					echo " -- =================="
-		fi
+                # remove the old format if conversion was successful
+                [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
+                echo " -- =================="
+            fi
             else # [[ $napiStatus = "1" ]]
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-		g_Unavailable=$(( $g_Unavailable + 1 ))
+                g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
-            
             fi # [[ $napiStatus = "1" ]]
             
             if [[ $g_Cover = "1" ]]; then
@@ -462,7 +466,6 @@ function f_check_for_fps_detectors
 {
     if [[ -n $(builtin type -P mediainfo) ]]; then
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
-    
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
     elif [[ -n $(builtin type -P mplayer) ]]; then    
@@ -484,29 +487,29 @@ function f_print_error
 function f_detect_fps
 {
    if [[ -n $g_FpsTool ]]; then
-		echo "Okreslam FPS na podstawie pliku video"
-		local cmd=${g_FpsTool/\{\}/"$1"}		
-		local tmpFps=$(eval $cmd)
-		
-		if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
-			g_Fps=$tmpFps
-		fi		
-	else
-		echo -e "Brak narzedzi do wykrywania FPS.\nFPS zostanie okreslony na podstawie pliku napisow, lub przyjmie sie wartosc domyslna."
-	fi
+        echo "Okreslam FPS na podstawie pliku video"
+        local cmd=${g_FpsTool/\{\}/"$1"}        
+        local tmpFps=$(eval $cmd)
+        
+        if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
+            g_Fps=$tmpFps
+        fi      
+    else
+        echo -e "Brak narzedzi do wykrywania FPS.\nFPS zostanie okreslony na podstawie pliku napisow, lub przyjmie sie wartosc domyslna."
+    fi
 }
 
 # scan if all needed tools are available
 function f_check_mandatory_tools
 {
-	local elem=""
+    local elem=""
 
-	for elem in "${g_MandatoryTools[@]}"; do
-		if [[ -z "$(builtin type -P $elem)" ]]; then
-			f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
-			exit
-		fi	
-	done	
+    for elem in "${g_MandatoryTools[@]}"; do
+        if [[ -z "$(builtin type -P $elem)" ]]; then
+            f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
+            exit
+        fi  
+    done    
 }
 
 ########################################################################
@@ -565,24 +568,24 @@ while [ $# -gt 0 ]; do
         g_Pass="$1"     
         ;;
 
-		# extension
-		"-e" | "--ext")
-		shift
-		if [[ -z "$1" ]]; then
-			f_printf_error "Nie okreslono domyslnego rozszerzenia dla pobranych plikow"
-			exit
-		fi
-		g_DefaultExt="$1"
-		;;
+        # extension
+        "-e" | "--ext")
+        shift
+        if [[ -z "$1" ]]; then
+            f_printf_error "Nie okreslono domyslnego rozszerzenia dla pobranych plikow"
+            exit
+        fi
+        g_DefaultExt="$1"
+        ;;
 
-		"-b" | "--bigger-than")
-		shift
-		if [[ -z "$1" ]]; then
-			f_printf_error "Nie okreslono minimalnego rozmiaru"
-			exit
-		fi
-		g_MinimumSize="$1"
-		;;
+        "-b" | "--bigger-than")
+        shift
+        if [[ -z "$1" ]]; then
+            f_printf_error "Nie okreslono minimalnego rozmiaru"
+            exit
+        fi
+        g_MinimumSize="$1"
+        ;;
 
 
         # logfile
@@ -600,18 +603,18 @@ while [ $# -gt 0 ]; do
         shift
         if [[ -z "$1" ]]; then
             f_print_error "Wybierz jeden z dostepnych 2/3 literowych kodow jezykowych"
-			list_languages
+            list_languages
             exit        
         fi
 
-		tmp=$(check_language "$1")
-		if [[ -n "$tmp" ]]; then
-			g_Lang=${g_LanguageCodes2L[$tmp]}
-		else
+        tmp=$(check_language "$1")
+        if [[ -n "$tmp" ]]; then
+            g_Lang=${g_LanguageCodes2L[$tmp]}
+        else
             f_print_error "Nieznany kod jezyka [$1]"
-			list_languages
-			exit
-		fi
+            list_languages
+            exit
+        fi
         ;;
 
         # destination format definition
