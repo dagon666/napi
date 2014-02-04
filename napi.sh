@@ -53,9 +53,31 @@ g_MandatoryTools=(  $g_Md5 'tr' 'printf'
 					'wget' 'find' 'dd' 
 					'grep' 'sed' 'cut' )
 
+# language code arrays
+g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
+		'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
+		'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
+		'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
+		'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' 
+		'Niemiecki' 'Norweski' 'Oksytański' 'Perski' 
+		'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' 
+		'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
+		'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
+
+g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
+				    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
+					'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
+					'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
+
+g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
+					'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
+					'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
+					'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
+					'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
+
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.10"
+g_Revison="v1.1.11"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -101,8 +123,8 @@ function display_help
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
-    echo "   -l | --log <logfile> - drukuj output to pliku zamiast"
-    echo "                          na konsole"
+    echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
+    echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -150,6 +172,49 @@ function display_help
         fi
     fi
 }
+
+
+#
+# @brief: list all the supported languages and their respective 2/3 letter codes
+#
+function list_languages
+{
+	local i=0
+	while [[ $i -lt ${#g_Language[@]} ]]; do
+		echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
+		i=$(( $i + 1 ))
+	done
+}
+
+
+#
+# @brief verify that the given language code is supported
+function check_language
+{
+	local lang="$1"
+	local l_arr=(  )
+	local l_arr_name=""
+	local i=0
+	
+	if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
+		echo "0"
+		return
+	fi
+
+	l_arr_name="g_LanguageCodes${#lang}L";
+	eval l_arr=\( \${${l_arr_name}[@]} \)
+
+	while [[ $i -lt ${#l_arr[@]} ]]; do
+		if [[ "${l_arr[$i]}" = "$lang" ]]; then
+			echo "$i"
+			return
+		fi
+		i=$(( $i + 1 ))
+	done
+
+	echo "0"
+}
+
 
 #
 # @brief: check if the given file is a video file
@@ -290,7 +355,7 @@ function prepare_file_list
 function download_subs
 {   
 	local file=""
-	
+
     if [[ ${#g_FileList[*]} -gt 0 ]]; then
     	echo "=================="
     	echo "Pobieram napisy..."
@@ -309,12 +374,12 @@ function download_subs
 		local fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-			fExists=1
-		fi
+		fExists=1
+	fi
 
-		if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
+	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
             echo -e "[SKIP]\t[${base%.*}.$g_DefaultExt]:\tPlik z napisami juz istnieje !!!"
-			g_Skipped=$(( $g_Skipped + 1 ))
+	    g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
             # md5sum and hash calculation
@@ -324,9 +389,9 @@ function download_subs
 			
             if [[ $napiStatus = "1" ]]; then
                 echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-				g_Downloaded=$(( $g_Downloaded + 1 ))
+		g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-				# conversion to different format requested
+		# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
 					local outputSubs=""
 					local subotage_c2=""
@@ -367,17 +432,19 @@ function download_subs
 					# remove the old format if conversion was successful
 					[[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
 					echo " -- =================="
-				fi
+		fi
             else # [[ $napiStatus = "1" ]]
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-				g_Unavailable=$(( $g_Unavailable + 1 ))
+		g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
+            
             fi # [[ $napiStatus = "1" ]]
             
             if [[ $g_Cover = "1" ]]; then
                 get_cover "$sum" "$output_img"
             fi
         fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
+
     done    
 }
 
@@ -398,6 +465,7 @@ function f_check_for_fps_detectors
 {
     if [[ -n $(builtin type -P mediainfo) ]]; then
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
+    
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
     elif [[ -n $(builtin type -P mplayer) ]]; then    
@@ -528,6 +596,26 @@ while [ $# -gt 0 ]; do
             exit        
         fi
         g_LogFile="$1"           
+        ;;
+
+        # languages
+        "-L" | "--language")
+        shift
+        if [[ -z "$1" ]]; then
+            f_print_error "Wybierz jeden z dostepnych 2/3 literowych kodow jezykowych"
+			list_languages
+            exit        
+        fi
+
+		check_language "$1"
+
+		if [[ $? -eq 1 ]]; then
+			g_Lang="$1"
+		else
+            f_print_error "Nieznany kod jezyka [$1]"
+			list_languages
+			exit
+		fi
         ;;
 
         # destination format definition
