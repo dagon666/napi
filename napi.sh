@@ -197,7 +197,6 @@ function check_language
 	local i=0
 	
 	if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
-		echo "0"
 		return
 	fi
 
@@ -211,8 +210,6 @@ function check_language
 		fi
 		i=$(( $i + 1 ))
 	done
-
-	echo "0"
 }
 
 
@@ -607,10 +604,9 @@ while [ $# -gt 0 ]; do
             exit        
         fi
 
-		check_language "$1"
-
-		if [[ $? -eq 1 ]]; then
-			g_Lang="$1"
+		tmp=$(check_language "$1")
+		if [[ -n "$tmp" ]]; then
+			g_Lang=${g_LanguageCodes2L[$tmp]}
 		else
             f_print_error "Nieznany kod jezyka [$1]"
 			list_languages
