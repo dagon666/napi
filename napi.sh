@@ -213,6 +213,22 @@ function check_language
     done
 }
 
+#
+# @brief set the language variable
+# @param: language index
+#
+function set_language
+{
+	local lang=${g_LanguageCodes2L[$1]}
+
+	# don't ask me why
+	if [[ $lang = "EN" ]]; then
+		lang="ENG"
+	fi
+
+	g_Lang="$lang"
+}
+
 
 #
 # @brief: check if the given file is a video file
@@ -326,12 +342,15 @@ function get_cover
 #
 function prepare_file_list
 {
-    local file
+    local file=""
     for file in "$@"; do
-        
+
         # check if file exists, if not skip it
-        if [[ -e "$file" ]] && [[ ! -s "$file" ]]; then
-            echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik nie istnieje lub jest pusty !!!"
+		if [[ ! -e "$file" ]]; then
+            continue
+
+        elif [[ ! -s "$file" ]]; then
+            echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik jest pusty !!!"
             continue
 
         # check if is a directory
@@ -359,10 +378,7 @@ function download_subs
     local file=""
 
     if [[ ${#g_FileList[*]} -gt 0 ]]; then
-        echo "=================="
         echo "Pobieram napisy..."
-        echo "=================="
-        echo
     fi
         
     for file in "${g_FileList[@]}"; do
@@ -387,7 +403,7 @@ function download_subs
         # md5sum and hash calculation
         local sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
         local hash=$(f $sum)        
-        local napiStatus=$(get_subtitles $sum $hash "$output")       
+        local napiStatus=$(get_subtitles $sum $hash "$output")
         
         if [[ $napiStatus = "1" ]]; then
             echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
@@ -608,8 +624,8 @@ while [ $# -gt 0 ]; do
         fi
 
         tmp=$(check_language "$1")
-        if [[ -n "$tmp" ]]; then
-            g_Lang=${g_LanguageCodes2L[$tmp]}
+        if [[ -n "$tmp" ]]; then			
+			set_language "$tmp"
         else
             f_print_error "Nieznany kod jezyka [$1]"
             list_languages
@@ -677,12 +693,7 @@ f_check_mandatory_tools
 ########################################################################
 ########################################################################
 
-echo
-echo "=================="
 echo "Wywolano o [$(date)]"
-echo "=================="
-echo
-
 #set -- "${g_Params[@]}"
 prepare_file_list "${g_Params[@]}"
 download_subs
@@ -692,14 +703,11 @@ download_subs
 ########################################################################
 
 echo
-echo "==================="
-echo "Koniec"
+echo "Podsumowanie"
 echo -e "Pominieto:\t[$g_Skipped]"
 echo -e "Pobrano:\t[$g_Downloaded]"
 echo -e "Niedostepne:\t[$g_Unavailable]"
 echo -e "Lacznie:\t[${#g_FileList[*]}]"
-echo "==================="
-echo
       
 # restore original stdout
 if [[ "$g_LogFile" != "none" ]]; then   
