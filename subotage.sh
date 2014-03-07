@@ -922,12 +922,19 @@ function f_print_error
     if [[ $g_Quiet -eq 1 ]]; then
         echo "Error" > /dev/stderr
     else
-    
-        echo "=======================================" > /dev/stderr
         echo "An error occured. Execution aborted !!!" > /dev/stderr
         echo -e "$@" > /dev/stderr
-        echo "=======================================" > /dev/stderr
         echo > /dev/stderr
+    fi
+}
+
+# @brief warning wrapper
+function f_print_warning
+{
+    if [[ $g_Quiet -eq 1 ]]; then
+        echo "Warning" > /dev/stderr
+    else
+        echo -e "Warning: $@" > /dev/stderr
     fi
 }
 
@@ -945,7 +952,7 @@ function f_guess_format
     lines=$(cat "$1" 2> /dev/null | wc -l)
     if [[ $lines -eq 0 ]]; then
         f_print_error "Input file has zero lines inside"
-        exit
+        exit -1
     fi
     
     detected_format="not detected"
@@ -1044,7 +1051,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [[ -z "$1" ]] || ! [[ -e "$1" ]]; then
             f_print_error "No input file specified or file doesnt exist !!! [$1]"
-            exit                        
+            exit -1
         fi
         g_InputFile="$1"
         ;;
@@ -1054,7 +1061,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [[ -z "$1" ]]; then
             f_print_error "No output file specified !!!"
-            exit                
+            exit -1
         fi
         g_OutputFile="$1"       
         ;;
@@ -1064,7 +1071,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [ -z "$1" ]; then
             f_print_error "No input format specified"
-            exit
+            exit -1
         fi
 
         if_valid=0
@@ -1077,7 +1084,7 @@ while [ $# -gt 0 ]; do
         
         if [[ if_valid -eq 0 ]]; then
             f_print_error "Specified input format is not valid: [$1]"
-            exit
+            exit -1
         fi      
         g_InputFormat=$1        
         ;;
@@ -1087,7 +1094,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [ -z "$1" ]; then
             f_print_error "No output format specified"
-            exit
+            exit -1
         fi
         
         of_valid=0
@@ -1100,7 +1107,7 @@ while [ $# -gt 0 ]; do
         
         if [[ of_valid -eq 0 ]]; then
             f_print_error "Specified output format is not valid: [$1]"
-            exit
+            exit -1
         fi      
         g_OutputFormat=$1
         ;;
@@ -1110,7 +1117,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [ -z "$1" ]; then
             f_print_error "No time specified specified"
-            exit
+            exit -1
         fi
         
         dot_removed=$(echo "$1" | tr -d '.,')
@@ -1122,14 +1129,14 @@ while [ $# -gt 0 ]; do
         shift       
         if [[ -z "$1" ]]; then
             f_print_error "No framerate specified"
-            exit
+            exit -1
         fi
         g_InFpsGiven=1
         
         # check if fps is integer or float
         if [[ -n $(echo "$1" | tr -d '[\n\.0-9]') ]]; then
             f_print_error "Framerate is not in an acceptable number format [$1]"
-            exit            
+            exit -1
         else
             g_InputFrameRate="$1"
         fi      
@@ -1140,7 +1147,7 @@ while [ $# -gt 0 ]; do
         shift       
         if [[ -z "$1" ]] || ! [[ -e "$1" ]]; then
             f_print_error "No input file specified or file doesnt exist !!!"
-            exit                        
+            exit -1
         fi
         
         detectedFormat=$(f_guess_format "$1")
@@ -1170,13 +1177,13 @@ while [ $# -gt 0 ]; do
         shift       
         if [ -z "$1" ]; then
             f_print_error "No framerate specified"
-            exit
+            exit -1
         fi
         
         # check if fps is integer or float      
         if [[ -n $(echo "$1" | tr -d '[\n\.0-9]') ]]; then
             f_print_error "Framerate is not in an acceptable number format [$1]"
-            exit
+            exit -1
         else
             g_OutputFrameRate="$1"
         fi      
@@ -1190,7 +1197,7 @@ while [ $# -gt 0 ]; do
         # sanity check for unknown parameters
         *)
         f_print_error "Unknown parameter: [$1]"
-        exit
+        exit -1
         ;;
     esac
     
@@ -1201,7 +1208,7 @@ done
 # filenames validation
 if [[ $g_InputFile == "none" ]] || [[ $g_OutputFile == "none" ]]; then
     f_print_error "Input/Output file not specified !!!"
-    exit
+    exit -1
 fi
 
 # handle the input file format
@@ -1210,7 +1217,7 @@ if [[ $g_InputFormat == "none" ]]; then
     
     if [[ $g_DetectedFormat = "not detected" ]]; then
         f_print_error "Invalid Input File Format!\nSpecify input format manually to override autodetection."
-        exit
+        exit -1
     fi
     
     g_InputFormat=$g_DetectedFormat
@@ -1267,14 +1274,14 @@ if [[ ${g_InputFormatData[0]} == $g_OutputFormat ]]; then
     
         "microdvd")
             if [[ $g_InputFrameRate -eq $g_OutputFrameRate ]]; then
-                f_print_error "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
-                exit
+                f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
+                exit -1
             fi
         ;;
     
         *)
-        f_print_error "No convertion is needed input format == output format"
-        exit
+        f_print_warning "No convertion is needed input format == output format"
+        exit -1
         ;;
     esac
 fi
@@ -1300,14 +1307,14 @@ status=$($g_Reader "$g_InputFile" "${g_InputFormatData[1]}" "${g_InputFormatData
 
 if [[ $status -ne 0 ]]; then
     f_print_error "Reading error. Error code: [$status]"
-    exit
+    exit -1
 else
 	f_correct_overlaps;
     status=$($g_Writer "$g_OutputFile")
     
     if [[ $status -ne 0 ]]; then
         f_print_error "Writing error. Error code: [$status]"
-        exit
+        exit -1
     fi
 fi
     
