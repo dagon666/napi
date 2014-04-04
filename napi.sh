@@ -486,6 +486,8 @@ function f_check_for_fps_detectors
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
+    elif [[ -n $(builtin type -P ffmpeg) ]]; then
+        g_FpsTool="ffmpeg -i \"{}\" 2>&1 | grep -i \"Video:\" | perl -ne 'print \$1 if /([0-9]+\.?[0-9]*) fps/'"
     fi
 }
 
