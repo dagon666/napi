@@ -88,6 +88,7 @@ g_Skip=0
 g_Format="no_conversion"
 g_Formats=( )
 g_Params=( )
+g_Abbrev=""
 
 # subotage presence indicator
 g_SubotagePresence=0
@@ -449,6 +450,14 @@ function download_subs
 
                 # remove the old format if conversion was successful
                 [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
+                
+                # jezeli ustawiona wstawka, to dodaje
+                if [[ -f "$outputSubs" ]] && [[ "$g_Abbrev" != "" ]]; then
+                  echo " -- =================="
+                  echo "Dodaje '$g_Abbrev' do rozszerzenia"
+                  newFile=$(eval "echo \"$outputSubs\" | sed 's/.srt\$/.$g_Abbrev.srt/'")
+                  mv "$outputSubs" "$newFile"
+                fi
                 echo " -- =================="
             fi
             else # [[ $napiStatus = "1" ]]
@@ -506,7 +515,7 @@ function f_detect_fps
 {
    if [[ -n $g_FpsTool ]]; then
         echo "Okreslam FPS na podstawie pliku video"
-        local cmd=${g_FpsTool/\{\}/"$1"}        
+        local cmd=${g_FpsTool/\{\}/"$1"}                
         local tmpFps=$(eval $cmd)
         
         if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
@@ -633,6 +642,17 @@ while [ $# -gt 0 ]; do
             list_languages
             exit
         fi
+        ;;
+        
+        # abbrev
+        "-a" | "--abbrev")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki"
+          exit
+        fi
+        
+        g_Abbrev="$1"
         ;;
 
         # destination format definition
