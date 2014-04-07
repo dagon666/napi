@@ -126,6 +126,7 @@ function display_help
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
+    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -455,7 +456,9 @@ function download_subs
                 if [[ -f "$outputSubs" ]] && [[ "$g_Abbrev" != "" ]]; then
                   echo " -- =================="
                   echo "Dodaje '$g_Abbrev' do rozszerzenia"
-                  newFile=$(eval "echo \"$outputSubs\" | sed 's/.srt\$/.$g_Abbrev.srt/'")
+                  extension="${outputSubs##*.}"
+                  file="${outputSubs%.*}"
+                  newFile="${file}.${g_Abbrev}.${extension}"
                   mv "$outputSubs" "$newFile"
                 fi
                 echo " -- =================="
@@ -496,7 +499,7 @@ function f_check_for_fps_detectors
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
     elif [[ -n $(builtin type -P ffmpeg) ]]; then
-        g_FpsTool="ffmpeg -i \"{}\" 2>&1 | grep -i \"Video:\" | perl -ne 'print \$1 if /([0-9]+\.?[0-9]*) fps/'"
+        g_FpsTool="ffmpeg -i \"{}\" 2>&1 | grep \"Video:\" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1"
     fi
 }
 
