@@ -126,7 +126,7 @@ function display_help
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
-    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)
+    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -372,6 +372,7 @@ function prepare_file_list
     done
 }
 
+
 #
 # @brief try to download subs for all the files present in the list
 #
@@ -451,19 +452,19 @@ function download_subs
 
                 # remove the old format if conversion was successful
                 [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
-                
-                # jezeli ustawiona wstawka, to dodaje
-                if [[ -f "$outputSubs" ]] && [[ "$g_Abbrev" != "" ]]; then
-                  echo " -- =================="
-                  echo "Dodaje '$g_Abbrev' do rozszerzenia"
-                  extension="${outputSubs##*.}"
-                  file="${outputSubs%.*}"
-                  newFile="${file}.${g_Abbrev}.${extension}"
-                  mv "$outputSubs" "$newFile"
-                fi
-                echo " -- =================="
+				output="$outputSubs"
             fi
-            else # [[ $napiStatus = "1" ]]
+
+			# jezeli ustawiona wstawka, to dodaje
+			if [[ "$g_Abbrev" != "" ]]; then
+				echo "Dodaje '$g_Abbrev' do rozszerzenia"
+				extension="${output##*.}"
+				file="${output%.*}"
+				newFile="${file}.${g_Abbrev}.${extension}"
+				mv "$output" "$newFile"
+			fi
+
+		else # [[ $napiStatus = "1" ]]
                 echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
                 g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
