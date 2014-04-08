@@ -88,6 +88,7 @@ g_Skip=0
 g_Format="no_conversion"
 g_Formats=( )
 g_Params=( )
+g_Abbrev=""
 
 # subotage presence indicator
 g_SubotagePresence=0
@@ -125,6 +126,7 @@ function display_help
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
+    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -449,6 +451,16 @@ function download_subs
 
                 # remove the old format if conversion was successful
                 [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
+                
+                # jezeli ustawiona wstawka, to dodaje
+                if [[ -f "$outputSubs" ]] && [[ "$g_Abbrev" != "" ]]; then
+                  echo " -- =================="
+                  echo "Dodaje '$g_Abbrev' do rozszerzenia"
+                  extension="${outputSubs##*.}"
+                  file="${outputSubs%.*}"
+                  newFile="${file}.${g_Abbrev}.${extension}"
+                  mv "$outputSubs" "$newFile"
+                fi
                 echo " -- =================="
             fi
             else # [[ $napiStatus = "1" ]]
@@ -486,6 +498,8 @@ function f_check_for_fps_detectors
         g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
+    elif [[ -n $(builtin type -P ffmpeg) ]]; then
+        g_FpsTool="ffmpeg -i \"{}\" 2>&1 | grep \"Video:\" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1"
     fi
 }
 
@@ -504,7 +518,7 @@ function f_detect_fps
 {
    if [[ -n $g_FpsTool ]]; then
         echo "Okreslam FPS na podstawie pliku video"
-        local cmd=${g_FpsTool/\{\}/"$1"}        
+        local cmd=${g_FpsTool/\{\}/"$1"}                
         local tmpFps=$(eval $cmd)
         
         if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
@@ -631,6 +645,17 @@ while [ $# -gt 0 ]; do
             list_languages
             exit
         fi
+        ;;
+        
+        # abbrev
+        "-a" | "--abbrev")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki"
+          exit
+        fi
+        
+        g_Abbrev="$1"
         ;;
 
         # destination format definition
