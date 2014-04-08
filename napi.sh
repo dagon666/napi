@@ -77,7 +77,7 @@ g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.11"
+g_Revison="v1.1.12"
 g_Version="pynapi"
 #g_Version="other"
 

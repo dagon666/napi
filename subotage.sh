@@ -38,7 +38,7 @@ g_LineCounter=0
 g_Quiet=0
 
 # current version
-g_Version="0.16 alpha"
+g_Version="0.17 alpha"
 
 # supported subtitle file formats
 g_FileFormats=( "microdvd" "mpl2" "subrip" "tmplayer" "subviewer" "fab" )
