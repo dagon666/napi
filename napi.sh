@@ -389,11 +389,19 @@ function download_subs
         # input/output filename manipulation
         local base=$(basename "$file")
         local output_path=$(dirname "$file")
+		local output_file_noext="${base%.*}"
 
-        local output_file="${base%.*}.$g_DefaultExt"
+		# jezeli ustawiona wstawka, to dodaje
+		if [[ "$g_Abbrev" != "" ]]; then
+			echo "Dodaje '$g_Abbrev' do rozszerzenia"
+			output_file_noext="${output_file_noext}.${g_Abbrev}"
+		fi
+
+        local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
-        local output_img="$output_path/${base%.*}.jpg"
         local conv_output="$output_path/ORIG_$output_file"
+
+        local output_img="$output_path/${base%.*}.jpg"
         local fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
@@ -425,11 +433,11 @@ function download_subs
                     # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
                     case "$g_Format" in
                     "subrip")
-                        outputSubs="$output_path/${base%.*}.srt"
+                        outputSubs="$output_path/${output_file_noext}.srt"
                         ;;
                             
                     "subviewer")
-                        outputSubs="$output_path/${base%.*}.sub"
+                        outputSubs="$output_path/${output_file_noext}.sub"
                         ;;
                     
                     *)
@@ -454,15 +462,6 @@ function download_subs
                     # remove the old format if conversion was successful
                     [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
                     output="$outputSubs"
-                fi
-
-                # jezeli ustawiona wstawka, to dodaje
-                if [[ "$g_Abbrev" != "" ]]; then
-                    echo "Dodaje '$g_Abbrev' do rozszerzenia"
-                    extension="${output##*.}"
-                    file="${output%.*}"
-                    newFile="${file}.${g_Abbrev}.${extension}"
-                    mv "$output" "$newFile"
                 fi
 
             else # [[ $napiStatus = "1" ]]
