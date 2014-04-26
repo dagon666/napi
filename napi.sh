@@ -51,7 +51,7 @@ g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 # list of all mandatory to basic functionality tools
 g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
                     'wget' 'find' 'dd' 
-                    'grep' 'sed' 'cut' )
+                    'grep' 'sed' 'cut' 'seq' )
 
 # language code arrays
 g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
@@ -269,13 +269,14 @@ function f
     local b=""    
     local i=0
 
-    for i in {0..4}; do
+    # for i in {0..4}; do
+	for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
         local g=${t_idx[$i]}
         
-        local t=$(( a + 16#${sum:$g:1}))
-        local v=$((16#${sum:$t:2} ))
+        local t=$(( a + 16#${sum:$g:1} ))
+        local v=$(( 16#${sum:$t:2} ))
         
         local x=$(( (v*m) % 0x10 ))
         local z=$(printf "%X" $x)
