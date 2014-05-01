@@ -320,6 +320,9 @@ function get_subtitles
             echo "0"
             rm -rf "$3"
         else
+	    local tmp=`mktemp`
+            iconv -f WINDOWS-1250 -t utf8 $3 > $tmp
+	    mv $tmp $3
             echo "1"            
         fi
     fi      
