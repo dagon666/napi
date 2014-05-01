@@ -303,7 +303,7 @@ function get_subtitles
             exit
         fi
                 
-        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null > "$3"
+        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null | iconv -f WINDOWS-1250 -t utf8 > "$3"
         rm -rf napisy.7z
     
         if [[ -s "$3" ]]; then
@@ -320,6 +320,9 @@ function get_subtitles
             echo "0"
             rm -rf "$3"
         else
+	    local tmp=`mktemp`
+            iconv -f WINDOWS-1250 -t utf8 $3 > $tmp
+	    mv $tmp $3
             echo "1"            
         fi
     fi      
