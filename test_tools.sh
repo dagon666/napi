@@ -29,4 +29,4 @@ test_tool "wget" "wget --help | grep -i 'wget'"
 test_tool "find" "mkdir -p /tmp/test/xxx && find /tmp/test -type d -name xxx | grep -i 'xxx' ; rm -rf /tmp/test"
 test_tool "dd" "dd status=none if=/dev/urandom count=32"
 test_tool "seq" "seq 32 64 | grep -i 50"
-
+test_tool "iconv" "echo x | iconv"
