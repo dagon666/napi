@@ -44,6 +44,7 @@ test_tool "wget" "wget --help | grep -i 'wget'"
 test_tool "find" "mkdir -p /tmp/test/xxx && find /tmp/test -type d -name xxx | grep -i 'xxx' ; rm -rf /tmp/test"
 test_tool "seq" "seq 32 64 | grep -i 50"
 test_tool "dd" "dd if=/dev/urandom count=32 bs=1k of=/tmp/test.dd 2> /dev/null && stat /tmp/test.dd && rm /tmp/test.dd"
+test_tool "iconv" "echo x | iconv"
 
 # other
 test_local_array

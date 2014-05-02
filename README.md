@@ -71,6 +71,7 @@ Required External Tools
 - head
 - grep
 - awk
+- iconv
 
 To check if the listed tools are available in your system and their functionality meets the subotage.sh script requirements please use the attached test_tools.sh script.
 
