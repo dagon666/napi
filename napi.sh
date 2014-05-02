@@ -77,21 +77,26 @@ declare -a g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.12"
+g_Revison="v1.1.13"
 g_Version="pynapi"
 #g_Version="other"
 
 # global file list
 declare -a g_FileList=( )
+declare -a g_Formats=( )
+declare -a g_Params=( )
+
 g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
-declare -a g_Formats=( )
-declare -a g_Params=( )
 g_Abbrev=""
+g_Charset=""
 
 # subotage presence indicator
 g_SubotagePresence=0
+
+# iconv presence
+g_IconvPresence=0
 
 # fps detection tools: mediainfo mplayer
 g_FpsTool=""
@@ -118,6 +123,11 @@ display_help() {
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
+
+    if [[ $g_IconvPresence -eq 1 ]]; then    
+        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
+    fi
+
     echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
     echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
@@ -264,10 +274,10 @@ f() {
     local i=0
 
     # for i in {0..4}; do
-	for i in $(seq 0 4); do
+    for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
-        local g=${t_idx[$i]}		
+        local g=${t_idx[$i]}        
         
         local t=$(( a + 16#${sum:$g:1} ))
         local v=$(( 16#${sum:$t:2} ))
@@ -297,7 +307,7 @@ get_subtitles() {
             exit
         fi
                 
-        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null | iconv -f WINDOWS-1250 -t utf8 > "$3"
+        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null > "$3"
         rm -rf napisy.7z
     
         if [[ -s "$3" ]]; then
@@ -314,9 +324,6 @@ get_subtitles() {
             echo "0"
             rm -rf "$3"
         else
-	    local tmp=`mktemp`
-            iconv -f WINDOWS-1250 -t utf8 $3 > $tmp
-	    mv $tmp $3
             echo "1"            
         fi
     fi      
@@ -383,13 +390,13 @@ download_subs() {
         # input/output filename manipulation
         local base=$(basename "$file")
         local output_path=$(dirname "$file")
-		local output_file_noext="${base%.*}"
+        local output_file_noext="${base%.*}"
 
-		# jezeli ustawiona wstawka, to dodaje
-		if [[ "$g_Abbrev" != "" ]]; then
-			echo "Dodaje '$g_Abbrev' do rozszerzenia"
-			output_file_noext="${output_file_noext}.${g_Abbrev}"
-		fi
+        # jezeli ustawiona wstawka, to dodaje
+        if [[ "$g_Abbrev" != "" ]]; then
+            echo "Dodaje '$g_Abbrev' do rozszerzenia"
+            output_file_noext="${output_file_noext}.${g_Abbrev}"
+        fi
 
         local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
@@ -456,7 +463,15 @@ download_subs() {
                     # remove the old format if conversion was successful
                     [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
                     output="$outputSubs"
-                fi
+                fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
+
+                # charset conversion
+                if [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]; then
+                    echo " -- Konwertuje kodowanie"
+                    local tmp=`mktemp`
+                    iconv -f WINDOWS-1250 -t $g_Charset "$output" > $tmp
+                    mv $tmp "$output"
+                fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
 
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
@@ -472,6 +487,7 @@ download_subs() {
     done    
 }
 
+
 #
 # @brief check if subotage.sh is installed and available
 #
@@ -480,6 +496,17 @@ f_check_for_subotage() {
         g_SubotagePresence=1
     fi
 }
+
+
+#
+# @brief check if ifconv is installed and available
+#
+f_check_for_iconv() {
+    if [[ -n $(builtin type -P iconv) ]]; then
+        g_IconvPresence=1
+    fi
+}
+
 
 #
 # @brief check for FPS detection tools
@@ -538,6 +565,7 @@ f_check_mandatory_tools() {
 
 # initialisation
 f_check_for_subotage
+f_check_for_iconv
 f_check_for_fps_detectors
 
 
@@ -560,6 +588,16 @@ while [ $# -gt 0 ]; do
         # cover download
         "-c" | "--cover")
         g_Cover=1
+        ;;
+
+        # charset conversion
+        "-C" | "--charset")
+        shift
+        if [[ -z "$1" ]]; then
+            f_print_error "Nie podano docelowego kodowania"
+            exit
+        fi
+        g_Charset="$1"
         ;;
 
         # skip flag
