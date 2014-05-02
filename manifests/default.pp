@@ -1,5 +1,3 @@
-import 'netinstall.pp'
-
 exec { "apt-get update":
   path => "/usr/bin",
 }
@@ -11,7 +9,43 @@ package { "busybox":
 }
 
 
+package { "libssl-dev":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
 package { "make":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "bison":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "flex":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "patch":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "gcc-multilib":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "g++-multilib":
 	ensure => present,
     require => Exec["apt-get update"],
 }
@@ -22,6 +56,11 @@ package { "ncurses-dev":
     require => Exec["apt-get update"],
 }
 
+
+package { "libwww-perl":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
 
 file { "/home/vagrant/bin":
   ensure  => "directory",
@@ -47,13 +86,3 @@ file { "/home/vagrant/bin/subotage.sh":
     target => "/vagrant/subotage.sh",
 }
 
-
-puppi::netinstall { "bash3":
-  url => "http://ftp.gnu.org/gnu/bash/bash-3.0.tar.gz",
-  source_filename => "bash-3.0.tar.gz",
-  source_filetype => "tgz",
-  source_dirname => "bash",
-  extracted_dir => "bash-3.0",
-  destination_dir => "/tmp",
-  postextract_command => "/tmp/bash-3.0/configure && make && cp -v bash /home/vagrant/bin/bash3"
-}
