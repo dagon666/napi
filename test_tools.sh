@@ -1,7 +1,6 @@
 #!/bin/bash
 
-function test_tool
-{
+test_tool() {
 	eval "$2" > /tmp/tmp_result 2> /tmp/tmp_err
 
 	if [[ -s /tmp/tmp_err ]]; then
@@ -17,6 +16,22 @@ function test_tool
 	rm -rf /tmp/tmp_result
 }
 
+test_local_array() {
+	declare -a local a=( 1 2 3 4 5 )
+	local i=0
+
+	for i in $(seq 0 4); do
+		echo $i >> /tmp/test.la
+	done
+
+	if [[ $(wc -l /tmp/test.la | cut -d ' ' -f 1) -eq 5 ]]; then
+		echo "[OK] local arrays"
+	else
+		echo "[ERROR] Your shell has problems with local arrays"
+	fi
+	rm /tmp/test.la
+}
+
 
 test_tool "cut" "echo abc 123 efg | cut -d ' ' -f 1"
 test_tool "sed" "echo abc 123 efg | sed 's/^[a-z]*//'"
@@ -27,6 +42,9 @@ test_tool "tr" "echo abc 123 efg | tr 'abc' 'xxx' | grep -i 'xxx'"
 test_tool "printf" "printf '%s' abcdef | grep -i 'abc'"
 test_tool "wget" "wget --help | grep -i 'wget'"
 test_tool "find" "mkdir -p /tmp/test/xxx && find /tmp/test -type d -name xxx | grep -i 'xxx' ; rm -rf /tmp/test"
-test_tool "dd" "dd status=none if=/dev/urandom count=32"
 test_tool "seq" "seq 32 64 | grep -i 50"
+test_tool "dd" "dd if=/dev/urandom count=32 bs=1k of=/tmp/test.dd 2> /dev/null && stat /tmp/test.dd && rm /tmp/test.dd"
+test_tool "iconv" "echo x | iconv"
 
+# other
+test_local_array

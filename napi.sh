@@ -46,15 +46,15 @@ fi
 
 
 # supported video file extentions
-g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
+declare -a g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # list of all mandatory to basic functionality tools
-g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
+declare -a g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
                     'wget' 'find' 'dd' 
-                    'grep' 'sed' 'cut' )
+                    'grep' 'sed' 'cut' 'seq' )
 
 # language code arrays
-g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
+declare -a g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
         'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
         'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
         'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
@@ -64,12 +64,12 @@ g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski'
         'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
         'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
 
-g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
+declare -a g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
                     'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
                     'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
                     'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
 
-g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
+declare -a g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
                     'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
                     'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
                     'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
@@ -77,21 +77,26 @@ g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.12"
+g_Revison="v1.1.13"
 g_Version="pynapi"
 #g_Version="other"
 
 # global file list
-g_FileList=( )
+declare -a g_FileList=( )
+declare -a g_Formats=( )
+declare -a g_Params=( )
+
 g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
-g_Formats=( )
-g_Params=( )
 g_Abbrev=""
+g_Charset=""
 
 # subotage presence indicator
 g_SubotagePresence=0
+
+# iconv presence
+g_IconvPresence=0
 
 # fps detection tools: mediainfo mplayer
 g_FpsTool=""
@@ -113,12 +118,16 @@ g_Unavailable=0
 ########################################################################
 ########################################################################
 
-function display_help
-{
+display_help() {
     echo "=============================================================="
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
+
+    if [[ $g_IconvPresence -eq 1 ]]; then    
+        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
+    fi
+
     echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
     echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
@@ -179,8 +188,7 @@ function display_help
 #
 # @brief: list all the supported languages and their respective 2/3 letter codes
 #
-function list_languages
-{
+list_languages() {
     local i=0
     while [[ $i -lt ${#g_Language[@]} ]]; do
         echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
@@ -192,10 +200,9 @@ function list_languages
 #
 # @brief verify that the given language code is supported
 #
-function check_language
-{
+check_language() {
     local lang="$1"
-    local l_arr=(  )
+    declare -a local l_arr=(  )
     local l_arr_name=""
     local i=0
     
@@ -219,9 +226,8 @@ function check_language
 # @brief set the language variable
 # @param: language index
 #
-function set_language
-{
-    local lang=${g_LanguageCodes2L[$1]}
+set_language() {
+    declare -a local lang=${g_LanguageCodes2L[$1]}
 
     # don't ask me why
     if [[ $lang = "EN" ]]; then
@@ -237,8 +243,7 @@ function set_language
 # @param: video filename
 # @return: bool 1 - is video file, 0 - is not a video file
 #
-function check_extention
-{
+check_extention() {
     local is_video=0  
     local filename=$(basename "$1")
     local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
@@ -260,22 +265,22 @@ function check_extention
 # @brief: mysterious f() function
 # @param: md5sum
 #
-function f
-{
-    local t_idx=( 0xe 0x3 0x6 0x8 0x2 )
-    local t_mul=( 2 2 5 4 3 )
-    local t_add=( 0 0xd 0x10 0xb 0x5 )
+f() {
+    declare -a local t_idx=( 0xe 0x3 0x6 0x8 0x2 )
+    declare -a local t_mul=( 2 2 5 4 3 )
+    declare -a local t_add=( 0 0xd 0x10 0xb 0x5 )
     local sum="$1"
     local b=""    
     local i=0
 
-    for i in {0..4}; do
+    # for i in {0..4}; do
+    for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
-        local g=${t_idx[$i]}
+        local g=${t_idx[$i]}        
         
-        local t=$(( a + 16#${sum:$g:1}))
-        local v=$((16#${sum:$t:2} ))
+        local t=$(( a + 16#${sum:$g:1} ))
+        local v=$(( 16#${sum:$t:2} ))
         
         local x=$(( (v*m) % 0x10 ))
         local z=$(printf "%X" $x)
@@ -291,8 +296,7 @@ function f
 # @param: hash
 # @param: outputfile
 #
-function get_subtitles
-{   
+get_subtitles() {   
     local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$g_Lang&f=$1&t=$2&v=$g_Version&kolejka=false&nick=$g_User&pass=$g_Pass&napios=posix"
 
     if [[ $g_Version = "other" ]]; then
@@ -331,8 +335,7 @@ function get_subtitles
 # @param: md5sum
 # @param: outputfile
 #
-function get_cover
-{
+get_cover() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     wget -q -O "$2" "$url"
 }
@@ -342,8 +345,7 @@ function get_cover
 # @brief prepare a list of file which require processing
 # @param space delimited file list string
 #
-function prepare_file_list
-{
+prepare_file_list() {
     local file=""
     for file in "$@"; do
 
@@ -376,8 +378,7 @@ function prepare_file_list
 #
 # @brief try to download subs for all the files present in the list
 #
-function download_subs
-{   
+download_subs() {   
     local file=""
 
     if [[ ${#g_FileList[*]} -gt 0 ]]; then
@@ -389,13 +390,13 @@ function download_subs
         # input/output filename manipulation
         local base=$(basename "$file")
         local output_path=$(dirname "$file")
-		local output_file_noext="${base%.*}"
+        local output_file_noext="${base%.*}"
 
-		# jezeli ustawiona wstawka, to dodaje
-		if [[ "$g_Abbrev" != "" ]]; then
-			echo "Dodaje '$g_Abbrev' do rozszerzenia"
-			output_file_noext="${output_file_noext}.${g_Abbrev}"
-		fi
+        # jezeli ustawiona wstawka, to dodaje
+        if [[ "$g_Abbrev" != "" ]]; then
+            echo "Dodaje '$g_Abbrev' do rozszerzenia"
+            output_file_noext="${output_file_noext}.${g_Abbrev}"
+        fi
 
         local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
@@ -462,7 +463,15 @@ function download_subs
                     # remove the old format if conversion was successful
                     [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
                     output="$outputSubs"
-                fi
+                fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
+
+                # charset conversion
+                if [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]; then
+                    echo " -- Konwertuje kodowanie"
+                    local tmp=`mktemp`
+                    iconv -f WINDOWS-1250 -t $g_Charset "$output" > $tmp
+                    mv $tmp "$output"
+                fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
 
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
@@ -478,21 +487,31 @@ function download_subs
     done    
 }
 
+
 #
 # @brief check if subotage.sh is installed and available
 #
-function f_check_for_subotage
-{
+f_check_for_subotage() {
     if [[ -n $(builtin type -P subotage.sh) ]]; then
         g_SubotagePresence=1
     fi
 }
 
+
+#
+# @brief check if ifconv is installed and available
+#
+f_check_for_iconv() {
+    if [[ -n $(builtin type -P iconv) ]]; then
+        g_IconvPresence=1
+    fi
+}
+
+
 #
 # @brief check for FPS detection tools
 #
-function f_check_for_fps_detectors
-{
+f_check_for_fps_detectors() {
     if [[ -n $(builtin type -P mediainfo) ]]; then
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
     elif [[ -n $(builtin type -P mplayer2) ]]; then    
@@ -505,8 +524,7 @@ function f_check_for_fps_detectors
 }
 
 # @brief error wrapper
-function f_print_error
-{
+f_print_error() {
    if [[ "$g_LogFile" != "none" ]]; then   
       echo -e "$@"
    else
@@ -515,8 +533,7 @@ function f_print_error
 }
 
 # @brief detect fps from video file
-function f_detect_fps
-{
+f_detect_fps() {
    if [[ -n $g_FpsTool ]]; then
         echo "Okreslam FPS na podstawie pliku video"
         local cmd=${g_FpsTool/\{\}/"$1"}                
@@ -531,8 +548,7 @@ function f_detect_fps
 }
 
 # scan if all needed tools are available
-function f_check_mandatory_tools
-{
+f_check_mandatory_tools() {
     local elem=""
 
     for elem in "${g_MandatoryTools[@]}"; do
@@ -549,6 +565,7 @@ function f_check_mandatory_tools
 
 # initialisation
 f_check_for_subotage
+f_check_for_iconv
 f_check_for_fps_detectors
 
 
@@ -571,6 +588,16 @@ while [ $# -gt 0 ]; do
         # cover download
         "-c" | "--cover")
         g_Cover=1
+        ;;
+
+        # charset conversion
+        "-C" | "--charset")
+        shift
+        if [[ -z "$1" ]]; then
+            f_print_error "Nie podano docelowego kodowania"
+            exit
+        fi
+        g_Charset="$1"
         ;;
 
         # skip flag
