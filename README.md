@@ -3,7 +3,7 @@
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
 
-This script works on OS X as well.
+This script works on Linux & OS X systems. It has very limited requirements and is mostly depending on bash and coreutils (which should be available on most modern systems, no perl or python is required).
 
 Usage example:
 ==============
@@ -25,6 +25,12 @@ dir2/
 dir3/
 
 ... and you'll call napi.sh dir* - it will go through all of them and try to download subtitles for all files inside of them.
+
+napi.sh -b 100 *
+- download subtitles for all supported video files which are bigger than 100 MB.
+
+napi.sh -f subrip *
+- download subtitles for all supported video files and convert them to subrip format on the fly ( requires subotage.sh to be installed as well ).
 
 
 subotage.sh - universal subtitle format converter
@@ -81,3 +87,8 @@ Availability
 napi.sh & subotage.sh are available in bundle in AUR - Arch Linux User Repository. The package is named bashnapi and can be installed through yaourt:
 
 yaourt -S bashnapi
+
+Colaboration
+============
+
+napi.sh is an open project. Feel free to send patches and pull requests. When sending pull requests please develop you changes on the "dev" branch.
