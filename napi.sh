@@ -90,6 +90,7 @@ g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Abbrev=""
+g_Script=""
 g_Charset=""
 
 # subotage presence indicator
@@ -136,6 +137,7 @@ display_help() {
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
+    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -474,6 +476,11 @@ download_subs() {
                     mv $tmp "$output"
                 fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
 
+				if [[ $g_Script != "" ]]; then
+					echo " -- Wolam: $g_Script \"$output\""
+					$g_Script "$output"
+				fi
+
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
                     g_Unavailable=$(( $g_Unavailable + 1 ))
@@ -685,6 +692,17 @@ while [ $# -gt 0 ]; do
         fi
         
         g_Abbrev="$1"
+        ;;
+		
+        # script
+        "-S" | "--script")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki"
+          exit
+        fi
+        
+        g_Script="$1"
         ;;
 
         # destination format definition
