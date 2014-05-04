@@ -27,7 +27,7 @@ is ( system("/vagrant/subotage.sh --help | grep microdvd"), 0, "Subotage help" )
 is ( system("/vagrant/napi.sh --help | grep iconv"), 0, "Iconv detection" );
 
 # language support detection
-is ( system("/vagrant/napi.sh -L | grep Polski"), 0, "Language selection" );
+is ( system("/vagrant/napi.sh -L 2>/dev/null | grep Polski"), 0, "Language selection" );
 
 
 done_testing();

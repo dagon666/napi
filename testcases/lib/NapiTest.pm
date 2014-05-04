@@ -18,7 +18,35 @@ our @EXPORT = qw/
 	prepare_shells
 /;
 
+
 our $path_root = "/home/vagrant";
+our $testspace = $path_root . '/testspace';
+our $assets = $path_root . '/napi_test_files';
+
+sub prepare_fs {
+
+	my @dirs = (
+			'movies',
+			'mixed',
+			'unavailable',
+			'dir with white chars',
+			'dir with "quotation" marks',
+			'dir with \'quotation\' marks',
+			'dir_with_subdirs',
+			'special@[chars]-in.the.$$$.dir&#(name)-<%>'
+	);
+
+	foreach (@dirs) {
+		mkdir $testspace . '/' . "$_";
+		
+	}
+}
+
+
+sub clean_testspace {
+	print "Cleaning testspace\n";
+	unlink glob $testspace . '/*';
+}
 
 
 sub prepare_assets {
@@ -26,7 +54,9 @@ sub prepare_assets {
 	my $assets_path = $path_root . '/' . $assets_tgz;
 	my $url = "https://www.dropbox.com/s/gq2wbfkl7ep1uy8/napi_test_files.tgz";
 
-	croak "assets directory already exists\n" and return if ( -e $path_root . '/napi_test_files' ); 
+	mkdir $testspace;
+	
+	croak "assets directory already exists\n" and return if ( -e $assets ); 
 	print "Downloading assets\n" and system("wget $url -O $assets_path")
 		unless ( -e $assets_path );
 
