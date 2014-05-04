@@ -374,7 +374,6 @@ prepare_file_list() {
     done
 }
 
-
 #
 # @brief try to download subs for all the files present in the list
 #
@@ -401,16 +400,26 @@ download_subs() {
         local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
         local conv_output="$output_path/ORIG_$output_file"
-
+		local final_output="$output"
         local output_img="$output_path/${base%.*}.jpg"
         local fExists=0
         
-        if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
+        case "$g_Format" in
+        "subrip")
+            final_output="$output_path/${output_file_noext}.srt"
+            ;;
+                
+        "subviewer")
+            final_output="$output_path/${output_file_noext}.sub"
+            ;;
+		esac
+		
+        if [[ -e "$output" ]] || [[ -e "$final_output" ]]; then
             fExists=1
         fi
 
         if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then    
-            echo -e "[SKIP]\t[$output_file]:\tPlik z napisami juz istnieje !!!"
+            echo -e "[SKIP]\t[$final_output]:\tPlik z napisami juz istnieje !!!"
             g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
@@ -432,21 +441,13 @@ download_subs() {
                 
                     # determine the output extention and the output filename
                     # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-                    case "$g_Format" in
-                    "subrip")
-                        outputSubs="$output_path/${output_file_noext}.srt"
-                        ;;
-                            
-                    "subviewer")
-                        outputSubs="$output_path/${output_file_noext}.sub"
-                        ;;
-                    
-                    *)
+					if [[ "$output" == "$final_output" ]]; then
                         cp "$output" "$conv_output"
                         outputSubs="$output"
                         output="$conv_output"
-                        ;;
-                    esac
+					else
+						outputSubs="$final_output"
+					fi
                                                                     
                     f_detect_fps "$file"
                     if [[ "$g_Fps" != "0" ]]; then
@@ -468,7 +469,7 @@ download_subs() {
                 # charset conversion
                 if [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]; then
                     echo " -- Konwertuje kodowanie"
-                    local tmp=`mktemp`
+                    local tmp=`mktemp -t napi.XXXXXXXXXX`
                     iconv -f WINDOWS-1250 -t $g_Charset "$output" > $tmp
                     mv $tmp "$output"
                 fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
