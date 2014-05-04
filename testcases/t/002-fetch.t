@@ -51,7 +51,34 @@ foreach (@files) {
 }
 
 
+foreach my $dir (glob ($NapiTest::testspace . '/*')) {
+	
+	unless ($dir =~ /unavailable/ ) {
+		copy $NapiTest::assets . "/av$_.dat", $dir . "/vid$_.avi"
+			foreach(1..3);
+	}
+	else {
+		copy $NapiTest::assets . "/unav1.dat", $dir . "/vid$_.avi"
+			foreach(1..3);
+	}
+}
 
+my $output = `/vagrant/napi.sh $NapiTest::testspace`;
+my ($av) = ($output =~ m/Pobrano:\s+\[(\d+)\]/);
+my ($unav) = ($output =~ m/Niedostepne:\s+\[(\d+)\]/);
+my ($total) = ($output =~ m/Lacznie:\s+\[(\d+)\]/);
 
-# NapiTest::clean_testspace();
+is ($av, 21, "Total number downloaded");
+is ($unav, 3, "Total number of unavailable");
+is ($av + $unav, $total, "Total processed");
+
+$output = `/vagrant/napi.sh -s $NapiTest::testspace`;
+my ($skipped) = ($output =~ m/Pominieto:\s+\[(\d+)\]/);
+($total) = ($output =~ m/Lacznie:\s+\[(\d+)\]/);
+($unav) = ($output =~ m/Niedostepne:\s+\[(\d+)\]/);
+
+is ($skipped, 21, "Total number of skipped");
+is ($skipped + $unav, $total, "Total processed (with skipping)");
+
+NapiTest::clean_testspace();
 done_testing();
