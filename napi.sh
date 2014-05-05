@@ -90,7 +90,10 @@ g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Abbrev=""
+g_ConvAbbrev=""
+g_Script=""
 g_Charset=""
+g_DeleteIntermediate=true
 
 # subotage presence indicator
 g_SubotagePresence=0
@@ -136,9 +139,12 @@ display_help() {
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
+    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
+        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+  echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"   
+  echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"                             
     fi
         
     echo "=============================================================="
@@ -374,7 +380,6 @@ prepare_file_list() {
     done
 }
 
-
 #
 # @brief try to download subs for all the files present in the list
 #
@@ -401,16 +406,29 @@ download_subs() {
         local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
         local conv_output="$output_path/ORIG_$output_file"
-
+  local final_output="$output"
         local output_img="$output_path/${base%.*}.jpg"
         local fExists=0
-        
-        if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
+  
+        case "$g_Format" in
+        "subrip")
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}srt"
+            ;;
+                
+        "subviewer")
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}sub"
+            ;;
+  *)
+         final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
+   ;;
+  esac
+  
+        if [[ -e "$output" ]] || [[ -e "$final_output" ]]; then
             fExists=1
         fi
 
         if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then    
-            echo -e "[SKIP]\t[$output_file]:\tPlik z napisami juz istnieje !!!"
+            echo -e "[SKIP]\t[$final_output]:\tPlik z napisami juz istnieje !!!"
             g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
@@ -432,21 +450,13 @@ download_subs() {
                 
                     # determine the output extention and the output filename
                     # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-                    case "$g_Format" in
-                    "subrip")
-                        outputSubs="$output_path/${output_file_noext}.srt"
-                        ;;
-                            
-                    "subviewer")
-                        outputSubs="$output_path/${output_file_noext}.sub"
-                        ;;
-                    
-                    *)
+                    if [[ "$output" == "$final_output" ]]; then
                         cp "$output" "$conv_output"
                         outputSubs="$output"
                         output="$conv_output"
-                        ;;
-                    esac
+                    else
+                        outputSubs="$final_output"
+                    fi
                                                                     
                     f_detect_fps "$file"
                     if [[ "$g_Fps" != "0" ]]; then
@@ -459,19 +469,26 @@ download_subs() {
                             
                     echo " -- Wolam subotage.sh"
                     subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
-
+                    local subotage_code=$?
                     # remove the old format if conversion was successful
-                    [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
-                    output="$outputSubs"
+                    [[ $subotage_code -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && [[ $g_DeleteIntermediate == true ]] && rm -f "$output"
+                    if [[ $subotage_code -eq 0 ]]; then 
+                        output="$outputSubs"
+                    fi
                 fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
 
                 # charset conversion
                 if [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]; then
                     echo " -- Konwertuje kodowanie"
-                    local tmp=`mktemp`
+                    local tmp=`mktemp -t napi.XXXXXXXXXX`
                     iconv -f WINDOWS-1250 -t $g_Charset "$output" > $tmp
                     mv $tmp "$output"
                 fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
+
+    if [[ $g_Script != "" ]]; then
+     echo " -- Wolam: $g_Script \"$output\""
+     $g_Script "$output"
+    fi
 
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
@@ -682,10 +699,38 @@ while [ $# -gt 0 ]; do
           f_print_error "Nie określono wstawki"
           exit
         fi
-        
+  
         g_Abbrev="$1"
         ;;
-
+  
+        # abbrev
+        "--conv-abbrev")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki dla konwersji"
+          exit
+        fi
+  
+        g_ConvAbbrev="$1"
+        ;;
+  
+        # script
+        "-S" | "--script")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono sciezki do skryptu"
+          exit
+        fi
+        
+        g_Script="$1"
+        ;;
+  
+  
+        # skip flag
+        "--save-orig")
+        g_DeleteIntermediate=false
+        ;;
+        
         # destination format definition
         "-f" | "--format")
         shift
