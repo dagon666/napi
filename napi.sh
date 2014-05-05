@@ -143,8 +143,8 @@ display_help() {
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-		echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"   
-		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"                             
+  echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"   
+  echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"                             
     fi
         
     echo "=============================================================="
@@ -406,10 +406,10 @@ download_subs() {
         local output_file="$output_file_noext.$g_DefaultExt"
         local output="$output_path/$output_file"
         local conv_output="$output_path/ORIG_$output_file"
-		local final_output="$output"
+  local final_output="$output"
         local output_img="$output_path/${base%.*}.jpg"
         local fExists=0
-		
+  
         case "$g_Format" in
         "subrip")
             final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}srt"
@@ -418,11 +418,11 @@ download_subs() {
         "subviewer")
             final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}sub"
             ;;
-		*)
-        	final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
-			;;
-		esac
-		
+  *)
+         final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
+   ;;
+  esac
+  
         if [[ -e "$output" ]] || [[ -e "$final_output" ]]; then
             fExists=1
         fi
@@ -450,13 +450,13 @@ download_subs() {
                 
                     # determine the output extention and the output filename
                     # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-					if [[ "$output" == "$final_output" ]]; then
+     if [[ "$output" == "$final_output" ]]; then
                         cp "$output" "$conv_output"
                         outputSubs="$output"
                         output="$conv_output"
-					else
-						outputSubs="$final_output"
-					fi
+     else
+      outputSubs="$final_output"
+     fi
                                                                     
                     f_detect_fps "$file"
                     if [[ "$g_Fps" != "0" ]]; then
@@ -483,10 +483,10 @@ download_subs() {
                     mv $tmp "$output"
                 fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
 
-				if [[ $g_Script != "" ]]; then
-					echo " -- Wolam: $g_Script \"$output\""
-					$g_Script "$output"
-				fi
+    if [[ $g_Script != "" ]]; then
+     echo " -- Wolam: $g_Script \"$output\""
+     $g_Script "$output"
+    fi
 
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
@@ -697,10 +697,10 @@ while [ $# -gt 0 ]; do
           f_print_error "Nie określono wstawki"
           exit
         fi
-		
+  
         g_Abbrev="$1"
         ;;
-		
+  
         # abbrev
         "--conv-abbrev")
         shift
@@ -708,10 +708,10 @@ while [ $# -gt 0 ]; do
           f_print_error "Nie określono wstawki dla konwersji"
           exit
         fi
-		
+  
         g_ConvAbbrev="$1"
         ;;
-		
+  
         # script
         "-S" | "--script")
         shift
@@ -720,10 +720,10 @@ while [ $# -gt 0 ]; do
           exit
         fi
         
-		g_Script="$1"
+  g_Script="$1"
         ;;
-		
-		
+  
+  
         # skip flag
         "--save-orig")
         g_DeleteIntermediate=false
