@@ -92,6 +92,7 @@ g_Format="no_conversion"
 g_Abbrev=""
 g_Script=""
 g_Charset=""
+g_DeleteIntermediate=true
 
 # subotage presence indicator
 g_SubotagePresence=0
@@ -140,7 +141,8 @@ display_help() {
     echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
+        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+		echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"                
     fi
         
     echo "=============================================================="
@@ -464,7 +466,7 @@ download_subs() {
                     subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
 
                     # remove the old format if conversion was successful
-                    [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
+                    [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && [[ $g_DeleteIntermediate == true ]] && rm -f "$output"
                     output="$outputSubs"
                 fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
 
@@ -702,9 +704,15 @@ while [ $# -gt 0 ]; do
           exit
         fi
         
-        g_Script="$1"
+		g_Script="$1"
         ;;
-
+		
+		
+        # skip flag
+        "--save-orig")
+        g_DeleteIntermediate=false
+        ;;
+        
         # destination format definition
         "-f" | "--format")
         shift
