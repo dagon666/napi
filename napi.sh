@@ -90,6 +90,7 @@ g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Abbrev=""
+g_ConvAbbrev=""
 g_Script=""
 g_Charset=""
 g_DeleteIntermediate=true
@@ -142,7 +143,8 @@ display_help() {
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-		echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"                
+		echo "      | --save-orig - nie kasuj oryginalnego pliku txt sprzed konwersji"   
+		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"                             
     fi
         
     echo "=============================================================="
@@ -407,15 +409,18 @@ download_subs() {
 		local final_output="$output"
         local output_img="$output_path/${base%.*}.jpg"
         local fExists=0
-        
+		
         case "$g_Format" in
         "subrip")
-            final_output="$output_path/${output_file_noext}.srt"
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}srt"
             ;;
                 
         "subviewer")
-            final_output="$output_path/${output_file_noext}.sub"
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}sub"
             ;;
+		*)
+        	final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
+			;;
 		esac
 		
         if [[ -e "$output" ]] || [[ -e "$final_output" ]]; then
@@ -692,8 +697,19 @@ while [ $# -gt 0 ]; do
           f_print_error "Nie określono wstawki"
           exit
         fi
-        
+		
         g_Abbrev="$1"
+        ;;
+		
+        # abbrev
+        "--conv-abbrev")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki dla konwersji"
+          exit
+        fi
+		
+        g_ConvAbbrev="$1"
         ;;
 		
         # script
