@@ -90,6 +90,7 @@ g_Cover=""
 g_Skip=0
 g_Format="no_conversion"
 g_Abbrev=""
+g_ConvAbbrev=""
 g_Script=""
 g_Charset=""
 
@@ -147,6 +148,7 @@ display_help() {
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
         echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_OrigPrefix)"   
         echo "   -d | --delete-orig - Delete the original file"   
+		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
     fi
         
     echo "=============================================================="
@@ -398,14 +400,14 @@ download_subs() {
     for file in "${g_FileList[@]}"; do
         
         # input/output filename manipulation
-
-		# movie filename without path
+		
+        # movie filename without path
         local base=$(basename "$file")
-
-		# movie path without filename
+		   
+        # movie path without filename
         local output_path=$(dirname "$file")
-
-		# movie filename without extension
+		
+        # movie filename without extension
         local output_file_noext="${base%.*}"
 
         # jezeli ustawiona wstawka, to dodaje
@@ -416,37 +418,37 @@ download_subs() {
 
 		# output filename for the subtitles file
         local output_file="$output_file_noext.$g_DefaultExt"
-
-		# output path for the subtitles file
+		
+        # output path for the subtitles file
         local output="$output_path/$output_file"
-        
-		# if a conversion has been requested this is the original subtitles path
+		
+        # if a conversion has been requested this is the original subtitles path
         local conv_output="$output_path/${g_OrigPrefix}$output_file"
 
 		# path after conversion
-        local final_output="$output"
-
-		# output image filename
-		local output_img="$output_path/${base%.*}.jpg"
-
-		# this flag is set to 1 if the subtitles already exist
+		local final_output="$output"
+		
+        # output image filename
+        local output_img="$output_path/${base%.*}.jpg"
+		
+        # this flag is set to 1 if the subtitles already exist
         local fExists=0
-  
+        
         # determine the output extention and the output filename
         # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
         case "$g_Format" in
-            "subrip")
-                final_output="$output_path/${output_file_noext}.srt"
-                ;;
-
-            "subviewer")
-                final_output="$output_path/${output_file_noext}.sub"
-                ;;
-            *)
-                final_output="$output_path/${output_file_noext}.$g_DefaultExt"
-                ;;
-        esac
-  
+        "subrip")
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}srt"
+            ;;
+                
+        "subviewer")
+            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}sub"
+            ;;
+		*)
+        	final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
+            ;;
+		esac
+		
         # set the exists flag if the original or to be converted already exists
         if [[ -e "$final_output" ]]; then
             fExists=1
@@ -469,7 +471,6 @@ download_subs() {
                     
                 # conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
-
 					# path for the converted subtitles file
                     local outputSubs=""
                     local subotage_c2=""
@@ -482,12 +483,12 @@ download_subs() {
                         cp "$output" "$conv_output"
                     fi
 
-                    if [[ "$output" == "$final_output" ]]; then
+					if [[ "$output" == "$final_output" ]]; then
                         outputSubs="$output"
                         output="$conv_output"
-                    else
-                        outputSubs="$final_output"
-                    fi
+					else
+						outputSubs="$final_output"
+					fi
                                                                     
                     f_detect_fps "$file"
                     if [[ "$g_Fps" != "0" ]]; then
@@ -505,7 +506,7 @@ download_subs() {
                     # remove the old format if conversion was successful
 					if [[ $subotage_code -eq 0 ]]; then
                     	[[ "$output" != "$outputSubs" ]] && rm -f "$output"
-						output="$outputSubs"
+                        output="$outputSubs"
 						g_Converted=$(( $g_Converted + 1 ))
 					fi
 
@@ -520,10 +521,10 @@ download_subs() {
                 fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
 
                 # execute external script 
-                if [[ $g_Script != "" ]]; then
-                    echo " -- Wolam: $g_Script \"$output\""
-                    $g_Script "$output"
-                fi
+				if [[ $g_Script != "" ]]; then
+					echo " -- Wolam: $g_Script \"$output\""
+					$g_Script "$output"
+				fi
 
             else # [[ $napiStatus = "1" ]]
                     echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
@@ -537,7 +538,7 @@ download_subs() {
             fi
 
         fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
-    done
+    done    
 }
 
 
@@ -735,10 +736,21 @@ while [ $# -gt 0 ]; do
           f_print_error "Nie określono wstawki"
           exit
         fi
-  
+        
         g_Abbrev="$1"
         ;;
-  
+		
+        # abbrev
+        "--conv-abbrev")
+        shift
+        if [[ -z "$1" ]]; then
+          f_print_error "Nie określono wstawki dla konwersji"
+          exit
+        fi
+		
+        g_ConvAbbrev="$1"
+        ;;
+		
         # script
         "-S" | "--script")
         shift
@@ -747,15 +759,14 @@ while [ $# -gt 0 ]; do
           exit
         fi
         
-        g_Script="$1"
+		g_Script="$1"
         ;;
-  
-
+		
+		
         # orig prefix 
         "-d" | "--delete-orig")
         g_OrigDelete=1
         ;;
-        
 
         # orig prefix 
         "-o" | "--orig-prefix")
@@ -763,7 +774,6 @@ while [ $# -gt 0 ]; do
         g_OrigPrefix="$1"
         ;;
         
-
         # destination format definition
         "-f" | "--format")
         shift
@@ -837,11 +847,9 @@ echo
 echo "Podsumowanie"
 echo -e "Pominieto:\t[$g_Skipped]"
 echo -e "Pobrano:\t[$g_Downloaded]"
-
 if [[ $g_SubotagePresence -eq 1 ]]; then    
 	echo -e "Przekonw.:\t[$g_Converted]"
 fi
-
 echo -e "Niedostepne:\t[$g_Unavailable]"
 echo -e "Lacznie:\t[${#g_FileList[*]}]"
       
