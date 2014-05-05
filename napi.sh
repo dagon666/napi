@@ -450,13 +450,13 @@ download_subs() {
                 
                     # determine the output extention and the output filename
                     # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-     if [[ "$output" == "$final_output" ]]; then
+                    if [[ "$output" == "$final_output" ]]; then
                         cp "$output" "$conv_output"
                         outputSubs="$output"
                         output="$conv_output"
-     else
-      outputSubs="$final_output"
-     fi
+                    else
+                        outputSubs="$final_output"
+                    fi
                                                                     
                     f_detect_fps "$file"
                     if [[ "$g_Fps" != "0" ]]; then
@@ -469,10 +469,12 @@ download_subs() {
                             
                     echo " -- Wolam subotage.sh"
                     subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
-
+                    local subotage_code=$?
                     # remove the old format if conversion was successful
-                    [[ $? -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && [[ $g_DeleteIntermediate == true ]] && rm -f "$output"
-                    output="$outputSubs"
+                    [[ $subotage_code -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && [[ $g_DeleteIntermediate == true ]] && rm -f "$output"
+                    if [[ $subotage_code -eq 0 ]]; then 
+                        output="$outputSubs"
+                    fi
                 fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
 
                 # charset conversion
@@ -720,7 +722,7 @@ while [ $# -gt 0 ]; do
           exit
         fi
         
-  g_Script="$1"
+        g_Script="$1"
         ;;
   
   
