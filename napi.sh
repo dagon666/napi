@@ -716,7 +716,7 @@ while [ $# -gt 0 ]; do
         "-S" | "--script")
         shift
         if [[ -z "$1" ]]; then
-          f_print_error "Nie określono wstawki"
+          f_print_error "Nie określono sciezki do skryptu"
           exit
         fi
         
