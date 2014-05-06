@@ -388,8 +388,14 @@ download_subs() {
     for file in "${g_FileList[@]}"; do
         
         # input/output filename manipulation
+
+		# movie filename without path
         local base=$(basename "$file")
+
+		# movie path without filename
         local output_path=$(dirname "$file")
+
+		# movie filename without extension
         local output_file_noext="${base%.*}"
 
         # jezeli ustawiona wstawka, to dodaje
@@ -398,11 +404,19 @@ download_subs() {
             output_file_noext="${output_file_noext}.${g_Abbrev}"
         fi
 
+		# output filename for the subtitles file
         local output_file="$output_file_noext.$g_DefaultExt"
+
+		# output path for the subtitles file
         local output="$output_path/$output_file"
+
+		# if a conversion has been requested this is the original subtitles path
         local conv_output="$output_path/ORIG_$output_file"
 
+		# output image filename
         local output_img="$output_path/${base%.*}.jpg"
+
+		# this flag is set to 1 if the subtitles already exist
         local fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
@@ -425,6 +439,8 @@ download_subs() {
                     
                 # conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
+
+					# path for the converted subtitles file
                     local outputSubs=""
                     local subotage_c2=""
 
