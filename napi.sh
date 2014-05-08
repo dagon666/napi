@@ -345,6 +345,9 @@ get_subtitles() {
 get_cover() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     wget -q -O "$2" "$url"
+
+	local size=$(stat $g_StatParams "$2")
+	[[ $size -eq 0 ]] && rm -rf "$2"
 }
 
 

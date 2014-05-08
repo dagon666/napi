@@ -161,4 +161,56 @@ sub prepare_shells {
 	}
 }
 
+sub parse_summary {
+	my @strings = qw/
+		Pominieto
+		Pobrano
+		Niedostepne
+		Lacznie
+		/;
+
+	my %output = ();
+	my $input = shift // '';
+
+	($output{lc $_}) = ($input =~ m/$_:\s+\[(\d+)\]/) foreach (@strings);
+	return %output;	
+}
+
+
+sub qx_tool {
+	my $shell = shift // '/bin/bash';
+	my $tool = shift // 'napi.sh';
+	my $arguments = shift // '';
+	return `$shell /vagrant/$tool $arguments`;
+}
+
+
+sub system_tool {
+	my $shell = shift // '/bin/bash';
+	my $tool = shift // 'napi.sh';
+	my $arguments = shift // '';
+	return system("$shell /vagrant/$tool $arguments");
+}
+
+
+sub qx_napi {
+	return qx_tool(shift, 'napi.sh', shift);
+}
+
+
+sub qx_subotage {
+	return qx_tool(shift, 'subotage.sh', shift);
+}
+
+
+sub system_napi {
+	return system_tool(shift, 'napi.sh', shift);
+}
+
+
+sub system_subotage {
+	return system_tool(shift, 'subotage.sh', shift);
+}
+
+
 1;
