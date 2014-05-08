@@ -14,6 +14,9 @@ NapiTest::prepare_fs();
 
 my $shell = $ENV{NAPI_TEST_SHELL} // "/bin/bash";
 
+my $total_available = 0;
+my $total_unavailable = 0;
+
 
 sub prepare_assets {
 	foreach my $dir (glob ($NapiTest::testspace . '/*')) {
@@ -21,10 +24,12 @@ sub prepare_assets {
 		unless ($dir =~ /unavailable/ ) {
 			copy $NapiTest::assets . "/av$_.dat", $dir . "/vid$_.avi"
 				foreach(1..3);
+			$total_available += 3;
 		}
 		else {
 			copy $NapiTest::assets . "/unav1.dat", $dir . "/vid$_.avi"
 				foreach(1..3);
+			$total_unavailable += 3;
 		}
 	}
 }
@@ -74,14 +79,16 @@ my %output = ();
 my $output = NapiTest::qx_napi($shell, $NapiTest::testspace);
 
 %output = NapiTest::parse_summary($output);
-is ($output{pobrano}, 21, "Total number downloaded");
-is ($output{niedostepne}, 3, "Total number of unavailable");
+is ($output{pobrano}, $total_available, "Total number downloaded");
+is ($output{niedostepne}, $total_unavailable, "Total number of unavailable");
 is ($output{pobrano} + $output{niedostepne}, $output{lacznie}, "Total processed");
+is ($output{lacznie}, $total_available + $total_unavailable, "Total processed 2");
 
 $output = NapiTest::qx_napi($shell, "-s " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
-is ($output{pominieto}, 21, "Total number of skipped");
+is ($output{pominieto}, $total_available, "Total number of skipped");
 is ($output{pominieto} + $output{niedostepne}, $output{lacznie}, "Total processed (with skipping)");
+is ($output{lacznie}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
 
 
 NapiTest::clean_testspace();
@@ -90,7 +97,7 @@ prepare_assets();
 # prepare big files
 my $dir_cnt = 0;
 foreach my $dir (glob ($NapiTest::testspace . '/*')) {
-	system("dd if=/dev/urandom of=" . $dir . "/test_file" . $_ . ".avi bs=1M count=" . $_)
+	system("dd if=/dev/urandom of=\"" . $dir . "/test_file" . $_ . ".avi\" bs=1M count=" . $_)
 		foreach(15, 20);
 	$dir_cnt++;
 }
