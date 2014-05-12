@@ -11,6 +11,7 @@ use Exporter ();
 use LWP::Simple;
 use Archive::Extract;
 use Carp;
+use File::Path qw/remove_tree/;
 
 our @EXPORT = qw/
 	prepare_env
@@ -38,14 +39,13 @@ sub prepare_fs {
 
 	foreach (@dirs) {
 		mkdir $testspace . '/' . "$_";
-		
 	}
 }
 
 
 sub clean_testspace {
 	print "Cleaning testspace\n";
-	unlink glob $testspace . '/*';
+	remove_tree glob $testspace . "/*";
 }
 
 

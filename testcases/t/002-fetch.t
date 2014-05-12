@@ -97,7 +97,13 @@ prepare_assets();
 # prepare big files
 my $dir_cnt = 0;
 foreach my $dir (glob ($NapiTest::testspace . '/*')) {
-	system("dd if=/dev/urandom of=\"" . $dir . "/test_file" . $_ . ".avi\" bs=1M count=" . $_)
+
+	my $basepath = $dir . "/test_file";
+
+	$basepath =~ s/([\<\>\'\"\$\[\]\@\ \&\#\(\)]){1}/\\$1/g;
+	# print 'After: ' . $basepath . "\n";
+
+	system("dd if=/dev/urandom of=" . $basepath .  $_ . ".avi bs=1M count=" . $_)
 		foreach(15, 20);
 	$dir_cnt++;
 }
@@ -110,12 +116,11 @@ $output = NapiTest::qx_napi($shell, "-b 16" . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{niedostepne}, $dir_cnt, "Number of processed files bigger than given size 2");
 
-
 $output = NapiTest::qx_napi($shell, "-b 4" . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{lacznie},
 	$output{niedostepne} + $output{pobrano}, 
 	"Number of processed files bigger than given size 2");
 
-
+NapiTest::clean_testspace();
 done_testing();
