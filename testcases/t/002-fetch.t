@@ -35,6 +35,26 @@ sub prepare_assets {
 }
 
 
+#>TESTSPEC
+#
+# Brief:
+# 
+# Verify if napi works for single media files
+#
+# Preconditions:
+# - napi.sh & subotage.sh must be available in public $PATH
+# - prepare a set of test files (one available one unavailable)
+#
+# Procedure:
+# - For each prepared file call napi with it, and check if the script successfully processed it
+#
+# Expected results:
+# - napi should download the subtitles for a file for which the're available and don't download 
+# for a testfile for which they for sure don't exist
+#
+# - subtitles files should be created afterwards
+#
+
 # check with a single files
 my @files = (
 		{ 
@@ -53,7 +73,6 @@ my @files = (
 );
 
 
-# perform simple single file tests
 foreach (@files) {
 	copy $NapiTest::assets . '/' . $_->{src},
 		 $NapiTest::testspace . '/' . $_->{dst};
@@ -73,6 +92,26 @@ foreach (@files) {
 	unlink $NapiTest::testspace . '/' . $_->{res} if $_->{res};
 }
 
+
+#>TESTSPEC
+#
+# Brief:
+# 
+# Verify if napi works for specified media directory
+#
+# Preconditions:
+# - napi.sh & subotage.sh must be available in public $PATH
+# - prepare a set of test files and a test directory structure
+#
+# Procedure:
+# - Call napi with the path to the pre-prepared media directory
+#
+# Expected results:
+# - napi should download the subtitles for all files (for which they are available) and should
+# traverse the whole directory tree - in search for media files
+#
+# - the processing results must be reflected in the napi summary correctly
+#
 prepare_assets();
 
 my %output = ();
@@ -84,6 +123,25 @@ is ($output{niedostepne}, $total_unavailable, "Total number of unavailable");
 is ($output{pobrano} + $output{niedostepne}, $output{lacznie}, "Total processed");
 is ($output{lacznie}, $total_available + $total_unavailable, "Total processed 2");
 
+
+#>TESTSPEC
+#
+# Brief:
+# 
+# Verify if napi works for specified media directory and skips downloading if the subtitles file already exist
+#
+# Preconditions:
+# - napi.sh & subotage.sh must be available in public $PATH
+# - prepare a set of test files and a test directory structure
+# - the subtitles files should exist as well
+#
+# Procedure:
+# - Call napi with the path to the pre-prepared media directory
+#
+# Expected results:
+# - napi shouldn't download the subtitles for the media files (for which they are available) if it detects that the
+# subtitles file already exist
+#
 $output = NapiTest::qx_napi($shell, "-s " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{pominieto}, $total_available, "Total number of skipped");
@@ -91,6 +149,23 @@ is ($output{pominieto} + $output{niedostepne}, $output{lacznie}, "Total processe
 is ($output{lacznie}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
 
 
+#>TESTSPEC
+#
+# Brief:
+# 
+# Verify if napi works for specified media directory and skips the files smaller than specified (-b option)
+#
+# Preconditions:
+# - napi.sh & subotage.sh must be available in public $PATH
+# - prepare a set of test files and a test directory structure
+#
+# Procedure:
+# - Call napi with the path to the pre-prepared media directory
+# - specify various values for the -b option
+#
+# Expected results:
+# - napi shouldn't download the subtitles for the media files (for which they are available) which are smaller than specified
+#
 NapiTest::clean_testspace();
 prepare_assets();
 
