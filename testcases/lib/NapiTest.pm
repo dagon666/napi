@@ -165,6 +165,7 @@ sub parse_summary {
 	my @strings = qw/
 		Pominieto
 		Pobrano
+		Przekonw
 		Niedostepne
 		Lacznie
 		/;

@@ -74,5 +74,40 @@ is ( -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r,
 
 is ($o{pominieto}, 1, "Number of skipped");
 
+
+#>TESTSPEC
+#
+# Brief:
+# 
+# Download subtitles with a custom extension specified, skip option enabled and format conversion request
+#
+# Preconditions:
+# - napi.sh & subotage.sh should be visible in public $PATH
+# - media file for which the subtitles are available
+# - subtitles file should (with a custom extension) should already exist in the FS
+#
+# Procedure:
+# - specify a custom extension for the probed media file
+# - specify the skip flag
+# - specify conversion request
+#
+# Expected results:
+# - original subtitles should not be downloaded twice
+# - the original subtitles should be converted to requested format
+# - after conversion both files should exist in the filesystem (original one with prefix prepended)
+# 
+$o = NapiTest::qx_napi($shell, " -f subrip -s -e orig " . $test_file_path);
+%o = NapiTest::parse_summary($o);
+is ( -e $test_txt_path =~ s/\.[^\.]+$/\.srt/r, 
+		1, 
+		"Testing skipping with already downloaded original" );
+
+ok ( ! -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r, 
+		"Checking if original file has been removed" );
+
+is ($o{pobrano}, 0, "Number of skipped");
+is ($o{przekonw}, 1, "Number of converted");
+
+
 # NapiTest::clean_testspace();
 done_testing();
