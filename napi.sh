@@ -117,6 +117,7 @@ g_MinimumSize=0;
 g_Skipped=0
 g_Downloaded=0
 g_Unavailable=0
+g_Converted=0
 
 ########################################################################
 ########################################################################
@@ -447,7 +448,7 @@ download_subs() {
         esac
   
         # set the exists flag if the original or to be converted already exists
-        if [[ -e "$output" ]] || [[ -e "$final_output" ]]; then
+        if [[ -e "$final_output" ]]; then
             fExists=1
         fi
 
@@ -502,8 +503,12 @@ download_subs() {
                     local subotage_code=$?
 
                     # remove the old format if conversion was successful
-                    [[ $subotage_code -eq 0 ]] && [[ "$output" != "$outputSubs" ]] && rm -f "$output"
-                    [[ $subotage_code -eq 0 ]] && output="$outputSubs"
+					if [[ $subotage_code -eq 0 ]]; then
+                    	[[ "$output" != "$outputSubs" ]] && rm -f "$output"
+						output="$outputSubs"
+						g_Converted=$(( $g_Converted + 1 ))
+					fi
+
                 fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
 
                 # charset conversion
@@ -832,6 +837,11 @@ echo
 echo "Podsumowanie"
 echo -e "Pominieto:\t[$g_Skipped]"
 echo -e "Pobrano:\t[$g_Downloaded]"
+
+if [[ $g_SubotagePresence -eq 1 ]]; then    
+	echo -e "Przekonw.:\t[$g_Converted]"
+fi
+
 echo -e "Niedostepne:\t[$g_Unavailable]"
 echo -e "Lacznie:\t[${#g_FileList[*]}]"
       
