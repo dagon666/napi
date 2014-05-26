@@ -49,14 +49,14 @@ declare g_orig_prefix='ORIG_'
 # system - detected system type
 # - linux
 # - darwin - mac osx
-declare g_system='linux'
-
+#
+# numer of forks
 #
 # id
 # - pynapi - identifies itself as pynapi
 # - other - identifies itself as other
 #
-declare g_id='pynapi'
+declare -a g_system=( 'linux' '1' 'pynapi' )
 
 #
 # @brief minimum size of files to be processed
@@ -104,11 +104,6 @@ declare g_sub_format='default'
 declare g_fps_tool='default'
 
 #
-# @brief number of parallel forks
-#
-declare g_forks=1
-
-#
 # @brief napiprojekt.pl user credentials
 # 0 - user
 # 1 - password
@@ -140,7 +135,22 @@ declare -a g_paths=()
 declare -a g_files=()
 
 
-declare -a g_tools=()
+################################### TOOLS ######################################
+
+#
+# @brief global tools array 
+# =1 - mandatory tool
+# =0 - optional tool
+#
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 
+				'dd=1' 'grep=1' 'sed=1' 'cut=1' 
+				'stat=1' 'basename=1' 'dirname=1' 'cat=1'
+				'subotage.sh=0' '7z=0' 'iconv=0' 
+				'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+
+g_cmd_stat='stat -c%s'
+g_cmd_wget='wget -q -O'
+g_cmd_md5='md5sum'
 
 ################################## RETVAL ######################################
 
@@ -383,7 +393,96 @@ normalize_language() {
 	echo $lang
 }
 
-################################################################################
+#################################### ENV #######################################
+
+#
+# @brief checks if the tool is available in the PATH
+#
+verify_tool_presence() {
+	echo $(builtin type -P "$1")
+}
+
+
+#
+# determines number of available cpu's in the system
+#
+get_cores() {
+	grep -i processor /proc/cpuinfo | wc -l
+}
+
+
+#
+# @brief detects running system type
+#
+get_system() {
+ 	uname | lcase
+}
+
+
+#
+# @brief configure external commands
+#
+configure_cmds() {
+	_debug $LINENO "konfiguruje stat i md5"
+
+	# verify stat & md5 tool
+	[ ${g_system[0]} = "darwin" ] && 
+		g_cmd_md5="md5" &&
+		g_cmd_stat="stat -f%z"
+
+	g_tools+=( "$g_cmd_md5=1" )
+
+	_debug $LINENO "sprawdzam czy wget wspiera opcje -S"
+	local cmd_test=$(wget --help 2>&1 | grep "\-S")
+
+	[ -n "$cmd_test" ] && 
+		g_cmd_wget='wget -q -S -O' &&
+		_info $LINENO "wget wspiera opcje -S"
+
+	return 0
+}
+
+
+#
+# @brief verify system settings and gather info about commands
+#
+verify_system() {
+	_debug $LINENO "weryfikuje system"
+	g_system[0]=$(get_system)
+	g_system[1]=$(get_cores)
+}
+
+
+#
+# @brief perform tools presence verification
+#
+verify_tools() {
+
+	declare -a ret=()
+	local rv=$RET_OK
+
+	local tool=''
+	local p=0
+	local m=0
+	local t=''
+
+	for t in "$@"; do
+		p=1
+		tool=$(get_key $t)
+		m=$(get_value $t)
+
+ 		[ -z $(verify_tool_presence $tool) ] && p=0
+		ret+=( "$tool=$p" )
+		
+		# break if mandatory tool is missing
+		[ $m -eq 1 ] && [ $p -eq 0 ] && rv=$RET_FAIL && break
+ 	done
+
+	echo ${ret[*]}
+	return $rv
+}
+
+#################################### ARGV ######################################
 
 #
 # @brief parse the cli arguments
@@ -420,7 +519,7 @@ parse_argv() {
 			;;
 
 			# identification
-			"-I" | "--id") varname="g_id"
+			"-I" | "--id") varname="g_system[2]"
 			msg="okresl typ narzedzia jako pynapi albo other"
 			;;
 
@@ -466,6 +565,10 @@ parse_argv() {
         	# abbrev
         	"--conv-abbrev") varname="g_abbrev[1]"
 			msg="nie określono wstawki dla konwersji"
+        	;;
+
+        	"--forks") varname="g_system[1]"
+			msg="nie określono ilosci watkow"
         	;;
 
 			# parameter is not a known argument, probably a filename
@@ -547,6 +650,7 @@ verify_argv() {
 	# make sure we have a number here
 	g_min_size=$(( $g_min_size + 0 ))
 	g_verbosity=$(( $g_verbosity + 0 ))
+	g_system[1]=$(( ${g_system[1]} + 0 ))
 
 	# verify encoding request
 	if ! verify_encoding $g_charset; then
@@ -579,6 +683,7 @@ verify_argv() {
 
 }
 
+################################################################################
 
 #
 # @brief main function 
@@ -593,7 +698,21 @@ main() {
  	else
  		_debug $LINENO "interpreter to bash $BASH_VERSION"
  	fi
- 
+
+	# system verification
+	verify_system
+
+	# commands configuration
+	configure_cmds
+
+	# verify tools presence
+	_debug $LINENO "sprawdzam narzedzia ..." 
+	g_tools=( $(verify_tools ${g_tools[@]}) )
+	if [ $? -ne $RET_OK ]; then
+		_error "nie wszystkie wymagane narzedzia sa dostepne"
+		return $RET_FAIL
+	fi
+
 	_info $LINENO "parsowanie argumentow"
 	parse_argv "$@"
 
@@ -601,17 +720,20 @@ main() {
 	verify_argv
 
 
-	return 0
+	return $RET_OK
 }
 
 # call the main
 main "$@"
 
 # EOF
-######################################################################## ######################################################################## ######################################################################## ########################################################################
+######################################################################## 
+######################################################################## 
+######################################################################## 
+########################################################################
 
 
-################################## DB ##########################################
+############################## DB ######################################
 
 # that was an experiment which I decided to drop after all. 
 # those functions provide a mechanism to generate consistently names global vars
