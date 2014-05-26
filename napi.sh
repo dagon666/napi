@@ -148,6 +148,9 @@ declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1'
 				'subotage.sh=0' '7z=0' 'iconv=0' 
 				'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
+# fps detectors
+declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
+
 g_cmd_stat='stat -c%s'
 g_cmd_wget='wget -q -O'
 g_cmd_md5='md5sum'
@@ -284,14 +287,39 @@ get_key() {
 #
 lookup_value() {
 	local i=''
+	local rv=$RET_FAIL
 	local key=$1 && shift
 
 	for i in $*; do
 		if [ $(get_key $i) = $key ]; then
 			get_value $i
+			rv=$RET_OK
 			break
 		fi
 	done
+	return $rv
+}
+
+
+#
+# @brief lookup key in the array for given value
+# returns the key of the value and 0 on success
+#
+lookup_key() {
+	local i=''
+	local idx=0
+	local rv=$RET_FAIL
+	local key=$1 
+
+	shift
+
+	for i in "$@"; do
+		[ "$i" = "$key" ] && rv=$RET_OK && break
+		idx=$(( $idx + 1 ))
+	done
+
+	echo $idx
+	return $rv
 }
 
 
@@ -357,27 +385,21 @@ list_languages() {
 # @brief verify that the given language code is supported
 #
 verify_language() {
-    local lang="$1"
-
+    local lang="${1:-''}"
+	local i=0
     declare -a l_arr=( )
-    local l_arr_name=""
-    local i=0
     
-    if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
-        return $RET_PARAM
-    fi
+    [ ${#lang} -ne 2 ] && [ ${#lang} -ne 3 ] && 
+		return $RET_PARAM
 
-    l_arr_name="g_LanguageCodes${#lang}L";
+    local l_arr_name="g_LanguageCodes${#lang}L";
     eval l_arr=\( \${${l_arr_name}[@]} \)
 
-    while [[ $i -lt ${#l_arr[@]} ]]; do
-        if [[ "${l_arr[$i]}" = "$lang" ]]; then
-            echo "$i"
-            return $RET_OK
-        fi
-        i=$(( $i + 1 ))
-    done
+	i=$(lookup_key $lang ${l_arr[@]})
+	local found=$?
 
+	echo $i 
+	[ $found -eq $RET_OK ] && return $RET_OK
 	return $RET_FAIL
 }
 
@@ -627,11 +649,11 @@ verify_encoding() {
 verify_id() {
 	local rv=$RET_OK
 
-	case $g_id in
+	case ${g_system[2]} in
 		'pynapi' | 'other' ) ;;
 		*) 
 		rv=$RET_PARAM
-		g_id='pynapi'
+		g_system[2]='pynapi'
 		;;
 	esac
 	return $rv
@@ -642,6 +664,7 @@ verify_id() {
 # @brief verify correctness of the argv settings provided
 #
 verify_argv() {
+
 	# verify credentials correctness
 	if ! verify_credentials "${g_cred[0]}" "${g_cred[1]}"; then
 		g_cred[0]='' && g_cred[1]=''
@@ -660,7 +683,7 @@ verify_argv() {
 
 	# verify the id setting
 	if ! verify_id; then
-		_warning "nieznany id [$g_id], przywracam domyslny"
+		_warning "nieznany id [${g_system[2]}], przywracam domyslny"
 	fi
 	
 	# logfile verification	
@@ -668,7 +691,9 @@ verify_argv() {
 		_warning "plik loga istnieje - bedzie nadpisany"
 	
 	# language verification
-	local lidx=$(verify_language $g_lang)
+	local idx=0
+	idx=$(verify_language $g_lang)
+
 	if [ $? -ne $RET_OK ]; then
 		if [ $g_lang = "list" ]; then 
 			list_languages
@@ -678,9 +703,52 @@ verify_argv() {
 			g_lang='PL'
 		fi
 	else
-		g_lang=$(normalize_language $lidx)
+		g_lang=$(normalize_language $idx)
+	fi
+	unset idx
+
+	# format verification if conversion requested
+	if [ $g_sub_format != 'default' ]; then
+		local sp=$(lookup_value 'subotage.sh' ${g_tools[@]})
+
+		# make sure it's a number
+		sp=$(( $sp + 0 ))
+
+		if [ $sp -eq 0 ]; then
+			_error "subotage.sh nie jest dostepny. konwersja nie jest mozliwa"
+			return $RET_PARAM
+		fi
+
+		declare -a formats=( $(subotage.sh -gf) )
+
+		if ! lookup_key $g_sub_format ${formats[@]} > /dev/null; then
+        	_error "podany format docelowy jest niepoprawny [$g_sub_format]"
+			return $RET_PARAM
+		fi
+
+		unset formats
+		unset sp
+    fi
+
+	# verify selected fps tool
+	if [ $g_fps_tool != 'default' ]; then
+		if ! lookup_key $g_fps_tool ${g_tools_fps[@]} > /dev/null; then
+        	_error "podane narzedzie jest niewspierane [$g_fps_tool]"
+			return $RET_PARAM
+		fi
+		
+		local sp=$(lookup_value $g_fps_tool ${g_tools[@]})
+
+		# make sure it's a number
+		sp=$(( $sp + 0 ))
+
+		if [ $sp -eq 0 ]; then
+			_error "$g_fps_tool nie jest dostepny"
+			return $RET_PARAM
+		fi
 	fi
 
+	return $RET_OK
 }
 
 ################################################################################
