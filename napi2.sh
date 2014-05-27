@@ -107,36 +107,6 @@ get_fps() {
 }
 
 
-#
-# @brief returns the number of available fps detection tools in the system
-#
-count_fps_detectors() {
-	local c=0
-	local t=""
-
-	for t in $g_tools_fps; do		
-		[[ $(get_value $t) -eq 1 ]] && c=$(( $c + 1 ))
-	done
-	echo $c
-}
-
-
-#
-# @brief redirect stdout to logfile
-#
-redirect_to_logfile() {
-	[ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 3>&1 1> "$g_logfile"
-}
-
-
-#
-# @brief redirect output to stdout
-#
-redirect_to_stdout() {
-	[ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 1>&3 3>&-
-}
-
-
 ################################# napiprojekt ##################################
 
 #
@@ -394,99 +364,6 @@ prepare_filenames() {
 
 
 ###########################################################################
-
-#
-# @brief prints the help & options overview
-#
-usage() {
-
-	local subotage_presence=$(lookup_value 'subotage.sh' $g_tools_opt)
-	local iconv_presence=$(lookup_value 'iconv' $g_tools_opt)
-
-	# precaution to prevent variables from being empty
-	subotage_presence=$(( $subotage_presence + 0 ))
-	iconv_presence=$(( $iconv_presence + 0 ))
-
-	echo "=============================================================="
-	echo "napi.sh version $g_revison (identifies as $g_id)"
-	echo "napi.sh [OPCJE] <plik|katalog|*>"
-	echo
-
-	echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
-	echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
-	echo "   -c | --cover - pobierz okladke"
-
-	[ $iconv_presence -eq 1 ] && 
-		echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
-
-	echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
-	echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. $g_id)"
-	echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
-	echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
-	echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
-	echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
-	echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
-	echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
-	echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
-    
-	if [ $subotage_presence -eq 1 ]; then    
-		echo "   -d | --delete-orig - Delete the original file"   
-		echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-		echo "   -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
-		echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_default_prefix)"   
-		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
-		echo
-		echo "Obslugiwane formaty konwersji napisow"
-		subotage.sh -gl
-	fi
-
-	echo
-	echo "Przyklady:"
-	echo " napi.sh film.avi          - sciaga napisy dla film.avi."
-	echo " napi.sh -c film.avi       - sciaga napisy i okladke dla film.avi."
-	echo " napi.sh -u foo -p bar -c film.avi - sciaga napisy i okladke do"
-	echo "                             film.avi jako uzytkownik foo"
-	echo " napi.sh *                 - szuka plikow wideo w obecnym katalogu"
-	echo "                             i podkatalogach, po czym stara sie dla"
-	echo "                             nich znalezc i pobrac napisy."
-	echo " napi.sh *.avi             - wyszukiwanie tylko plikow avi."
-	echo " napi.sh katalog_z_filmami - wyszukiwanie we wskazanym katalogu"
-	echo "                             i podkatalogach."
-    
-	if [ $subotage_presence -ne 1 ]; then
-		echo " "
-		echo "UWAGA !!!"
-		echo "napi.sh moze automatycznie dokonywac konwersji napisow"
-		echo "do wybranego przez Ciebie formatu. Zainstaluj uniwersalny"
-		echo "konwerter formatow dla basha: subotage.sh"
-		echo "http://sourceforge.net/projects/bashnapi/"
-		echo
-	else
-		echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
-		echo "                           po czym konwertuje je do formatu subrip"
-
-		if [ $(count_fps_detectors) -gt 0 ]; then 
-			echo
-			echo "Wykryte narzedzia detekcji FPS"
-
-			local t=0
-			for t in $g_tools_fps; do
-				[ $(get_value $t) -eq 1 ] && get_key $t
-			done
-			echo
-		else
-			echo
-			echo "By moc okreslac FPS na podstawie pliku video a nie na"
-			echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
-			echo "zainstaluj dodatkowo jedno z tych narzedzi (dowolnie ktore)"
-			echo -e "- mediainfo\n- mplayer\n- mplayer2\n- ffmpeg\n"
-		fi
-	fi
-
-	exit -1;
-}
-
-
 
 #
 # @brief main function 
