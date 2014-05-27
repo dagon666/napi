@@ -108,38 +108,6 @@ get_fps() {
 
 
 ################################# napiprojekt ##################################
-
-#
-# @brief: mysterious f() function
-# @param: md5sum
-#
-f() {
-    declare -a t_idx=( 0xe 0x3 0x6 0x8 0x2 )
-    declare -a t_mul=( 2 2 5 4 3 )
-    declare -a t_add=( 0 0xd 0x10 0xb 0x5 )
-    local sum="$1"
-    local b=""    
-    local i=0
-
-    for i in {0..4}; do
-    # for i in $(seq 0 4); do
-        local a=${t_add[$i]}
-        local m=${t_mul[$i]}
-        local g=${t_idx[$i]}        
-        
-        local t=$(( a + 16#${sum:$g:1} ))
-        local v=$(( 16#${sum:$t:2} ))
-        
-        local x=$(( (v*m) % 0x10 ))
-        local z=$(printf "%X" $x)
-        b="$b$(echo $z | lcase)"
-    done
-
-    echo "$b"
-	return 0
-}
-
-
 #
 # @brief: retrieve cover
 # @param: md5sum
@@ -370,18 +338,6 @@ prepare_filenames() {
 # 
 main() {
   
- 	# system detection
- 	g_system=$(get_system)
-
-	# number of cores detected
-	local cores=$(get_cores)
-
-	# first positional
-	local arg1="${1:-''}"
- 
- 	# print the system info
- 	_debug $LINENO "$0: wykryty system to: $g_system (cpu: $cores)" 
-
 	# check for mandatory toolset
  	verify_mandatory_tools 
 	[ $? -ne 0 ] && exit -1
@@ -395,10 +351,6 @@ main() {
 	g_tools_fps="$(verify_optional_tools 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )"
  	_debug $LINENO "wykryte narzedzia fps $g_tools_fps" 
 
- 	# if no arguments are given, then print help and exit
- 	[ $# -lt 1 ] || [ $arg1 = "--help" ] || [ $arg1 = "-h" ] && usage 
-
-
 	# parse the positional parameters
 	parse_argv "$@"
 
@@ -408,13 +360,4 @@ main() {
 	prepare_file_list $g_min_size "${g_paths[@]}"
 
 	declare -P $g_FileList
-
-
-
 }
-
-# call the main
-main "$@"
-
-# EOF
-######################################################################## ######################################################################## ######################################################################## ########################################################################

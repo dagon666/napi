@@ -833,6 +833,41 @@ verify_argv() {
 	return $RET_OK
 }
 
+################################# napiprojekt ##################################
+
+#
+# @brief: mysterious f() function
+# @param: md5sum
+#
+f() {
+    declare -a t_idx=( 0xe 0x3 0x6 0x8 0x2 )
+    declare -a t_mul=( 2 2 5 4 3 )
+    declare -a t_add=( 0 0xd 0x10 0xb 0x5 )
+    local sum="$1"
+    local b=""    
+    local i=0
+
+    for i in {0..4}; do
+    # for i in $(seq 0 4); do
+        local a=${t_add[$i]}
+        local m=${t_mul[$i]}
+        local g=${t_idx[$i]}        
+        
+        local t=$(( a + 16#${sum:$g:1} ))
+        local v=$(( 16#${sum:$t:2} ))
+        
+        local x=$(( (v*m) % 0x10 ))
+        local z=$(printf "%X" $x)
+        b="$b$(echo $z | lcase)"
+    done
+
+    echo "$b"
+	return $RET_OK
+}
+
+
+
+
 ################################################################################
 
 #
