@@ -4,20 +4,7 @@
 # (may be left blank)
 g_User=""
 g_Pass=""
-g_NapiPass="iBlm8NTigvru0Jr0"
 g_Lang="PL"
-
-#system detection
-g_System=$(uname | tr '[:upper:]' '[:lower:]')
-
-if [ $g_System = "darwin" ]; then 
-    g_Md5="md5"
-    g_StatParams="-f%z "
-else
-    g_Md5="md5sum"
-    g_StatParams="-c%s "
-fi
-
 
 g_Version="pynapi"
 #g_Version="other"

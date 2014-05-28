@@ -575,6 +575,43 @@ count_fps_detectors() {
 	return $RET_OK
 }
 
+
+#
+# @brief detect fps of the video file
+# @param tool
+# @param filename
+#
+get_fps() {
+	local fps=0
+	local tool=$(lookup_value $1 ${g_tools[@]})
+
+	# prevent empty output
+	tool=$(( $tool + 0 ))
+
+	if [ -n $tool ] && [ $tool -ne 0 ]; then
+		case "$1" in
+			'mplayer' | 'mplayer2' )
+			fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
+			;;
+
+			'mediainfo' )
+			fps=$($1 "$2" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]')
+			;;
+
+			'ffmpeg' )
+			fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
+			;;
+
+			*)
+			;;
+		esac
+	fi
+
+	echo $fps
+	return 0
+}
+
+
 #################################### ARGV ######################################
 
 #
@@ -777,6 +814,9 @@ verify_format() {
 # @brief verify fps tool
 #
 verify_fps_tool() {
+	local t=''
+	local sp=0
+
 	# verify selected fps tool
 	if [ $g_fps_tool != 'default' ]; then
 		if ! lookup_key $g_fps_tool ${g_tools_fps[@]} > /dev/null; then
@@ -784,7 +824,7 @@ verify_fps_tool() {
 			return $RET_PARAM
 		fi
 		
-		local sp=$(lookup_value $g_fps_tool ${g_tools[@]})
+		sp=$(lookup_value $g_fps_tool ${g_tools[@]})
 
 		# make sure it's a number
 		sp=$(( $sp + 0 ))
@@ -792,6 +832,15 @@ verify_fps_tool() {
 		if [ $sp -eq 0 ]; then
 			_error "$g_fps_tool nie jest dostepny"
 			return $RET_PARAM
+		fi
+	else
+		# choose first available as the default tool
+		if [ $(count_fps_detectors) -gt 0 ]; then 
+			for t in ${g_tools_fps[@]}; do
+				[ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && 
+					g_fps_tool=$t && 
+					break
+			done
 		fi
 	fi
 
@@ -1170,7 +1219,7 @@ prepare_filenames() {
     local base=$(basename "$fn")
 
     # media filename without extension
-	local noext=$(strip_ext $base)
+	local noext=$(strip_ext "$base")
 
 	# converted extension
 	local cext=$(get_sub_ext $g_sub_format)
@@ -1182,7 +1231,6 @@ prepare_filenames() {
 	g_possible_filenames=()
 
 	# original
-	g_possible_filenames+=( "${noext}" )
 	g_possible_filenames+=( "${noext}.$g_default_ext" )
 	g_possible_filenames+=( "${noext}.${ab:+$ab.}$g_default_ext" )
 	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[0]}" )
@@ -1205,6 +1253,11 @@ process_file() {
     local file="$1"
 	local rv=$RET_OK
 	local status=0
+	
+	# paths
+	local dir=''
+	local fullpath=''
+	local fps=0
 
 	_info $LINENO "pobieram napisy dla pliku [$file]"
 
@@ -1212,13 +1265,49 @@ process_file() {
 	prepare_filenames "$file"
 	_debug $LINE "potencjalne nazwy plikow: ${g_possible_filenames[*]}"
 
+	# prepare fullpath name
+	dir=$(dirname "$file")
+	fullpath="$dir/${g_possible_filenames[1]}"
+
 	# skipping disabled		
-	get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang
+	get_subtitles "$file" "$fullpath" $g_lang
 	status=$?
 	_debug $LINENO "status pobierania $status"
 
 	if [ $status = $RET_OK ]; then
 		_status "OK" "$file"
+
+		# perform format conversion 
+		if [ $g_sub_format != 'default'	]; then
+			local fps_opt=''
+			_msg "konwertowanie do formatu $g_sub_format"
+
+			# if delete orig flag has been requested don't rename the original file
+			[ $g_delete_orig -eq 0 ] &&
+				cp "$fullpath" "$dir/${g_possible_filenames[3]}"
+
+			[ $g_fps_tool != 'default' ] &&
+				fps=$(get_fps $g_fps_tool "$file")
+
+			if [[ "$fps" != 0 ]]; then
+				_msg "wykryty fps: $fps"
+				fps_opt="-fi $fps"
+			else
+				_msg "fps nieznany, okr. na podstawie napisow albo wart. domyslna"
+			fi
+
+			_msg "wolam subotage.sh"
+			subotage.sh -i "$fullpath" -of $g_sub_format -o "$dir/${g_possible_filenames[7]}" $fps_opt
+			status=$?
+
+			# remove the old format if conversion was successful
+			if [[ $status -eq $RET_OK ]]; then
+				_msg "pomyslnie przekonwertowano do $g_sub_format"
+				[[ "${g_possible_filenames[1]}" != "${g_possible_filenames[7]}" ]] &&
+					_msg "usuwam oryginalny plik" &&
+					unlink "$dir/${g_possible_filenames[1]}"
+			fi
+		fi
 
 		# charset conversion
 		[ $g_charset != 'default' ] && 
@@ -1226,21 +1315,21 @@ process_file() {
 			convert_charset "$file" $g_charset
 
 		# process hook
-		[ -n $g_hook ] &&
+		[ $g_hook != 'none' ] &&
 			_msg "wywoluje zewnetrzny skrypt" &&
-			$g_hook "$"
+			$g_hook "$fullpath"
 
 		# download cover
+		# assumed here that cover is only available
+		# if subtitles are
 		if [[ $g_cover -eq 1 ]]; then
 			local cover_fn="$(strip_ext \"$file\")"
-
 			get_cover "$file" "$cover_fn"
 			if [ $? = $RET_OK ]; then
 				_status "OK" "cover for $file"
 			else
 				_status "UNAV" "cover for $file"
 			fi # if [ $status = $RET_OK ]
-
 		fi # if [[ $g_cover -eq 1 ]]
 
 	else
@@ -1418,7 +1507,7 @@ main() {
 	_msg "znaleziono ${#g_files[@]} plikow..."
 
 	# just for test purposes
-	process_file 'av.avi'
+	process_file "${g_files[0]}"
 
 	_info $LINENO "przywracam STDOUT"
 	redirect_to_stdout
