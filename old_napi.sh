@@ -1,31 +1,5 @@
 #!/bin/bash
 
-########################################################################
-########################################################################
-########################################################################
-
-#  Copyright (C) 2010 Tomasz Wisniewski aka DAGON <tomasz.wisni3wski@gmail.com>
-#  http://www.dagon.bblog.pl
-#  http://hekate.homeip.net
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-########################################################################
-########################################################################
-########################################################################
-
-
 # napi project user/password configuration
 # (may be left blank)
 g_User=""
@@ -45,35 +19,10 @@ else
 fi
 
 
-# supported video file extentions
-declare -a g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
-
 # list of all mandatory to basic functionality tools
 declare -a g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
                     'wget' 'find' 'dd' 
                     'grep' 'sed' 'cut' 'seq' )
-
-# language code arrays
-declare -a g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
-        'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
-        'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
-        'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
-        'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' 
-        'Niemiecki' 'Norweski' 'Oksytański' 'Perski' 
-        'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' 
-        'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
-        'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
-
-declare -a g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
-                    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
-                    'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
-                    'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
-
-declare -a g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
-                    'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
-                    'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
-                    'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
-                    'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
@@ -123,182 +72,6 @@ g_Converted=0
 ########################################################################
 ########################################################################
 ########################################################################
-
-display_help() {
-    echo "=============================================================="
-    echo "napi.sh version $g_Revison (identifies as $g_Version)"
-    echo "napi.sh [OPCJE] <plik|katalog|*>"
-    echo "   -c | --cover - pobierz okladke"
-
-    if [[ $g_IconvPresence -eq 1 ]]; then    
-        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
-    fi
-
-    echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
-    echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
-    echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
-    echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
-    echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
-    echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
-    echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
-    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
-    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
-        
-    if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-        echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_OrigPrefix)"   
-        echo "   -d | --delete-orig - Delete the original file"   
-		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
-    fi
-        
-    echo "=============================================================="
-    echo
-    if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "Obslugiwane formaty konwersji napisow"
-        subotage.sh -gl
-        echo
-    fi
-
-    echo "Przyklady:"
-    echo " napi.sh film.avi          - sciaga napisy dla film.avi."
-    echo " napi.sh -c film.avi       - sciaga napisy i okladke dla film.avi."
-    echo " napi.sh -u foo -p bar -c film.avi - sciaga napisy i okladke do"
-    echo "                             film.avi jako uzytkownik foo"
-    echo " napi.sh *                 - szuka plikow wideo w obecnym katalogu"
-    echo "                             i podkatalogach, po czym stara sie dla"
-    echo "                             nich znalezc i pobrac napisy."
-    echo " napi.sh *.avi             - wyszukiwanie tylko plikow avi."
-    echo " napi.sh katalog_z_filmami - wyszukiwanie we wskazanym katalogu"
-    echo "                             i podkatalogach."
-        
-    if [[ $g_SubotagePresence -ne 1 ]]; then
-        echo " "
-        echo "UWAGA !!!"
-        echo "napi.sh moze automatycznie dokonywac konwersji napisow"
-        echo "do wybranego przez Ciebie formatu. Zainstaluj uniwersalny"
-        echo "konwerter formatow dla basha: subotage.sh"
-        echo "http://sourceforge.net/projects/subotage/"
-        echo
-    else
-        echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
-        echo "                           po czym konwertuje je do formatu subrip"
-    
-        if [[ -z $g_FpsTool ]]; then 
-            echo
-            echo "By moc okreslac FPS na podstawie pliku video a nie na"
-            echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
-            echo "zainstaluj dodatkowo jedno z tych narzedzi (dowolnie ktore)"
-            echo -e "- mediainfo\n- mplayer\n- ffmpeg\n"
-            echo
-        fi
-    fi
-}
-
-
-#
-# @brief: list all the supported languages and their respective 2/3 letter codes
-#
-list_languages() {
-    local i=0
-    while [[ $i -lt ${#g_Language[@]} ]]; do
-        echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
-        i=$(( $i + 1 ))
-    done
-}
-
-
-#
-# @brief verify that the given language code is supported
-#
-check_language() {
-    local lang="$1"
-    declare -a local l_arr=(  )
-    local l_arr_name=""
-    local i=0
-    
-    if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
-        return
-    fi
-
-    l_arr_name="g_LanguageCodes${#lang}L";
-    eval l_arr=\( \${${l_arr_name}[@]} \)
-
-    while [[ $i -lt ${#l_arr[@]} ]]; do
-        if [[ "${l_arr[$i]}" = "$lang" ]]; then
-            echo "$i"
-            return
-        fi
-        i=$(( $i + 1 ))
-    done
-}
-
-#
-# @brief set the language variable
-# @param: language index
-#
-set_language() {
-    declare -a local lang=${g_LanguageCodes2L[$1]}
-
-    # don't ask me why
-    if [[ $lang = "EN" ]]; then
-        lang="ENG"
-    fi
-
-    g_Lang="$lang"
-}
-
-
-#
-# @brief: check if the given file is a video file
-# @param: video filename
-# @return: bool 1 - is video file, 0 - is not a video file
-#
-check_extention() {
-    local is_video=0  
-    local filename=$(basename "$1")
-    local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
-    local ext
-
-    for ext in "${g_VideoUris[@]}"; do
-        if [[ "$ext" = "$extention" ]]; then
-            is_video=1
-            break
-        fi
-    done
-    
-    echo $is_video
-}
-
-
-
-#
-# @brief: mysterious f() function
-# @param: md5sum
-#
-f() {
-    declare -a local t_idx=( 0xe 0x3 0x6 0x8 0x2 )
-    declare -a local t_mul=( 2 2 5 4 3 )
-    declare -a local t_add=( 0 0xd 0x10 0xb 0x5 )
-    local sum="$1"
-    local b=""    
-    local i=0
-
-    # for i in {0..4}; do
-    for i in $(seq 0 4); do
-        local a=${t_add[$i]}
-        local m=${t_mul[$i]}
-        local g=${t_idx[$i]}        
-        
-        local t=$(( a + 16#${sum:$g:1} ))
-        local v=$(( 16#${sum:$t:2} ))
-        
-        local x=$(( (v*m) % 0x10 ))
-        local z=$(printf "%X" $x)
-        b="$b$(echo $z | tr '[A-Z]' '[a-z]')"
-    done
-    echo "$b"
-}
-
 
 #
 # @brief: retrieve subtitles
@@ -353,39 +126,6 @@ get_cover() {
 	[[ $size -eq 0 ]] && rm -rf "$2"
 }
 
-
-#
-# @brief prepare a list of file which require processing
-# @param space delimited file list string
-#
-prepare_file_list() {
-    local file=""
-    for file in "$@"; do
-
-        # check if file exists, if not skip it
-        if [[ ! -e "$file" ]]; then
-            continue
-
-        elif [[ ! -s "$file" ]]; then
-            echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik jest pusty !!!"
-            continue
-
-        # check if is a directory
-        # if so, then recursively search the dir
-        elif [[ -d "$file" ]]; then
-            local tmp="$file"
-            prepare_file_list "$tmp"/*
-
-        else
-            # check if the respective file is a video file (by extention)       
-            if [[ $(check_extention "$file") -eq 1 ]] &&
-               [[ $(stat $g_StatParams "$file") -ge $(( $g_MinimumSize*1024*1024 )) ]]; then
-                g_FileList=( "${g_FileList[@]}" "$file" )
-            fi
-
-        fi
-    done
-}
 
 #
 # @brief try to download subs for all the files present in the list
@@ -539,26 +279,6 @@ download_subs() {
 
         fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
     done    
-}
-
-
-#
-# @brief check if subotage.sh is installed and available
-#
-f_check_for_subotage() {
-    if [[ -n $(builtin type -P subotage.sh) ]]; then
-        g_SubotagePresence=1
-    fi
-}
-
-
-#
-# @brief check if ifconv is installed and available
-#
-f_check_for_iconv() {
-    if [[ -n $(builtin type -P iconv) ]]; then
-        g_IconvPresence=1
-    fi
 }
 
 

@@ -865,6 +865,74 @@ f() {
 	return $RET_OK
 }
 
+################################# file handling ################################
+
+#
+# @brief: check if the given file is a video file
+# @param: video filename
+# @return: bool 1 - is video file, 0 - is not a video file
+#
+verify_extension() {
+    local filename=$(basename "$1")
+    local extension=$(get_ext "$filename" | lcase)
+    local is_video=0  
+
+	declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 
+		'mpeg' 'wmv' '3gp' 'asf' 'divx' 
+		'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
+
+	lookup_key "$extension" ${formats[@]} > /dev/null && is_video=1
+
+    echo $is_video
+	return $RET_OK
+}
+
+
+#
+# @brief prepare a list of file which require processing
+# @param minimum filesize
+# @param space delimited file list string
+#
+prepare_file_list() {
+    local file=""
+	local min_size=${1:-0}
+
+	shift
+    for file in "$@"; do
+
+        # check if file exists, if not skip it
+        if [[ ! -e "$file" ]]; then
+            continue
+
+        elif [[ ! -s "$file" ]]; then
+			_warning "podany plik jest pusty [$file]"
+            continue
+
+        # check if is a directory
+        # if so, then recursively search the dir
+        elif [[ -d "$file" ]]; then
+            local tmp="$file"
+            prepare_file_list $min_size "$tmp"/*
+
+        else
+            # check if the respective file is a video file (by extention)       
+            if [[ $(verify_extension "$file") -eq 1 ]] &&
+			   [[ $($g_cmd_stat "$file") -ge $(( $min_size*1024*1024 )) ]]; then
+                g_files+=( "$file" )
+            fi
+        fi
+    done
+
+	return $RET_OK
+}
+
+
+process_file() {
+    local file="$1"
+	_info $LINENO "pobieram napisy dla pliku [$file]"
+}
+
+
 
 
 
@@ -1017,6 +1085,9 @@ main() {
 	_msg "wywolano o $(date)"
 	_msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
 
+	_info $LINENO "przygotowuje liste plikow..."
+	prepare_file_list $g_min_size "${g_paths[@]}"
+	_msg "znaleziono ${#g_files[@]} plikow..."
 
 	_info $LINENO "przywracam STDOUT"
 	redirect_to_stdout
@@ -1030,8 +1101,6 @@ main "$@"
 # EOF
 ######################################################################## 
 ######################################################################## 
-######################################################################## 
-########################################################################
 
 
 ############################## DB ######################################
@@ -1062,4 +1131,4 @@ main "$@"
 ## 	eval "${g_GlobalPrefix}_${1/./_}=\$2"
 ## }
 
-######################################################################## ######################################################################## ######################################################################## ########################################################################
+######################################################################## 

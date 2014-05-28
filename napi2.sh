@@ -1,32 +1,6 @@
 #!/bin/bash
 
 #
-# @brief: check if the given file is a video file
-# @param: video filename
-# @return: bool 1 - is video file, 0 - is not a video file
-#
-verify_extension() {
-    local filename=$(basename "$1")
-
-    local is_video=0  
-    local exsention=$(get_ext "$filename" | lcase)
-    local ext=""
-
-	declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 
-		'mpeg' 'wmv' '3gp' 'asf' 'divx' 
-		'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
-
-    for ext in ${formats[@]}; do
-        [ "$ext" = "$extension" ] && is_video=1 && break
-    done
-    
-    echo $is_video
-	return 0
-}
-
-
-
-#
 # @brief extracts http status from the http headers
 #
 get_http_status() {
@@ -239,45 +213,6 @@ process_file() {
 }
 
 
-#
-# @brief prepare a list of file which require processing
-# @param minimum filesize
-# @param space delimited file list string
-#
-prepare_file_list() {
-    local file=""
-	local min_size=${1:-0}
-
-	shift
-    for file in "$@"; do
-
-        # check if file exists, if not skip it
-        if [[ ! -e "$file" ]]; then
-            continue
-
-        elif [[ ! -s "$file" ]]; then
-			_warning "podany plik jest pusty [$file]"
-            continue
-
-        # check if is a directory
-        # if so, then recursively search the dir
-        elif [[ -d "$file" ]]; then
-            local tmp="$file"
-            prepare_file_list $min_size "$tmp"/*
-
-        else
-            # check if the respective file is a video file (by extention)       
-            if [[ $(verify_extension "$file") -eq 1 ]] &&
-			   [[ $(stat_file "$file") -ge $(( $min_size*1024*1024 )) ]]; then
-                g_FileList+=( "$file" )
-            fi
-        fi
-    done
-
-	return 0
-}
-
-
 get_sub_ext() {
 	local ext=$g_DefaultExt
 
@@ -354,10 +289,6 @@ main() {
 	# parse the positional parameters
 	parse_argv "$@"
 
-	# wget
-	get_wget_tool_options
-
-	prepare_file_list $g_min_size "${g_paths[@]}"
 
 	declare -P $g_FileList
 }
