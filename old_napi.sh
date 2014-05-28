@@ -19,14 +19,6 @@ else
 fi
 
 
-# list of all mandatory to basic functionality tools
-declare -a g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
-                    'wget' 'find' 'dd' 
-                    'grep' 'sed' 'cut' 'seq' )
-
-# if pynapi is not acceptable then use "other" - in this case p7zip is 
-# required to finish processing
-g_Revison="v1.1.13"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -55,19 +47,12 @@ g_IconvPresence=0
 # fps detection tools: mediainfo mplayer
 g_FpsTool=""
 g_Fps=0
-g_LogFile="none"
 
 # default extension
 g_DefaultExt="txt"
 
 # minimum size
 g_MinimumSize=0;
-
-# statistical data
-g_Skipped=0
-g_Downloaded=0
-g_Unavailable=0
-g_Converted=0
 
 ########################################################################
 ########################################################################
@@ -297,14 +282,6 @@ f_check_for_fps_detectors() {
     fi
 }
 
-# @brief error wrapper
-f_print_error() {
-   if [[ "$g_LogFile" != "none" ]]; then   
-      echo -e "$@"
-   else
-      echo -e "$@" > /dev/stderr
-   fi
-}
 
 # @brief detect fps from video file
 f_detect_fps() {
@@ -321,238 +298,9 @@ f_detect_fps() {
     fi
 }
 
-# scan if all needed tools are available
-f_check_mandatory_tools() {
-    local elem=""
-
-    for elem in "${g_MandatoryTools[@]}"; do
-        if [[ -z "$(builtin type -P $elem)" ]]; then
-            f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
-            exit
-        fi  
-    done    
-}
-
-########################################################################
-########################################################################
-########################################################################
-
 # initialisation
-f_check_for_subotage
-f_check_for_iconv
 f_check_for_fps_detectors
 
-
-if [[ $g_SubotagePresence -eq 1 ]]; then
-    g_Formats=( $(subotage.sh -gf) )
-fi
-
-# if no arguments are given, then print help and exit
-if [[ $# -lt 1 ]] || [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
-    f_check_mandatory_tools
-    display_help
-    exit
-fi
-
-
-# command line arguments parsing
-while [ $# -gt 0 ]; do
-
-    case "$1" in
-        # cover download
-        "-c" | "--cover")
-        g_Cover=1
-        ;;
-
-        # charset conversion
-        "-C" | "--charset")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano docelowego kodowania"
-            exit
-        fi
-        g_Charset="$1"
-        ;;
-
-        # skip flag
-        "-s" | "--skip")
-        g_Skip=1
-        ;;
-        
-        # user login
-        "-u" | "--user")        
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano nazwy uzytkownika"
-            exit
-        fi
-        g_User="$1"
-        ;;
-        
-        # password
-        "-p" | "--pass")
-        shift
-                
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano hasla dla uzytkownika [$g_User]"
-            exit
-        fi      
-        g_Pass="$1"     
-        ;;
-
-        # extension
-        "-e" | "--ext")
-        shift
-        if [[ -z "$1" ]]; then
-            f_printf_error "Nie okreslono domyslnego rozszerzenia dla pobranych plikow"
-            exit
-        fi
-        g_DefaultExt="$1"
-        ;;
-
-        "-b" | "--bigger-than")
-        shift
-        if [[ -z "$1" ]]; then
-            f_printf_error "Nie okreslono minimalnego rozmiaru"
-            exit
-        fi
-        g_MinimumSize="$1"
-        ;;
-
-
-        # logfile
-        "-l" | "--log")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano nazwy pliku dziennika"
-            exit        
-        fi
-        g_LogFile="$1"           
-        ;;
-
-        # languages
-        "-L" | "--language")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Wybierz jeden z dostepnych 2/3 literowych kodow jezykowych"
-            list_languages
-            exit        
-        fi
-
-        tmp=$(check_language "$1")
-        if [[ -n "$tmp" ]]; then            
-            set_language "$tmp"
-        else
-            f_print_error "Nieznany kod jezyka [$1]"
-            list_languages
-            exit
-        fi
-        ;;
-        
-        # abbrev
-        "-a" | "--abbrev")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono wstawki"
-          exit
-        fi
-        
-        g_Abbrev="$1"
-        ;;
-		
-        # abbrev
-        "--conv-abbrev")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono wstawki dla konwersji"
-          exit
-        fi
-		
-        g_ConvAbbrev="$1"
-        ;;
-		
-        # script
-        "-S" | "--script")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono sciezki do skryptu"
-          exit
-        fi
-        
-		g_Script="$1"
-        ;;
-		
-		
-        # orig prefix 
-        "-d" | "--delete-orig")
-        g_OrigDelete=1
-        ;;
-
-        # orig prefix 
-        "-o" | "--orig-prefix")
-        shift
-        g_OrigPrefix="$1"
-        ;;
-        
-        # destination format definition
-        "-f" | "--format")
-        shift
-        g_Format="$1"
-        ;;
-    
-        # parameter is not a known argument, probably a filename
-        *)
-        g_Params=( "${g_Params[@]}" "$1" )
-        ;;
-        
-    esac        
-    shift
-done
-
-########################################################################
-########################################################################
-########################################################################
-
-# parameters validation
-if [[ -n "$g_Pass" ]] && [[ -z "$g_User" ]]; then
-    f_print_error "Podano haslo, lecz nie podano loginu. Uzupelnij dane !!!"
-    exit
-fi
-
-if [[ -z "$g_Pass" ]] && [[ -n "$g_User" ]]; then
-    f_print_error "Podano login, lecz nie podano hasla, uzupelnij dane !!!"
-    exit
-fi
-
-if [[ $g_SubotagePresence -eq 1 ]]; then    
-    f_valid=0
-    for i in "${g_Formats[@]}"; do      
-        if [[ "$i" = "$g_Format" ]]; then
-            f_valid=1
-            break
-        fi      
-    done
-    
-    if [[ $f_valid -eq 0 ]] && [[ "$g_Format" != "no_conversion" ]]; then
-        f_print_error "Podany format docelowy jest niepoprawny: [$g_Format] !!!"
-        exit
-    fi
-fi
-
-# be sure not to overwrite actual video file
-if [[ ${#g_Params[*]} -eq 0 ]] && [[ "$g_LogFile" != "none" ]]; then
-   f_print_error "Nie podales pliku loga !!!"
-   exit   
-elif [[ "$g_LogFile" != "none" ]]; then
-   exec 3>&1 1> "$g_LogFile"
-fi
-
-# initialisation 2
-f_check_mandatory_tools
-
-########################################################################
-########################################################################
-########################################################################
 
 echo "Wywolano o [$(date)]"
 #set -- "${g_Params[@]}"
@@ -573,9 +321,4 @@ fi
 echo -e "Niedostepne:\t[$g_Unavailable]"
 echo -e "Lacznie:\t[${#g_FileList[*]}]"
       
-# restore original stdout
-if [[ "$g_LogFile" != "none" ]]; then   
-   exec 1>&3 3>&-
-fi
-
 # EOF

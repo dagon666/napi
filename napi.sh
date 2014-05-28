@@ -142,6 +142,20 @@ declare -a g_paths=()
 #
 declare -a g_files=()
 
+#
+# @brief prepare all the possible filename combinations 
+#
+declare -a g_possible_filenames=()
+
+#
+# @brief processing stats
+# 0 - downloaded
+# 1 - unavailable
+# 2 - skipped
+# 3 - converted
+# 4 - total processed
+#
+declare -a g_stats=( 0 0 0 0 0 )
 
 ################################### TOOLS ######################################
 
@@ -169,13 +183,13 @@ g_cmd_md5='md5sum'
 RET_OK=0
 
 # function failed
-RET_FAIL=-1
+RET_FAIL=255
 
 # parameter error
-RET_PARAM=-2
+RET_PARAM=254
 
 # parameter/result will cause the script to break
-RET_BREAK=-3
+RET_BREAK=253
 
 ################################## STDOUT ######################################
 
@@ -528,6 +542,17 @@ verify_tools() {
 	return $rv
 }
 
+
+#
+# @brief get extension for given subtitle format
+#
+get_sub_ext() {
+	declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
+	lookup_value "$1" ${fmte[@]}
+	[ $? -ne $RET_OK ] && echo $g_default_ext
+	return $RET_OK
+}
+
 ##################################### fps ######################################
 
 #
@@ -703,6 +728,14 @@ verify_id() {
 		g_system[2]='pynapi'
 		;;
 	esac
+
+	if [[ "${g_system[2]}" = 'other' ]]; then
+		local p=$(lookup_value '7z' ${g_tools[@]})
+		if [ $(( $p + 0 )) -eq 0 ]; then
+			_error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
+			rv=$RET_FAIL
+		fi
+	fi
 	return $rv
 }
 
@@ -765,6 +798,7 @@ verify_fps_tool() {
 # @brief verify correctness of the argv settings provided
 #
 verify_argv() {
+	local status=0
 
 	# verify credentials correctness
 	_debug $LINENO 'sprawdzam dane uwierzytelniania'
@@ -787,8 +821,15 @@ verify_argv() {
 
 	# verify the id setting
 	_debug $LINENO 'sprawdzam id'
-	if ! verify_id; then
+	verify_id
+	status=$?
+
+	if [ $status = $RET_PARAM ]; then
 		_warning "nieznany id [${g_system[2]}], przywracam domyslny"
+
+	elif [ $status = $RET_FAIL ]; then
+		_error "brak wymaganych narzedzi"
+		return $RET_PARAM
 	fi
 	
 	# logfile verification	
@@ -865,6 +906,133 @@ f() {
 	return $RET_OK
 }
 
+
+#
+# @brief extracts http status from the http headers
+#
+get_http_status() {
+	grep -o "HTTP/[\.0-9*] [0-9]*"
+}
+
+
+#
+# @brief wrapper for wget
+# @param url
+# @param output file
+#
+# returns the http code(s)
+#
+download_url() {
+	local $url="${1:-''}"
+	local $output="$2"
+	local headers=""
+	local rv=0
+	local code='unknown'
+
+	headers=$($g_cmd_wget "$output" "$url" 2>&1)
+
+	if [ $? -eq $RET_OK ]; then
+		# check the headers
+		if [ -n $headers ]; then
+			rv=$RET_FAIL
+			code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
+			[ -n $(echo $code | grep 200) ] && rv=$RET_OK
+		fi
+	else
+		rv=$RET_FAIL
+	fi
+	
+	echo $code
+	return $rv
+}
+
+
+#
+# @brief downloads subtitles
+# @param md5 sum of the video file
+# @param hash of the video file
+# @param output filename
+# @param requested subtitles language
+#
+download_subs() {
+	local md5sum={$1:-0}
+	local h=${2:-0}
+	local of="$3"
+	local lang=${4:-'PL'}
+	local id=${5:-'pynapi'}
+	local user=${6:-''}
+	local passwd=${7:-''}
+
+	local rv=$RET_OK
+	local http_codes=''
+
+	# downloaded filename
+	local dof="$of"
+    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$lang&f=$md5sum&t=$h&v=$id&kolejka=false&nick=$user&pass=$passwd&napios=posix"
+	local napi_pass="iBlm8NTigvru0Jr0"
+
+	# should be enough to avoid clashing
+	[ $id = "other" ] && dof=$(mtemp -t napisy.7z.XXXXXXXX)
+
+	http_codes=$(download_url "$url" "$dof")
+	if [ $? -ne 0 ]; then
+		_error "nie mozna pobrac pliku, odpowiedzi http: [$http_codes]"
+		return $RET_FAIL
+	fi
+
+	# it seems that we've got the file perform some verifications on it
+	case $id in
+		"pynapi" )
+		# no need to do anything
+		;;
+
+		"other")
+        7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
+        unlink "$dof"
+		! [ -s "$of" ] && rv=$RET_FAIL && unlink "$of"
+		;;
+
+		*)
+		_error "not supported"
+		;;
+	esac
+
+	# verify the contents
+	if [ $rv -eq $RET_OK ]; then
+		local lines=$(wc -l "$of" | cut -d ' ' -f 1)
+		
+		# adjust that if needed
+		local $min_lines=3
+
+		if [ $lines -lt $min_lines ]; then
+			_info $LINENO "plik zawiera mniej niz $min_lines lin(ie). zostanie usuniety"
+			rv=$RET_FAIL && unlink "$of"
+		fi
+	fi
+
+	return $rv
+}
+
+
+#
+# @brief downloads subtitles for a given media file
+# @param media filename
+# @param subtitles filename
+# @param requested subtitles language
+#
+get_subtitles() {
+	local fn="$1"
+	local of="$2"
+	local lang="$3"
+
+	# md5sum and hash calculation
+	local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
+	local hash=$(f $sum)
+
+	download_subs $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+	return $?
+}
+
 ################################# file handling ################################
 
 #
@@ -927,9 +1095,70 @@ prepare_file_list() {
 }
 
 
+#
+# @brief prepare all the possible filenames for the output file (in order to check if it already exists)
+#
+# this function prepares global variables g_possible_filenames containing all the possible output filenames
+# index description
+#
+# @brief video filename
+#
+prepare_filenames() {
+	
+	# media filename (with path)
+	local fn="${1:-''}"
+
+    # media filename without path
+    local base=$(basename "$fn")
+
+    # media filename without extension
+	local noext=$(strip_ext $base)
+
+	# converted extension
+	local cext=$(get_sub_ext $g_sub_format)
+
+	local ab=${g_abbrev[0]}
+	local cab=${g_abbrev[1]}
+
+	# empty the array
+	g_possible_filenames=()
+
+	# original
+	g_possible_filenames+=( "${noext}.$g_default_ext" )
+	g_possible_filenames+=( "${noext}.${ab:+$ab.}$g_default_ext" )
+	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[0]}" )
+	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[1]}" )
+
+	# converted
+	g_possible_filenames+=( "${noext}.$cext" )
+	g_possible_filenames+=( "${noext}.${ab:+$ab.}$cext" )
+	g_possible_filenames+=( "${noext}.${cab:+$cab.}$cext" )
+	g_possible_filenames+=( "${noext}.${ab:+$ab.}${cab:+$cab.}$cext" )
+
+	return 0
+}
+
+
+#
+# @brief process a single media file
+#
 process_file() {
     local file="$1"
+	local rv=$RET_OK
+	local status=0
+
 	_info $LINENO "pobieram napisy dla pliku [$file]"
+	_debug $LINENO "skipping = $g_skip"
+
+	if [[ $g_skip -eq 1 ]]; then
+		# skipping enabled
+		echo 0
+	else
+		# skipping disabled
+		status=$(get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang)
+	fi
+
+	return $rv
 }
 
 
@@ -1088,6 +1317,7 @@ main() {
 	_info $LINENO "przygotowuje liste plikow..."
 	prepare_file_list $g_min_size "${g_paths[@]}"
 	_msg "znaleziono ${#g_files[@]} plikow..."
+
 
 	_info $LINENO "przywracam STDOUT"
 	redirect_to_stdout
