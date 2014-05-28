@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #
 # @brief detect fps of the video file
 # @param tool
@@ -35,69 +36,3 @@ get_fps() {
 	return 0
 }
 
-
-################################# napiprojekt ##################################
-#
-# @brief: retrieve cover
-# @param: md5sum
-# @param: outputfile
-#
-download_cover() {
-    local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
-	local rv=-1
-
-	# not interested in the headers
-	download_url "$url" "$2" > /dev/null
-	rv=$?
-
-	if [ $rv -eq 0 ]; then
-		local size=$(stat_file "$2")
-		[ $size -eq 0 ] && 
-			rv=-1 && 
-			unlink "$2"
-	fi
-
-	return $rv
-}
-
-process_file() {
-	
-
-	# generate all the possible filenames
-	prepare_filenames "$file"
-
-
-
-	
-	return 0
-}
-
-
-
-
-###########################################################################
-
-#
-# @brief main function 
-# 
-main() {
-  
-	# check for mandatory toolset
- 	verify_mandatory_tools 
-	[ $? -ne 0 ] && exit -1
-
-
-	# detect optional tools
-	g_tools_opt="$(verify_optional_tools 'iconv' 'subotage.sh' '7z' )"
- 	_debug $LINENO "wykryte narzedzia opcjonalne $g_tools_opt" 
-
-	# check for fps detectors
-	g_tools_fps="$(verify_optional_tools 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )"
- 	_debug $LINENO "wykryte narzedzia fps $g_tools_fps" 
-
-	# parse the positional parameters
-	parse_argv "$@"
-
-
-	declare -P $g_FileList
-}

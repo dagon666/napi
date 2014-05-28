@@ -180,16 +180,19 @@ g_cmd_md5='md5sum'
 ################################## RETVAL ######################################
 
 # success
-RET_OK=0
+declare -r RET_OK=0
 
 # function failed
-RET_FAIL=255
+declare -r RET_FAIL=255
 
 # parameter error
-RET_PARAM=254
+declare -r RET_PARAM=254
 
 # parameter/result will cause the script to break
-RET_BREAK=253
+declare -r RET_BREAK=253
+
+# resource unavailable
+declare -r RET_UNAV=252
 
 ################################## STDOUT ######################################
 
@@ -923,8 +926,8 @@ get_http_status() {
 # returns the http code(s)
 #
 download_url() {
-	local $url="${1:-''}"
-	local $output="$2"
+	local url="$1"
+	local output="$2"
 	local headers=""
 	local rv=0
 	local code='unknown'
@@ -933,7 +936,7 @@ download_url() {
 
 	if [ $? -eq $RET_OK ]; then
 		# check the headers
-		if [ -n $headers ]; then
+		if [ -n "$headers" ]; then
 			rv=$RET_FAIL
 			code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
 			[ -n $(echo $code | grep 200) ] && rv=$RET_OK
@@ -955,7 +958,7 @@ download_url() {
 # @param requested subtitles language
 #
 download_subs() {
-	local md5sum={$1:-0}
+	local md5sum=${1:-0}
 	local h=${2:-0}
 	local of="$3"
 	local lang=${4:-'PL'}
@@ -976,7 +979,7 @@ download_subs() {
 
 	http_codes=$(download_url "$url" "$dof")
 	if [ $? -ne 0 ]; then
-		_error "nie mozna pobrac pliku, odpowiedzi http: [$http_codes]"
+		_error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
 		return $RET_FAIL
 	fi
 
@@ -1002,12 +1005,36 @@ download_subs() {
 		local lines=$(wc -l "$of" | cut -d ' ' -f 1)
 		
 		# adjust that if needed
-		local $min_lines=3
+		local min_lines=3
 
 		if [ $lines -lt $min_lines ]; then
 			_info $LINENO "plik zawiera mniej niz $min_lines lin(ie). zostanie usuniety"
 			rv=$RET_FAIL && unlink "$of"
 		fi
+	fi
+
+	return $rv
+}
+
+
+#
+# @brief: retrieve cover
+# @param: md5sum
+# @param: outputfile
+#
+download_cover() {
+    local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
+	local rv=$RET_FAIL
+
+	# not interested in the headers
+	download_url "$url" "$2" > /dev/null
+	rv=$?
+
+	if [ $rv -eq $RET_OK ]; then
+		local size=$($g_cmd_stat "$2")
+		[ $size -eq 0 ] && 
+			rv=$RET_UNAV && 
+			unlink "$2"
 	fi
 
 	return $rv
@@ -1030,6 +1057,17 @@ get_subtitles() {
 	local hash=$(f $sum)
 
 	download_subs $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+	return $?
+}
+
+
+#
+# @param media filename
+# @param cover filename
+#
+get_cover() {
+	local sum=$(dd if="$1" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
+	download_cover $sum "$2"
 	return $?
 }
 
@@ -1150,13 +1188,38 @@ process_file() {
 	_info $LINENO "pobieram napisy dla pliku [$file]"
 	_debug $LINENO "skipping = $g_skip"
 
+	# prepare all the possible filename combinations
+	prepare_filenames "$file"
+	_debug $LINE "potencjalne nazwy plikow: ${g_possible_filenames[*]}"
+
 	if [[ $g_skip -eq 1 ]]; then
 		# skipping enabled
 		echo 0
 	else
-		# skipping disabled
-		status=$(get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang)
+		# skipping disabled		
+		get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang
+		status=$?
+		_debug $LINENO "status pobierania $status"
+
+		if [ $status = $RET_OK ]; then
+			_status "OK" "${g_possible_filenames[0]}"
+		else
+			_status "UNAV" "${g_possible_filenames[0]}"
+			rv=$RET_UNAV
+		fi # if [ $status = $RET_OK ]
+
 	fi
+
+	# download cover
+	if [[ $g_cover -eq 1 ]]; then
+		local cover_fn="$(strip_ext \"$file\")"
+		get_cover "$file" "$cover_fn"
+		if [ $? = $RET_OK ]; then
+			_status "OK" "cover for ${g_possible_filenames[0]}"
+		else
+			_status "UNAV" "cover for ${g_possible_filenames[0]}"
+		fi # if [ $status = $RET_OK ]
+	fi # if [[ $g_cover -eq 1 ]]
 
 	return $rv
 }
@@ -1318,6 +1381,8 @@ main() {
 	prepare_file_list $g_min_size "${g_paths[@]}"
 	_msg "znaleziono ${#g_files[@]} plikow..."
 
+	# just for test purposes
+	process_file 'av.avi'
 
 	_info $LINENO "przywracam STDOUT"
 	redirect_to_stdout
