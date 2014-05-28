@@ -153,9 +153,11 @@ declare -a g_possible_filenames=()
 # 1 - unavailable
 # 2 - skipped
 # 3 - converted
-# 4 - total processed
+# 4 - covers downloaded
+# 5 - covers unavailable
+# 6 - total processed
 #
-declare -a g_stats=( 0 0 0 0 0 )
+declare -a g_stats=( 0 0 0 0 0 0 0 )
 
 ################################### TOOLS ######################################
 
@@ -1071,6 +1073,24 @@ get_cover() {
 	return $?
 }
 
+
+#
+# @brief convert charset of the file
+# @param input file
+# @param output charset
+# @param input charset or null
+#
+convert_charset() {
+	local file="$1"
+	local d="${2:-'utf8'}"
+	local s="${3:-'WINDOWS-1250'}"
+
+	local tmp=$(mktemp -t napi.XXXXXXXX)
+	iconv -f "$s" -t "$d" "$file" > "$tmp"
+	mv "$tmp" "$file"
+	return $RET_OK
+}
+
 ################################# file handling ################################
 
 #
@@ -1162,6 +1182,7 @@ prepare_filenames() {
 	g_possible_filenames=()
 
 	# original
+	g_possible_filenames+=( "${noext}" )
 	g_possible_filenames+=( "${noext}.$g_default_ext" )
 	g_possible_filenames+=( "${noext}.${ab:+$ab.}$g_default_ext" )
 	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[0]}" )
@@ -1186,44 +1207,59 @@ process_file() {
 	local status=0
 
 	_info $LINENO "pobieram napisy dla pliku [$file]"
-	_debug $LINENO "skipping = $g_skip"
 
 	# prepare all the possible filename combinations
 	prepare_filenames "$file"
 	_debug $LINE "potencjalne nazwy plikow: ${g_possible_filenames[*]}"
 
-	if [[ $g_skip -eq 1 ]]; then
-		# skipping enabled
-		echo 0
+	# skipping disabled		
+	get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang
+	status=$?
+	_debug $LINENO "status pobierania $status"
+
+	if [ $status = $RET_OK ]; then
+		_status "OK" "$file"
+
+		# charset conversion
+		[ $g_charset != 'default' ] && 
+			_msg "konwertowanie kodowania do $g_charset" &&
+			convert_charset "$file" $g_charset
+
+		# process hook
+		[ -n $g_hook ] &&
+			_msg "wywoluje zewnetrzny skrypt" &&
+			$g_hook "$"
+
+		# download cover
+		if [[ $g_cover -eq 1 ]]; then
+			local cover_fn="$(strip_ext \"$file\")"
+
+			get_cover "$file" "$cover_fn"
+			if [ $? = $RET_OK ]; then
+				_status "OK" "cover for $file"
+			else
+				_status "UNAV" "cover for $file"
+			fi # if [ $status = $RET_OK ]
+
+		fi # if [[ $g_cover -eq 1 ]]
+
 	else
-		# skipping disabled		
-		get_subtitles "$file" "${g_possible_filenames[0]}" $g_lang
-		status=$?
-		_debug $LINENO "status pobierania $status"
+		_status "UNAV" "$file"
+		rv=$RET_UNAV
+	fi # if [ $status = $RET_OK ]
 
-		if [ $status = $RET_OK ]; then
-			_status "OK" "${g_possible_filenames[0]}"
-		else
-			_status "UNAV" "${g_possible_filenames[0]}"
-			rv=$RET_UNAV
-		fi # if [ $status = $RET_OK ]
-
-	fi
-
-	# download cover
-	if [[ $g_cover -eq 1 ]]; then
-		local cover_fn="$(strip_ext \"$file\")"
-		get_cover "$file" "$cover_fn"
-		if [ $? = $RET_OK ]; then
-			_status "OK" "cover for ${g_possible_filenames[0]}"
-		else
-			_status "UNAV" "cover for ${g_possible_filenames[0]}"
-		fi # if [ $status = $RET_OK ]
-	fi # if [[ $g_cover -eq 1 ]]
 
 	return $rv
 }
 
+
+spawn_forks() {
+
+	local i=0
+
+	
+		
+}
 
 
 
