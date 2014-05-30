@@ -145,7 +145,7 @@ declare -a g_files=()
 #
 # @brief prepare all the possible filename combinations 
 #
-declare -a g_possible_filenames=()
+declare -a g_pf=()
 
 #
 # @brief processing stats
@@ -1113,12 +1113,18 @@ get_subtitles() {
 
 
 #
-# @param media filename
-# @param cover filename
+# @param media file path
 #
 get_cover() {
 	local sum=$(dd if="$1" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
-	download_cover $sum "$2"
+	local cover_fn="$(strip_ext $1)"
+
+	local path=$(basename $1)
+	
+	# TODO correct this - extension hardcoded
+	cover_fn="${cover_fn}.jpg"
+	
+	download_cover $sum "$path/$cover_fn"
 	return $?
 }
 
@@ -1205,21 +1211,18 @@ prepare_file_list() {
 #
 # @brief prepare all the possible filenames for the output file (in order to check if it already exists)
 #
-# this function prepares global variables g_possible_filenames containing all the possible output filenames
+# this function prepares global variables g_pf containing all the possible output filenames
 # index description
 #
-# @brief video filename
+# @param video filename (without path)
 #
 prepare_filenames() {
 	
 	# media filename (with path)
 	local fn="${1:-''}"
 
-    # media filename without path
-    local base=$(basename "$fn")
-
     # media filename without extension
-	local noext=$(strip_ext "$base")
+	local noext=$(strip_ext "$fn")
 
 	# converted extension
 	local cext=$(get_sub_ext $g_sub_format)
@@ -1228,21 +1231,103 @@ prepare_filenames() {
 	local cab=${g_abbrev[1]}
 
 	# empty the array
-	g_possible_filenames=()
+	g_pf=()
+
+	# array contents description
+	#
+	# original_file (o) - as download from napiprojekt.pl (with extension changed only)
+	# abbreviation (a)
+	# conversion abbreviation (A)
+	# prefix (p) - g_orig_prefix for the original file
+	# converted_file (c) - filename with converted subtitles format (may have differect extension)
+	#
+	# 0 - o - filename + g_default_ext
+	# 1 - o + a - filename + abbreviation + g_default_ext
+	# 2 - p + o - g_orig_prefix + filename + g_default_ext
+	# 3 - p + o + a - g_orig_prefix + filename + abbreviation + g_default_ext
+	# 4 - c - filename + get_sub_ext
+	# 5 - c + a - filename + abbreviation + get_sub_ext
+	# 6 - c + A - filename + conversion_abbreviation + get_sub_ext
+	# 7 - c + a + A - filename + abbreviation + conversion_abbreviation + get_sub_ext
 
 	# original
-	g_possible_filenames+=( "${noext}.$g_default_ext" )
-	g_possible_filenames+=( "${noext}.${ab:+$ab.}$g_default_ext" )
-	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[0]}" )
-	g_possible_filenames+=( "${g_orig_prefix}${g_possible_filenames[1]}" )
+	g_pf+=( "${noext}.$g_default_ext" )
+	g_pf+=( "${noext}.${ab:+$ab.}$g_default_ext" )
+	g_pf+=( "${g_orig_prefix}${g_pf[0]}" )
+	g_pf+=( "${g_orig_prefix}${g_pf[1]}" )
 
 	# converted
-	g_possible_filenames+=( "${noext}.$cext" )
-	g_possible_filenames+=( "${noext}.${ab:+$ab.}$cext" )
-	g_possible_filenames+=( "${noext}.${cab:+$cab.}$cext" )
-	g_possible_filenames+=( "${noext}.${ab:+$ab.}${cab:+$cab.}$cext" )
+	g_pf+=( "${noext}.$cext" )
+	g_pf+=( "${noext}.${ab:+$ab.}$cext" )
+	g_pf+=( "${noext}.${cab:+$cab.}$cext" )
+	g_pf+=( "${noext}.${ab:+$ab.}${cab:+$cab.}$cext" )
 
-	return 0
+	return $RET_OK
+}
+
+
+#
+# @brief convert format
+# @param full path to the media file
+# @param original (as downloaded) subtitles filename
+# @param filename to which unconverted subtitles should be renamed
+# @param filename for converted subtitles
+#
+convert_format() {
+
+	local media_path="$1"
+	local input="$2"
+	local orig="$3"
+	local conv="$4"
+
+	local path="$(dirname $media_path)"
+
+	local fps=0
+	local fps_opt=''
+	local rv=$RET_OK
+
+	# for the backup
+	local tmp=$(mktemp -t napi.XXXXXXXX)
+
+	# creating backup
+	cp "$path/$input" "$tmp"
+
+	# if delete orig flag has been requested don't rename the original file
+	[ $g_delete_orig -eq 0 ] && 
+		_info $LINENO "kopiuje oryginalny plik jako [$orig]" &&
+		cp "$path/$input" "$path/$orig"
+
+	# detect video file framerate
+	[ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
+
+	if [[ "$fps" != 0 ]]; then
+		_msg "wykryty fps: $fps"
+		fps_opt="-fi $fps"
+	else
+		_msg "fps nieznany, okr. na podstawie napisow albo wart. domyslna"
+	fi
+
+	_msg "wolam subotage.sh"
+	subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt
+	status=$?
+
+	# remove the old format if conversion was successful
+	if [[ $status -eq $RET_OK ]]; then
+		_msg "pomyslnie przekonwertowano do $g_sub_format"
+		[[ "$input" != "$conv" ]] &&
+			_msg "usuwam oryginalny plik" &&
+			unlink "$path/$input"
+	else
+		_msg "konwersja do $g_sub_format niepomyslna"
+
+		# restore the backup (the original file may be corrupted due to failed conversion)
+		cp "$tmp" "$path/$input"
+		rv=$RV_FAIL
+	fi
+
+	# delete a backup
+	unlink "$tmp"
+	return $rv
 }
 
 
@@ -1250,93 +1335,67 @@ prepare_filenames() {
 # @brief process a single media file
 #
 process_file() {
-    local file="$1"
+    local media_path="$1"
+
+	# paths
+	local path=''
+	local media_file=''
+	local subs=''
+
 	local rv=$RET_OK
 	local status=0
-	
-	# paths
-	local dir=''
-	local fullpath=''
-	local fps=0
 
-	_info $LINENO "pobieram napisy dla pliku [$file]"
+	path=$(dirname "$file")
+	media_file=$(basename "$media_path")
+
+	_info $LINENO "pobieram napisy dla pliku [$media_file]"
 
 	# prepare all the possible filename combinations
-	prepare_filenames "$file"
-	_debug $LINE "potencjalne nazwy plikow: ${g_possible_filenames[*]}"
+	prepare_filenames "$media_file"
+	_debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
 
-	# prepare fullpath name
-	dir=$(dirname "$file")
-	fullpath="$dir/${g_possible_filenames[1]}"
+	# default subtitles filename
+	subs="${g_pf[1]}"
 
 	# skipping disabled		
-	get_subtitles "$file" "$fullpath" $g_lang
+	get_subtitles "$media_path" "$path/$subs" $g_lang
 	status=$?
 	_debug $LINENO "status pobierania $status"
 
 	if [ $status = $RET_OK ]; then
-		_status "OK" "$file"
+		_status "OK" "$media_file"
 
 		# perform format conversion 
-		if [ $g_sub_format != 'default'	]; then
-			local fps_opt=''
+		if [ $g_sub_format != 'default' ]; then
 			_msg "konwertowanie do formatu $g_sub_format"
-
-			# if delete orig flag has been requested don't rename the original file
-			[ $g_delete_orig -eq 0 ] &&
-				cp "$fullpath" "$dir/${g_possible_filenames[3]}"
-
-			[ $g_fps_tool != 'default' ] &&
-				fps=$(get_fps $g_fps_tool "$file")
-
-			if [[ "$fps" != 0 ]]; then
-				_msg "wykryty fps: $fps"
-				fps_opt="-fi $fps"
-			else
-				_msg "fps nieznany, okr. na podstawie napisow albo wart. domyslna"
-			fi
-
-			_msg "wolam subotage.sh"
-			subotage.sh -i "$fullpath" -of $g_sub_format -o "$dir/${g_possible_filenames[7]}" $fps_opt
-			status=$?
-
-			# remove the old format if conversion was successful
-			if [[ $status -eq $RET_OK ]]; then
-				_msg "pomyslnie przekonwertowano do $g_sub_format"
-				[[ "${g_possible_filenames[1]}" != "${g_possible_filenames[7]}" ]] &&
-					_msg "usuwam oryginalny plik" &&
-					unlink "$dir/${g_possible_filenames[1]}"
-			fi
+			convert_format "$media_file" "$subs" "${g_pf[3]}" "${g_pf[7]}"
+			[ $? -eq $RET_OK ] subs="${g_pf[7]}"
 		fi
 
 		# charset conversion
 		[ $g_charset != 'default' ] && 
 			_msg "konwertowanie kodowania do $g_charset" &&
-			convert_charset "$file" $g_charset
+			convert_charset "$path/$subs" $g_charset
 
 		# process hook
 		[ $g_hook != 'none' ] &&
 			_msg "wywoluje zewnetrzny skrypt" &&
-			$g_hook "$fullpath"
+			$g_hook "$path/$subs"
 
 		# download cover
 		# assumed here that cover is only available
 		# if subtitles are
 		if [[ $g_cover -eq 1 ]]; then
-			local cover_fn="$(strip_ext \"$file\")"
-			get_cover "$file" "$cover_fn"
-			if [ $? = $RET_OK ]; then
-				_status "OK" "cover for $file"
+			if get_cover "$media_path"; then
+				_status "OK" "cover for $media_file"
 			else
-				_status "UNAV" "cover for $file"
-			fi # if [ $status = $RET_OK ]
+				_status "UNAV" "cover for $media_file"
+			fi 
 		fi # if [[ $g_cover -eq 1 ]]
-
 	else
-		_status "UNAV" "$file"
+		_status "UNAV" "$media_file"
 		rv=$RET_UNAV
 	fi # if [ $status = $RET_OK ]
-
 
 	return $rv
 }
