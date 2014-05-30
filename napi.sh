@@ -1332,9 +1332,55 @@ convert_format() {
 
 
 #
+# @brief check file presence
+#
+check_subs_presence() {
+	local media_file="$1"
+	local path="$2"
+
+	local rv=$RET_OK
+	local status=0
+	local available=1
+	local conv_available=1
+
+	if [[ -e "$path/${g_pf[7]}" ]]; then
+		_status "SKIP" "$media_file"
+	
+	elif [[ -e "$path/${g_pf[6]}" ]]; then
+		_status "COPY" "${g_pf[6]} -> ${g_pf[7]}"
+		cp "${g_pf[6]}" "${g_pf[7]}"
+
+	elif [[ -e "$path/${g_pf[5]}" ]]; then
+		_status "COPY" "${g_pf[5]} -> ${g_pf[7]}"
+		cp "${g_pf[5]}" "${g_pf[7]}"
+
+	elif [[ -e "$path/${g_pf[4]}" ]]; then
+		_status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
+		cp "${g_pf[4]}" "${g_pf[7]}"
+	else
+		conv_available=0
+	fi
+
+	# when the conversion is not required
+	if [[ -e "$path/${g_pf[1]}" ]]; then
+		_status "SKIP" "$media_file"
+	
+	elif [[ -e "$path/${g_pf[3]}" ]]; then
+		_status "COPY" "${g_pf[3]} -> ${g_pf[1]}"
+		cp "${g_pf[3]}" "${g_pf[1]}"
+	else
+		available=0
+	fi
+
+	echo "$available $conv_available"
+	return $rv
+}
+
+
+#
 # @brief process a single media file
 #
-process_file() {
+process_file_no_skip() {
     local media_path="$1"
 
 	# paths
