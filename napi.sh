@@ -9,7 +9,7 @@ declare -r g_revision="v1.2.1"
 ########################################################################
 ########################################################################
 
-#  Copyright (C) 2010 Tomasz Wisniewski aka 
+#  Copyright (C) 2014 Tomasz Wisniewski aka 
 #       DAGON <tomasz.wisni3wski@gmail.com>
 #
 #  http://github.com/dagon666
@@ -169,7 +169,7 @@ declare -a g_stats=( 0 0 0 0 0 0 0 )
 declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 
                 'dd=1' 'grep=1' 'sed=1' 'cut=1' 
                 'stat=1' 'basename=1' 'dirname=1' 'cat=1'
-                'subotage.sh=0' '7z=0' 'iconv=0' 
+				'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 
                 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
@@ -1130,6 +1130,41 @@ get_cover() {
 }
 
 
+get_charset() {
+	local file="$1"
+    local ft_presence=$(lookup_value 'file' ${g_tools[@]})
+	local charset='WINDOWS-1250'
+	local et=''
+
+	if [ $ft_presence -eq 1 ]; then
+
+		et=$(file \
+			--brief \
+			--mime-encoding \
+			--exclude apptype \
+			--exclude tokens \
+			--exclude cdf \
+			--exclude compress \
+			--exclude elf \
+			--exclude soft \
+			--exclude tar \
+			"$file")
+
+		if [ "$?" = "0" ] && [ -n "$et" ]; then
+			case "${et,,}" in
+				*utf*) charset="UTF8";;
+				*iso*) charset="ISO-8859-2";;
+				*ascii*) charset="";;
+				*) charset="WINDOWS-1250";;
+			esac
+		fi
+	fi
+
+	echo $charset
+	return $RET_OK
+}
+
+
 #
 # @brief convert charset of the file
 # @param input file
@@ -1139,7 +1174,10 @@ get_cover() {
 convert_charset() {
     local file="$1"
     local d="${2:-'utf8'}"
-    local s="${3:-'WINDOWS-1250'}"
+    local s="${3}"
+
+	# detect charset
+	[ -z "$s" ] && s=$(get_charset "$file")
 
     local tmp=$(mktemp -t napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
