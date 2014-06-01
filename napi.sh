@@ -59,7 +59,9 @@ declare g_orig_prefix='ORIG_'
 # - pynapi - identifies itself as pynapi
 # - other - identifies itself as other
 #
-declare -a g_system=( 'linux' '1' 'pynapi' )
+# fork id
+#
+declare -a g_system=( 'linux' '1' 'pynapi' 1 )
 
 #
 # @brief minimum size of files to be processed
@@ -166,11 +168,7 @@ declare -a g_stats=( 0 0 0 0 0 0 0 )
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 
-                'dd=1' 'grep=1' 'sed=1' 'cut=1' 
-                'stat=1' 'basename=1' 'dirname=1' 'cat=1'
-				'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 
-                'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
@@ -204,7 +202,7 @@ declare -r RET_UNAV=252
 #
 _debug() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 3 ] && echo -e " --- $line: $*"
+    [ $g_verbosity -ge 3 ] && echo -e "#${g_system[3]} --- $line: $*"
     return $RET_OK
 }
 
@@ -214,7 +212,7 @@ _debug() {
 #
 _info() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 2 ] && echo -e " -- $line: $*"
+    [ $g_verbosity -ge 2 ] && echo -e "#${g_system[3]} -- $line: $*"
     return $RET_OK
 }
 
@@ -244,7 +242,7 @@ _error() {
 # @brief print standard message
 #
 _msg() {
-    [ $g_verbosity -ge 1 ] && echo -e " - $*"
+    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} - $*"
     return $RET_OK
 }
 
@@ -253,7 +251,7 @@ _msg() {
 # @brief print status type message
 #
 _status() {
-    [ $g_verbosity -ge 1 ] && echo -e "$1 -> $2"
+    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} $1 -> $2"
     return $RET_OK
 }
 
@@ -639,6 +637,9 @@ parse_argv() {
             "-d" | "--delete-orig") g_delete_orig=1 ;;
             # skip flag
             "-s" | "--skip") g_skip=1 ;;
+
+			# move instead of copy
+			"-M" | "--move") g_cmd_cp='mv' ;;
 
             # charset conversion
             "-C" | "--charset") varname="g_charset"
@@ -1320,14 +1321,14 @@ convert_format() {
     local orig="$3"
     local conv="$4"
 
-    local path="$(dirname $media_path)"
+    local path=$(dirname "$media_path")
 
     local fps=0
     local fps_opt=''
     local rv=$RET_OK
 
     # for the backup
-    local tmp=$(mktemp -t napi.XXXXXXXX)
+    local tmp="$(mktemp -t napi.XXXXXXXX)"
 
     # creating backup
     cp "$path/$input" "$tmp"
@@ -1379,15 +1380,17 @@ check_subs_presence() {
     local path="$2"
 
 	# bits
-	# 0 - unconverted available/unavailable
-	# 1 - converted available/unavailable
+	# 1 - unconverted available/unavailable
+	# 0 - converted available/unavailable
 	#
-	# default - converted unavailable, unconverted available
-	local rv=2
+	# default - converted unavailable, unconverted unavailable
+	local rv=0
+
+	_debug $LINENO "g_cmd_cp = $g_cmd_cp"
 
     if [ $g_sub_format != 'default' ]; then
 
-		# unconverted available, converted available
+		# unconverted unavailable, converted available
 		rv=$(( $rv | 1 ))
 
         if [[ -e "$path/${g_pf[7]}" ]]; then
@@ -1404,11 +1407,18 @@ check_subs_presence() {
         elif [[ -e "$path/${g_pf[4]}" ]]; then
             _status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
             $g_cmd_cp "${g_pf[4]}" "${g_pf[7]}"
+
         else
             _info $LINENO "skonwertowany plik niedostepny"
 			rv=$(( $rv & ~1 ))
         fi
+
+		# we already have what we need - bail out
+		[ $(( $rv & 1 )) -eq 1 ] && return $rv
     fi
+
+	# assume unconverted available & verify that
+	rv=$(( $rv | 2 ))
 
     # when the conversion is not required
     if [[ -e "$path/${g_pf[1]}" ]]; then
@@ -1445,6 +1455,7 @@ obtain_file() {
 
     # file availability
     local av=0
+	local should_convert=0
 
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
@@ -1474,6 +1485,7 @@ obtain_file() {
 			;;
 
 			1) # unconverted unavailable, converted available
+				_debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
 				rv=$RET_OK
 			;;
 
@@ -1557,12 +1569,47 @@ process_file() {
 }
 
 
+#
+# @brief this is a worker function it will run over the files array with a given step starting from given index
+# @param starting index
+# @param increment
+# 
+process_files() {
+
+	local s=$1
+	local i=$2
+
+	# current
+	local c=$s
+
+	while [ $c -lt ${#g_files[@]} ]; do
+		_info $LINENO "#$s - index poczatkowy $c"
+		process_file "${g_files[$c]}"
+		c=$(( $c + $i ))
+	done	
+
+	return $RET_OK
+}
+
+
 spawn_forks() {
 
-    local i=0
+	local c=0
 
-    
-        
+	# spawn parallel processing
+	while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
+		g_system[3]=$(( $c + 1 ))
+		_debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
+		process_files $c ${g_system[1]} &
+		c=${g_system[3]}
+	done
+	
+	# wait for all forks
+	wait
+
+	# restore main fork id
+	g_system[3]=1
+    return $RET_OK
 }
 
 
@@ -1722,8 +1769,8 @@ main() {
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
 
-    # just for test purposes
-    process_file "${g_files[0]}"
+	# do the job
+	spawn_forks
 
     _info $LINENO "przywracam STDOUT"
     redirect_to_stdout
