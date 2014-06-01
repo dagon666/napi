@@ -431,13 +431,12 @@ verify_language() {
     local i=0
     declare -a l_arr=( )
     
-    [ ${#lang} -ne 2 ] && [ ${#lang} -ne 3 ] && 
-        return $RET_PARAM
+    [ ${#lang} -ne 2 ] && [ ${#lang} -ne 3 ] && return $RET_PARAM
 
     local l_arr_name="g_LanguageCodes${#lang}L";
     eval l_arr=\( \${${l_arr_name}[@]} \)
 
-    i=$(lookup_key $lang ${l_arr[@]})
+    i=$(lookup_key "$lang" ${l_arr[@]})
     local found=$?
 
     echo $i 
@@ -451,7 +450,11 @@ verify_language() {
 # @param: language index
 #
 normalize_language() {
-    declare lang=${g_LanguageCodes2L[$1]}
+	local i=${1:-0}
+	i=$(( $i + 0 ))
+
+    local lang=${g_LanguageCodes2L[$1]}
+	
     # don't ask me why
     [[ $lang = "EN" ]] && lang="ENG"
     echo $lang
@@ -503,7 +506,7 @@ configure_cmds() {
         g_cmd_wget='wget -q -S -O' &&
         _info $LINENO "wget wspiera opcje -S"
 
-    return 0
+    return $RET_OK
 }
 
 
@@ -512,7 +515,7 @@ configure_cmds() {
 #
 verify_system() {
     _debug $LINENO "weryfikuje system"
-    g_system[0]=$(get_system)
+    g_system[0]="$(get_system)"
     g_system[1]=$(( $(get_cores) * 2 ))
 }
 
@@ -532,14 +535,14 @@ verify_tools() {
 
     for t in "$@"; do
         p=1
-        tool=$(get_key $t)
-        m=$(get_value $t)
+        tool="$(get_key $t)"
+        m="$(get_value $t)"
 
         [ -z $(verify_tool_presence $tool) ] && p=0
         ret+=( "$tool=$p" )
         
         # break if mandatory tool is missing
-        [ $m -eq 1 ] && [ $p -eq 0 ] && rv=$RET_FAIL && break
+        [[ $m -eq 1 ]] && [[ $p -eq 0 ]] && rv=$RET_FAIL && break
     done
 
     echo ${ret[*]}
@@ -567,7 +570,7 @@ count_fps_detectors() {
     local t=""
 
     for t in ${g_tools_fps[@]}; do      
-        [[ $(lookup_value $t ${g_tools[@]}) = "1" ]] && c=$(( $c + 1 ))
+        [[ "$(lookup_value $t ${g_tools[@]})" = "1" ]] && c=$(( $c + 1 ))
     done
 
     echo $c
@@ -587,7 +590,7 @@ get_fps() {
     # prevent empty output
     tool=$(( $tool + 0 ))
 
-    if [ -n $tool ] && [ $tool -ne 0 ]; then
+    if [[ -n $tool ]] && [[ $tool -ne 0 ]]; then
         case "$1" in
             'mplayer' | 'mplayer2' )
             fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
@@ -715,7 +718,7 @@ parse_argv() {
 
         # set the global var for simple switches
         # not requiring any further verification
-        if [[ -n $varname ]]; then
+        if [[ -n "$varname" ]]; then
             shift
             [ -z "$1" ] && _error $msg && exit -1
             eval "${varname}=\$1"
@@ -789,7 +792,7 @@ verify_id() {
 #
 verify_format() {
     # format verification if conversion requested
-    if [ $g_sub_format != 'default' ]; then
+    if [ "$g_sub_format" != 'default' ]; then
         local sp=$(lookup_value 'subotage.sh' ${g_tools[@]})
 
         # make sure it's a number
@@ -820,13 +823,13 @@ verify_fps_tool() {
     local sp=0
 
     # verify selected fps tool
-    if [ $g_fps_tool != 'default' ]; then
-        if ! lookup_key $g_fps_tool ${g_tools_fps[@]} > /dev/null; then
+    if [ "$g_fps_tool" != 'default' ]; then
+        if ! lookup_key "$g_fps_tool" ${g_tools_fps[@]} > /dev/null; then
             _error "podane narzedzie jest niewspierane [$g_fps_tool]"
             return $RET_PARAM
         fi
         
-        sp=$(lookup_value $g_fps_tool ${g_tools[@]})
+        sp=$(lookup_value "$g_fps_tool" ${g_tools[@]})
 
         # make sure it's a number
         sp=$(( $sp + 0 ))
@@ -870,7 +873,7 @@ verify_argv() {
 
     # verify encoding request
     _debug $LINENO 'sprawdzam wybrane kodowanie'
-    if ! verify_encoding $g_charset; then
+    if ! verify_encoding "$g_charset"; then
         _warning "charset [$g_charset] niewspierany, ignoruje zadanie"
         g_charset='default'
     fi
@@ -896,10 +899,10 @@ verify_argv() {
     # language verification
     _debug $LINENO 'sprawdzam wybrany jezyk'
     local idx=0
-    idx=$(verify_language $g_lang)
+    idx=$(verify_language "$g_lang")
 
     if [ $? -ne $RET_OK ]; then
-        if [ $g_lang = "list" ]; then 
+        if [ "$g_lang" = "list" ]; then 
             list_languages
             return $RET_BREAK
         else
@@ -921,7 +924,7 @@ verify_argv() {
 
     # verify external script
     _debug $LINENO 'sprawdzam zewnetrzny skrypt'
-    if [ $g_hook != 'none' ]; then
+    if [ "$g_hook" != 'none' ]; then
        [ ! -x "$g_hook" ] &&
            _error "podany skrypt jest niedostepny (lub nie ma uprawnien do wykonywania)" &&
            return $RET_PARAM
@@ -1014,10 +1017,10 @@ download_subs() {
     local md5sum=${1:-0}
     local h=${2:-0}
     local of="$3"
-    local lang=${4:-'PL'}
-    local id=${5:-'pynapi'}
-    local user=${6:-''}
-    local passwd=${7:-''}
+    local lang="${4:-'PL'}"
+    local id="${5:-'pynapi'}"
+    local user="${6:-''}"
+    local passwd="${7:-''}"
 
     local rv=$RET_OK
     local http_codes=''
@@ -1062,7 +1065,12 @@ download_subs() {
 
         if [ $lines -lt $min_lines ]; then
             _info $LINENO "plik zawiera mniej niz $min_lines lin(ie). zostanie usuniety"
-            rv=$RET_FAIL && unlink "$of"
+
+			local fdata=$(cat "$of")
+			_debug $LINENO "$fdata"
+
+            rv=$RET_FAIL && 
+				unlink "$of"
         fi
     fi
 
@@ -1132,11 +1140,18 @@ get_cover() {
 }
 
 
+#
+# @brief detects the charset of the subtitles file
+# @param full path to the subtitles file
+#
 get_charset() {
 	local file="$1"
     local ft_presence=$(lookup_value 'file' ${g_tools[@]})
 	local charset='WINDOWS-1250'
 	local et=''
+
+	# sanitizing the value
+	ft_presence=$(( $ft_presence + 0 ))
 
 	if [ $ft_presence -eq 1 ]; then
 
@@ -1326,11 +1341,13 @@ convert_format() {
     local fps=0
     local fps_opt=''
     local rv=$RET_OK
+	local sb_data=''
 
     # for the backup
     local tmp="$(mktemp -t napi.XXXXXXXX)"
 
-    # creating backup
+    # create backup
+	_debug $LINENO "backupuje oryginalny plik jako $tmp"
     cp "$path/$input" "$tmp"
 
     # if delete orig flag has been requested don't rename the original file
@@ -1349,8 +1366,11 @@ convert_format() {
     fi
 
     _msg "wolam subotage.sh"
-    subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt
+	sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
     status=$?
+
+	# subotage output only on demand
+	_debug $LINENO "$sb_data"
 
     # remove the old format if conversion was successful
     if [[ $status -eq $RET_OK ]]; then
@@ -1467,10 +1487,12 @@ obtain_file() {
 		av=$?
 	fi
 
-	_debug $LINENO "dostepnosc pliku $av"
+	_info $LINENO "dostepnosc pliku $av"
+	_debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
+	_debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
 
     # if conversion is requested
-    if [ $g_sub_format != 'default' ]; then
+    if [ "$g_sub_format" != 'default' ]; then
 
 		case $av in
 			0) # download & convert
@@ -1536,17 +1558,17 @@ process_file() {
     if [ $status -eq $RET_OK ]; then
         _status "OK" "$media_file"
 
-		[ $g_sub_format != 'default' ] &&
+		[ "$g_sub_format" != 'default' ] &&
 			_debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
 			si=7
 
         # charset conversion
-        [ $g_charset != 'default' ] && 
+        [ "$g_charset" != 'default' ] && 
             _msg "konwertowanie kodowania do $g_charset" &&
             convert_charset "$path/${g_pf[$si]}" $g_charset
 
         # process hook
-        [ $g_hook != 'none' ] &&
+        [ "$g_hook" != 'none' ] &&
             _msg "wywoluje zewnetrzny skrypt" &&
             $g_hook "$path/${g_pf[$si]}"
 
@@ -1592,6 +1614,9 @@ process_files() {
 }
 
 
+#
+# @brief creates the actual worker forks
+#
 spawn_forks() {
 
 	local c=0
@@ -1723,7 +1748,7 @@ main() {
     _debug $LINENO "$0: ($g_revision) uruchamianie ..." 
 
     # print bash version
-    if [ -z $BASH_VERSION ]; then
+    if [ -z "$BASH_VERSION" ]; then
         _debug $LINENO "interpreter inny niz bash ($SHELL)"
     else
         _debug $LINENO "interpreter to bash $BASH_VERSION"
@@ -1772,6 +1797,7 @@ main() {
 	# do the job
 	spawn_forks
 
+	# cleanup & exit
     _info $LINENO "przywracam STDOUT"
     redirect_to_stdout
 
