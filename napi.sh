@@ -178,6 +178,7 @@ declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
 g_cmd_stat='stat -c%s'
 g_cmd_wget='wget -q -O'
 g_cmd_md5='md5sum'
+g_cmd_cp='cp'
 
 ################################## RETVAL ######################################
 
@@ -637,7 +638,7 @@ parse_argv() {
             # orig prefix 
             "-d" | "--delete-orig") g_delete_orig=1 ;;
             # skip flag
-            "-s" | "--skip") skip=1 ;;
+            "-s" | "--skip") g_skip=1 ;;
 
             # charset conversion
             "-C" | "--charset") varname="g_charset"
@@ -1377,30 +1378,35 @@ check_subs_presence() {
     local media_file="$1"
     local path="$2"
 
-    local status=0
-    local available=1
-    local conv_available=0
+	# bits
+	# 0 - unconverted available/unavailable
+	# 1 - converted available/unavailable
+	#
+	# default - converted unavailable, unconverted available
+	local rv=2
 
     if [ $g_sub_format != 'default' ]; then
-        conv_available=1
+
+		# unconverted available, converted available
+		rv=$(( $rv | 1 ))
 
         if [[ -e "$path/${g_pf[7]}" ]]; then
             _status "SKIP" "$media_file"
         
         elif [[ -e "$path/${g_pf[6]}" ]]; then
             _status "COPY" "${g_pf[6]} -> ${g_pf[7]}"
-            cp "${g_pf[6]}" "${g_pf[7]}"
+            $g_cmd_cp "${g_pf[6]}" "${g_pf[7]}"
 
         elif [[ -e "$path/${g_pf[5]}" ]]; then
             _status "COPY" "${g_pf[5]} -> ${g_pf[7]}"
-            cp "${g_pf[5]}" "${g_pf[7]}"
+            $g_cmd_cp "${g_pf[5]}" "${g_pf[7]}"
 
         elif [[ -e "$path/${g_pf[4]}" ]]; then
             _status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
-            cp "${g_pf[4]}" "${g_pf[7]}"
+            $g_cmd_cp "${g_pf[4]}" "${g_pf[7]}"
         else
             _info $LINENO "skonwertowany plik niedostepny"
-            conv_available=0
+			rv=$(( $rv & ~1 ))
         fi
     fi
 
@@ -1408,16 +1414,22 @@ check_subs_presence() {
     if [[ -e "$path/${g_pf[1]}" ]]; then
         _status "SKIP" "$media_file"
     
+    elif [[ -e "$path/${g_pf[0]}" ]]; then
+        _status "COPY" "${g_pf[0]} -> ${g_pf[1]}"
+        $g_cmd_cp "${g_pf[0]}" "${g_pf[1]}"
+
     elif [[ -e "$path/${g_pf[3]}" ]]; then
         _status "COPY" "${g_pf[3]} -> ${g_pf[1]}"
-        cp "${g_pf[3]}" "${g_pf[1]}"
+        $g_cmd_cp "${g_pf[3]}" "${g_pf[1]}"
+
     else
         _info $LINENO "oryginalny plik niedostepny"
-        available=0
+		rv=$(( $rv & ~2 ))
     fi
 
-    echo "$available $conv_available"
-    return $RET_OK
+	# exceptionally in this function return value caries the 
+	# information - not the execution status
+    return $rv
 }
 
 
@@ -1432,47 +1444,50 @@ obtain_file() {
     local rv=$RET_FAIL
 
     # file availability
-    # 0 - unconverted
-    # 1 - converted
-    declare -a av=( 0 0 )
+    local av=0
 
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
     _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
 
-    # subs index
-    local si=1
+    if [ $g_skip -eq 1 ]; then
+		_debug $LINENO "sprawdzam dostepnosc pliku"
+        check_subs_presence "$media_file" "$path"
+		av=$?
+	fi
 
-    [ $g_skip -eq 1 ] &&
-        av=( $(check_subs_presence "$media_file" "$path") )
+	_debug $LINENO "dostepnosc pliku $av"
 
     # if conversion is requested
     if [ $g_sub_format != 'default' ]; then
 
-        if [ ${av[0]} -eq 0 ] && [ ${av[1]} -eq 0 ]; then
-            # download & convert
-            if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
-                _debug $LINENO "napisy pobrano, nastapi konwersja"
-                should_convert=1
-            else
-                # unable to get the file
-                _debug $LINENO "napisy niedostepne"
-                rv=$RET_UNAV
-            fi
-            
-        elif [ ${av[1]} -eq 0 ]; then
-            # convert 
-            _debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
-            should_convert=1
-        fi
+		case $av in
+			0) # download & convert
+				if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
+					_debug $LINENO "napisy pobrano, nastapi konwersja"
+					should_convert=1
+				else
+					# unable to get the file
+					_debug $LINENO "napisy niedostepne"
+					rv=$RET_UNAV
+				fi
+			;;
+
+			1) # unconverted unavailable, converted available
+				rv=$RET_OK
+			;;
+
+			2|3) # convert 
+				_debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
+				should_convert=1
+			;;
+		esac
 
         # original file available - convert it
         if [ $should_convert -eq 1 ]; then
             _msg "konwertowanie do formatu $g_sub_format"
             convert_format "$media_path" "${g_pf[1]}" "${g_pf[3]}" "${g_pf[7]}"
-            [ $? -eq $RET_OK ] &&
-                rv=$RET_OK &&
-                si=7
+			rv=$?
         fi
 
     else
@@ -1481,11 +1496,12 @@ obtain_file() {
         if [ ${av[0]} -eq 0 ]; then
             get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
             rv=$?
+		else
+			rv=$RET_OK
         fi
     fi
     
     # return the subtitles index
-    echo $si
     return $rv
 }
 
@@ -1499,12 +1515,18 @@ process_file() {
     local path=$(dirname "$media_file")
 
 	local rv=$RET_OK
+	local status=0
 	local si=1
 
-	si=$(obtain_file "$media_path")
+	obtain_file "$media_path"
+	status=$?
 
-    if [ $? -eq $RET_OK ]; then
+    if [ $status -eq $RET_OK ]; then
         _status "OK" "$media_file"
+
+		[ $g_sub_format != 'default' ] &&
+			_debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
+			si=7
 
         # charset conversion
         [ $g_charset != 'default' ] && 
@@ -1521,7 +1543,7 @@ process_file() {
         # if subtitles are
         if [ $g_cover -eq 1 ]; then
             if get_cover "$media_path"; then
-                _status "OK" "cover for $media_file"
+                _status "OK" "cover for $media_path"
             else
                 _status "UNAV" "cover for $media_file"
             fi 
@@ -1576,6 +1598,7 @@ usage() {
     echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
+	echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
