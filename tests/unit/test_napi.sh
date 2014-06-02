@@ -376,5 +376,25 @@ test_get_ext() {
 	assertEquals 'checking subrip extension' 'txt' "$ext"
 }
 
+
+#
+# verify the fps detectors counting routine
+#
+test_count_fps_detectors() {
+	local c=0
+
+	declare -a tmp=( ${g_tools[@]} )
+
+	c=$(count_fps_detectors)
+	assertEquals 'default no of fps detectors' 0 $c
+
+	g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
+	c=$(count_fps_detectors)
+	assertEquals 'no of fps detectors' 1 $c
+
+	g_tools=( ${tmp[@]} )
+}
+
+
 # shunit call
 . shunit2
