@@ -330,10 +330,10 @@ get_key() {
 lookup_value() {
     local i=''
     local rv=$RET_FAIL
-    local key=$1 && shift
+    local key="$1" && shift
 
     for i in $*; do
-        if [ $(get_key $i) = $key ]; then
+        if [ $(get_key "$i") = "$key" ]; then
             get_value $i
             rv=$RET_OK
             break
@@ -344,14 +344,14 @@ lookup_value() {
 
 
 #
-# @brief lookup key in the array for given value
-# returns the key of the value and 0 on success
+# @brief lookup index in the array for given value
+# returns the index of the value and 0 on success
 #
 lookup_key() {
     local i=''
     local idx=0
     local rv=$RET_FAIL
-    local key=$1 
+    local key="$1" 
 
     shift
 
@@ -384,6 +384,8 @@ modify_value() {
 
     rv+=($key=$value)
     echo ${rv[*]}
+
+	return $RET_OK
 }
 
 ################################ languages #####################################
@@ -458,6 +460,8 @@ normalize_language() {
     # don't ask me why
     [[ $lang = "EN" ]] && lang="ENG"
     echo $lang
+
+	return $RET_OK
 }
 
 #################################### ENV #######################################
@@ -910,6 +914,7 @@ verify_argv() {
             g_lang='PL'
         fi
     else
+		_debug $LINENO "jezyk znaleziony, index = $idx"
         g_lang=$(normalize_language $idx)
     fi
     unset idx
