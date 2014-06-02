@@ -497,9 +497,13 @@ configure_cmds() {
     _debug $LINENO "konfiguruje stat i md5"
 
     # verify stat & md5 tool
-    [ ${g_system[0]} = "darwin" ] && 
-        g_cmd_md5="md5" &&
+    if [ ${g_system[0]} = "darwin" ]; then
+        g_cmd_md5="md5" 
         g_cmd_stat="stat -f%z"
+	else
+        g_cmd_md5="md5sum" 
+        g_cmd_stat="stat -c%s"
+	fi
 
     g_tools+=( "$g_cmd_md5=1" )
 
@@ -1810,7 +1814,7 @@ main() {
 }
 
 # call the main
-main "$@"
+[[ $SHUNIT_TESTS -eq 0 ]] && main "$@"
 
 # EOF
 ######################################################################## 

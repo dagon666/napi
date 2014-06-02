@@ -1,5 +1,7 @@
 #!/bin/bash
 
+declare -r SHUNIT_TESTS=1
+
 #
 # source the code of the original script
 #
@@ -32,6 +34,7 @@ _test_printers() {
 
 	g_verbosity=1
 }
+
 
 #
 # test debug printing routine
@@ -283,6 +286,7 @@ test_normalize_lang() {
 	assertEquals 'verifying 2 letter code' 'PL' $lang
 }
 
+
 #
 # test - verify tool presence routine
 #
@@ -295,6 +299,82 @@ test_verify_tool_presence() {
 	assertEquals 'verifying bogus tool' 0 ${#presence}
 }
 
+
+#
+# test system specific functions
+#
+test_system_tools() {
+	local system=$(uname | tr '[A-Z]' '[a-z]')
+	local cores=$(lscpu | grep "^CPU(s)" | rev | cut -d ' ' -f 1)
+
+	local ds=$(get_system)
+	local dc=$(get_cores)
+
+	assertEquals 'check the system detection routine' $system $ds
+	assertEquals 'check the system core counting routine' $cores $dc
+}
+
+
+#
+# verify the configure_cmds routine
+#
+test_configure_cmds() {
+	# linux 
+	configure_cmds
+	assertEquals 'check md5 for linux' 'md5sum' "$g_cmd_md5"
+	assertEquals 'check stat for linux' 'stat -c%s' "$g_cmd_stat"
+
+	g_system[0]="darwin"
+	configure_cmds
+	assertEquals 'check md5 for darwin' 'md5' "$g_cmd_md5"
+	assertEquals 'check stat for darwin' 'stat -f%z' "$g_cmd_stat"
+
+	g_system[0]="other"
+	configure_cmds
+	assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
+	assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
+}
+
+
+#
+# verify tools verification routine
+#
+test_verify_tools() {
+
+	declare -a m_miss=( bash=1 not_existing=1 )
+	declare -a m_opt=( bash=1 abc=0 xxx=0 ls=0 )
+	local status=0
+
+	m_miss=( $(verify_tools ${m_miss[@]}) )
+	status=$?
+	assertEquals 'mandatory missing' $RET_FAIL $status
+
+	m_opt=( $(verify_tools ${m_opt[@]}) )
+	status=$?
+	assertEquals 'all optionals' $RET_OK $status
+
+
+	local v=$(lookup_value 'ls' ${m_opt[@]} )
+	assertEquals 'optional found' 1 $v
+
+	local v=$(lookup_value 'abc' ${m_opt[@]} )
+	assertEquals 'optional missing' 0 $v
+}
+
+
+#
+# check the get extension routine
+#
+test_get_ext() {
+
+	local ext=''
+
+	ext=$(get_sub_ext 'subrip')
+	assertEquals 'checking subrip extension' 'srt' "$ext"
+	
+	ext=$(get_sub_ext 'mpl2')
+	assertEquals 'checking subrip extension' 'txt' "$ext"
+}
 
 # shunit call
 . shunit2
