@@ -396,5 +396,34 @@ test_count_fps_detectors() {
 }
 
 
+test_get_fps() {
+	local fps=0
+	fps=$(get_fps 'doesnt_matter' 'doesnt_matter.avi')
+	assertEquals 'get fps without tools' 0 $fps
+
+	declare -a tmp=( ${g_tools[@]} )
+
+	if [ -n $(builtin type -P mediainfo) ]; then
+		g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
+		fps=$(get_fps 'mediainfo' 'doesnt_matter.avi')
+		assertNotEquals 'get fps with mediainfo' 0 $fps
+	fi
+
+
+	[ -n $(builtin type -P mplayer) ] &&
+		g_tools=( $(modify_value 'mplayer' 1 ${g_tools[@]}) )
+
+	[ -n $(builtin type -P mplayer2) ] &&
+		g_tools=( $(modify_value 'mplayer2' 1 ${g_tools[@]}) )
+
+	[ -n $(builtin type -P ffmpeg) ] &&
+		g_tools=( $(modify_value 'ffmpeg' 1 ${g_tools[@]}) )
+
+
+
+	g_tools=( ${tmp[@]} )
+}
+
+
 # shunit call
 . shunit2

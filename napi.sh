@@ -593,7 +593,7 @@ count_fps_detectors() {
 #
 get_fps() {
     local fps=0
-    local tool=$(lookup_value $1 ${g_tools[@]})
+    local tool=$(lookup_value "$1" ${g_tools[@]})
 
     # prevent empty output
     tool=$(( $tool + 0 ))
@@ -1508,6 +1508,7 @@ obtain_file() {
 				if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
 					_debug $LINENO "napisy pobrano, nastapi konwersja"
 					should_convert=1
+					g_stats[0]=$(( ${g_stats[0]} + 1 ))
 				else
 					# unable to get the file
 					_debug $LINENO "napisy niedostepne"
@@ -1517,11 +1518,17 @@ obtain_file() {
 
 			1) # unconverted unavailable, converted available
 				_debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
+
+				# increment skipped counter
+				g_stats[2]=$(( ${g_stats[2]} + 1 ))
 				rv=$RET_OK
 			;;
 
 			2|3) # convert 
 				_debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
+
+				# increment skipped counter
+				g_stats[2]=$(( ${g_stats[2]} + 1 ))
 				should_convert=1
 			;;
 		esac
@@ -1531,15 +1538,23 @@ obtain_file() {
             _msg "konwertowanie do formatu $g_sub_format"
             convert_format "$media_path" "${g_pf[1]}" "${g_pf[3]}" "${g_pf[7]}"
 			rv=$?
+
+			# increment converted counter
+			g_stats[3]=$(( ${g_stats[3]} + 1 ))
         fi
 
     else
         _info $LINENO "konwersja nie wymagana"
+
         # file is not available - download
         if [ ${av[0]} -eq 0 ]; then
             get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
             rv=$?
 		else
+
+			# increment skipped counter
+			g_stats[2]=$(( ${g_stats[2]} + 1 ))
+
 			rv=$RET_OK
         fi
     fi
@@ -1587,15 +1602,20 @@ process_file() {
         if [ $g_cover -eq 1 ]; then
             if get_cover "$media_path"; then
                 _status "OK" "cover for $media_path"
+				g_stats[4]=$(( ${g_stats[4]} + 1 ))
             else
                 _status "UNAV" "cover for $media_file"
+				g_stats[5]=$(( ${g_stats[5]} + 1 ))
             fi 
         fi # if [[ $g_cover -eq 1 ]]
     else
         _status "UNAV" "$media_file"
+		g_stats[1]=$(( ${g_stats[1]} + 1 ))
         rv=$RET_UNAV
     fi # if [ $status = $RET_OK ]
 
+	# increment total processed counter
+	g_stats[6]=$(( ${g_stats[6]} + 1 ))
     return $rv
 }
 
