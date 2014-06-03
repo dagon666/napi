@@ -384,7 +384,7 @@ modify_value() {
     declare -a rv=()
 
     for i in $*; do
-        [ $(get_key $i) != $key ] && rv+=( "$i" )
+        [ "$(get_key $i)" != "$key" ] && rv+=( "$i" )
     done
 
     rv+=($key=$value)
@@ -463,7 +463,7 @@ normalize_language() {
     local lang=${g_LanguageCodes2L[$1]}
 	
     # don't ask me why
-    [[ $lang = "EN" ]] && lang="ENG"
+    [[ "$lang" = "EN" ]] && lang="ENG"
     echo $lang
 
 	return $RET_OK
@@ -502,7 +502,7 @@ configure_cmds() {
     _debug $LINENO "konfiguruje stat i md5"
 
     # verify stat & md5 tool
-    if [ ${g_system[0]} = "darwin" ]; then
+    if [ "${g_system[0]}" = "darwin" ]; then
         g_cmd_md5="md5" 
         g_cmd_stat="stat -f%z"
 	else
@@ -551,7 +551,7 @@ verify_tools() {
         tool="$(get_key $t)"
         m="$(get_value $t)"
 
-        [ -z $(verify_tool_presence $tool) ] && p=0
+        [ -z "$(verify_tool_presence $tool)" ] && p=0
         ret+=( "$tool=$p" )
         
         # break if mandatory tool is missing
@@ -603,7 +603,7 @@ get_fps() {
     # prevent empty output
     tool=$(( $tool + 0 ))
 
-    if [[ -n $tool ]] && [[ $tool -ne 0 ]]; then
+    if [[ $tool -ne 0 ]]; then
         case "$1" in
             'mplayer' | 'mplayer2' )
             fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
@@ -614,7 +614,7 @@ get_fps() {
             ;;
 
             'ffmpeg' )
-            fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
+			fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
             ;;
 
             *)

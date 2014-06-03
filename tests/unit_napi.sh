@@ -1,12 +1,72 @@
 #!/bin/bash
 
+################################################################################
+
+#  Copyright (C) 2014 Tomasz Wisniewski aka 
+#       DAGON <tomasz.wisni3wski@gmail.com>
+#
+#  http://github.com/dagon666
+#  http://pcarduino.blogspot.co.ul
+# 
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+################################################################################
+
 declare -r SHUNIT_TESTS=1
+
+#
+# path to the test env root
+#
+declare -r g_assets_path="${1:-/home/vagrant}"
+
+
+#
+# unit test environment root
+#
+declare -r g_ut_root='unit_test_env'
+
+################################################################################
 
 #
 # source the code of the original script
 #
-. ../../napi.sh 2>&1 > /dev/null
+. ../napi.sh 2>&1 > /dev/null
 
+################################################################################
+
+#
+# tests env setup
+#
+oneTimeSetUp() {
+	# create env
+	mkdir -p "$g_assets_path/$g_ut_root"
+	
+	# the space in the file name is deliberate
+	cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/av1 file.avi"
+}
+
+
+#
+# tests env tear down
+#
+oneTimeTearDown() {
+	# clear the env
+	rm -rfv "$g_assets_path/$g_ut_root"
+}
+
+################################################################################
 
 #
 # general function to test printing routines
@@ -403,27 +463,44 @@ test_get_fps() {
 
 	declare -a tmp=( ${g_tools[@]} )
 
-	if [ -n $(builtin type -P mediainfo) ]; then
+	if [ -n "$(builtin type -P mediainfo)" ]; then
 		g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
 		fps=$(get_fps 'mediainfo' 'doesnt_matter.avi')
 		assertNotEquals 'get fps with mediainfo' 0 $fps
 	fi
 
+	if [ -n "$(builtin type -P mediainfo)" ]; then
+		g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
+		fps=$(get_fps 'mediainfo' "$g_assets_path/$g_ut_root/av1 file.avi")
+		assertNotEquals "get fps with mediainfo" 0 ${fps:-0}
+	fi
 
-	[ -n $(builtin type -P mplayer) ] &&
+	if [ -n "$(builtin type -P mplayer)" ]; then
 		g_tools=( $(modify_value 'mplayer' 1 ${g_tools[@]}) )
+		fps=$(get_fps 'mplayer' "$g_assets_path/$g_ut_root/av1 file.avi")
+		assertNotEquals 'get fps with mplayer' 0 ${fps:-0}
+	fi
 
-	[ -n $(builtin type -P mplayer2) ] &&
+	if [ -n "$(builtin type -P mplayer2)" ]; then
 		g_tools=( $(modify_value 'mplayer2' 1 ${g_tools[@]}) )
+		fps=$(get_fps 'mplayer2' "$g_assets_path/$g_ut_root/av1 file.avi")
+		assertNotEquals "get fps with mplayer2" 0 ${fps:-0}
+	fi
 
-	[ -n $(builtin type -P ffmpeg) ] &&
+	if [ -n "$(builtin type -P ffmpeg)" ]; then
 		g_tools=( $(modify_value 'ffmpeg' 1 ${g_tools[@]}) )
-
+		fps=$(get_fps 'ffmpeg' "$g_assets_path/$g_ut_root/av1 file.avi")
+		assertNotEquals 'get fps with ffmpeg' 0 ${fps:-0}
+	fi
 
 
 	g_tools=( ${tmp[@]} )
 }
 
+
+test_parse_argv() {
+	
+}
 
 # shunit call
 . shunit2
