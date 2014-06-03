@@ -68,6 +68,33 @@ oneTimeTearDown() {
 
 ################################################################################
 
+
+#
+# test verify_credentials routine
+#
+test_verify_credentials() {
+	local status=0
+
+	verify_credentials '' '' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success on lack of parameters' $RET_OK $status
+
+	verify_credentials 'some user' '' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on lack of password' $RET_PARAM $status
+
+	verify_credentials '' 'some password' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on lack of password' $RET_PARAM $status
+
+	verify_credentials 'some user' 'some password' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success when both parameters provided' $RET_OK $status
+}
+
+
+
+
 #
 # general function to test printing routines
 #
@@ -528,6 +555,26 @@ test_parse_argv() {
 	assertEquals "checking for size" 123 $g_min_size
 	g_min_size=0
 
+	# save original settings
+	cp_g_cover=$g_cover
+	cp_g_delete_orig=$g_delete_orig
+	cp_g_skip=$g_skip
+	cp_g_stats_print=$g_stats_print
+	cp_g_cmd_cp=$g_cmd_cp
+	cp_g_charset=$g_charset
+	cp_g_default_ext=$g_default_ext
+	cp_g_logfile=$g_logfile
+	cp_g_lang=$g_lang
+	cp_g_hook=$g_hook
+	cp_g_verbosity=$g_verbosity
+	cp_g_sub_format=$g_sub_format
+	cp_g_fps_tool=$g_fps_tool
+	cp_g_orig_prefix=$g_orig_prefix
+
+	cp_g_system=( ${g_system[@]} )
+	cp_g_cred=( ${g_cred[@]} )
+	cp_g_abbrev=( ${g_abbrev[@]} )
+
 	# test complex command
 	parse_argv -c \
 		-d \
@@ -574,7 +621,27 @@ test_parse_argv() {
 
 
 	# restore default settings
+	g_cover=$cp_g_cover
+	g_delete_orig=$cp_g_delete_orig
+	g_skip=$cp_g_skip
+	g_stats_print=$cp_g_stats_print
+	g_cmd_cp=$cp_g_cmd_cp
+	g_charset=$cp_g_charset
+	g_default_ext=$cp_g_default_ext
+	g_logfile=$cp_g_logfile
+	g_lang=$cp_g_lang
+	g_hook=$cp_g_hook
+	g_verbosity=$cp_g_verbosity
+	g_sub_format=$cp_g_sub_format
+	g_fps_tool=$cp_g_fps_tool
+	g_orig_prefix=$cp_g_orig_prefix
+
+	g_system=( ${cp_g_system[@]} )
+	g_cred=( ${cp_g_cred[@]} )
+	g_abbrev=( ${cp_g_abbrev[@]} )
+	g_paths=(  )
 }
+
 
 # shunit call
 . shunit2

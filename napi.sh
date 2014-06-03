@@ -750,18 +750,18 @@ parse_argv() {
 #
 verify_credentials() {
 
-    local user="${1:-''}"
-    local passwd="${2:-''}"
+    local user="${1:-}"
+    local passwd="${2:-}"
     local rv=$RET_OK
     
     if [ -z "$user" ] && [ -n "$passwd" ]; then
         _warning "podano haslo, brak loginu. tryb anonimowy."
-        retval=$RET_PARAM
+        rv=$RET_PARAM
     fi
 
     if [ -n "$user" ] && [ -z "$passwd" ]; then
         _warning "podano login, brak hasla. tryb anonimowy."
-        retval=$RET_PARAM
+        rv=$RET_PARAM
     fi
 
     return $rv
