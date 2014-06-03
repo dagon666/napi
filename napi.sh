@@ -161,6 +161,11 @@ declare -a g_pf=()
 #
 declare -a g_stats=( 0 0 0 0 0 0 0 )
 
+#
+# controls whether to print statistics on exit or not
+#
+g_stats_print=0
+
 ################################### TOOLS ######################################
 
 #
@@ -168,7 +173,7 @@ declare -a g_stats=( 0 0 0 0 0 0 0 )
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
@@ -648,6 +653,9 @@ parse_argv() {
             "-d" | "--delete-orig") g_delete_orig=1 ;;
             # skip flag
             "-s" | "--skip") g_skip=1 ;;
+
+            # stats flag
+            "--stats") g_stats_print=1 ;;
 
 			# move instead of copy
 			"-M" | "--move") g_cmd_cp='mv' ;;
@@ -1637,8 +1645,46 @@ process_files() {
 		_info $LINENO "#$s - index poczatkowy $c"
 		process_file "${g_files[$c]}"
 		c=$(( $c + $i ))
-	done	
+	done
 
+	# dump statistics to fd #8
+	echo "${g_stats[*]}" >&8
+	return $RET_OK
+}
+
+
+#
+# @brief summarize statistics collected from forks
+# 
+sum_stats() {
+	local file="$1"
+	local awk_script=''
+	local fc=${#g_stats[@]}
+	local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+
+	awk_presence=$(( $awk_presence + 0 ))
+
+# embed small awk program to count the columns
+read -d "" awk_script << EOF
+BEGIN {
+	fmax=$fc
+	for (x=0; x<fmax; x++) cols[x] = 0
+}
+
+{
+	max = fmax > NF ? NF : fmax
+	for (x=0; x<max; x++) cols[x] += \$(x + 1)
+}
+
+END {
+	for (x=0; x<fmax; x++) 
+		printf "%d ", cols[x]
+	print ""
+}
+EOF
+
+	# update the contents
+	[ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
 	return $RET_OK
 }
 
@@ -1647,8 +1693,11 @@ process_files() {
 # @brief creates the actual worker forks
 #
 spawn_forks() {
-
 	local c=0
+	local stats_file="$(mktemp -t stats.XXXXXXXX)"
+
+	# open fd #8 for statistics collection
+	exec 8<> $()
 
 	# spawn parallel processing
 	while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
@@ -1661,13 +1710,34 @@ spawn_forks() {
 	# wait for all forks
 	wait
 
+	# sum stats data
+	sum_stats "$stats_file"
+
+	# close the fd
+	exec 8>&-
+	# unlink "$stats_file"
+
 	# restore main fork id
 	g_system[3]=1
     return $RET_OK
 }
 
 
+#
+# print stats summary
+#
+print_stats() {
 
+	declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
+	local i=0
+
+	while [ $i -lt ${#g_stats[@]} ]; do
+		_status "${labels[$i]}" "${g_stats[$i]}"
+		i=$(( $i + 1 ))
+	done
+
+	return $RET_OK
+}
 
 ################################################################################
 
@@ -1705,6 +1775,7 @@ usage() {
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
+	echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     
     if [ $subotage_presence -eq 1 ]; then    
         echo "   -d | --delete-orig - Delete the original file"   
@@ -1825,6 +1896,8 @@ main() {
 
 	# do the job
 	spawn_forks
+
+	[ $g_stats_print -eq 1 ] && print_stats
 
 	# cleanup & exit
     _info $LINENO "przywracam STDOUT"
