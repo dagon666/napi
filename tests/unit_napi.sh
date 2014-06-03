@@ -393,6 +393,8 @@ test_configure_cmds() {
 	configure_cmds
 	assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
 	assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
+
+	g_system[0]="linux"
 }
 
 
@@ -456,6 +458,9 @@ test_count_fps_detectors() {
 }
 
 
+#
+# test get_fps routine with various fps detectors
+#
 test_get_fps() {
 	local fps=0
 	fps=$(get_fps 'doesnt_matter' 'doesnt_matter.avi')
@@ -498,8 +503,77 @@ test_get_fps() {
 }
 
 
+#
+# test the argument parsing routine
+# 
 test_parse_argv() {
+
+	local status=0
+	declare -a cp_g_abbrev=( "${g_abbrev[@]}" )
 	
+	parse_argv -a 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for failure without parameter value" $RET_FAIL $status
+
+	parse_argv -a ABBREV 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for success (-a)" $RET_OK $status
+	assertEquals "checking for abbreviation" "ABBREV" "${g_abbrev[0]}"
+
+	g_abbrev=( ${cp_g_abbrev[@]} )
+
+	parse_argv -b 123 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for success (-b)" $RET_OK $status
+	assertEquals "checking for size" 123 $g_min_size
+	g_min_size=0
+
+	# test complex command
+	parse_argv -c \
+		-d \
+		-s \
+		--stats \
+		--move \
+		-C utf8 \
+		-e sub \
+		-I other \
+		-l log \
+		-L EN \
+		-u john \
+		-p doe \
+		-S my_hook.sh \
+		-v 3 \
+		-f subrip \
+		-P ffmpeg \
+		-o PREFIX_ \
+		--conv-abbrev CONV \
+		-F 32 \
+		file1.avi file2.avi 2>&1 > /dev/null
+
+	assertEquals 'checking cover flag' 1 $g_cover
+	assertEquals 'checking delete_orig flag' 1 $g_delete_orig
+	assertEquals 'checking skip flag' 1 $g_skip
+	assertEquals 'checking stats flag' 1 $g_stats_print
+	assertEquals 'checking copy tool' 'mv' $g_cmd_cp
+	assertEquals 'checking charset' 'utf8' $g_charset
+	assertEquals 'checking extension' 'sub' $g_default_ext
+	assertEquals 'checking id' 'other' ${g_system[2]}
+	assertEquals 'checking logfile' 'log' $g_logfile
+	assertEquals 'checking lang' 'EN' $g_lang
+	assertEquals 'checking user' 'john' ${g_cred[0]}
+	assertEquals 'checking passwd' 'doe' ${g_cred[1]}
+	assertEquals 'checking hook' 'my_hook.sh' $g_hook
+	assertEquals 'checking verbosity' 3 $g_verbosity
+	assertEquals 'checking format' 'subrip' $g_sub_format
+	assertEquals 'checking fps tool' 'ffmpeg' $g_fps_tool
+	assertEquals 'checking prefix' 'PREFIX_' $g_orig_prefix
+	assertEquals 'checking forks' 32 ${g_system[1]}
+	assertEquals 'checking conv abbreviation' "CONV" "${g_abbrev[1]}"
+	assertEquals 'checking paths' 'file1.avi' ${g_paths[0]}
+	assertEquals 'checking paths 2' 'file2.avi' ${g_paths[1]}
+
+
+	# restore default settings
 }
 
 # shunit call
