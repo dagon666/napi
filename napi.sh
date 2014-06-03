@@ -1558,11 +1558,11 @@ obtain_file() {
         if [ ${av[0]} -eq 0 ]; then
             get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
             rv=$?
+			[ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
 		else
 
 			# increment skipped counter
 			g_stats[2]=$(( ${g_stats[2]} + 1 ))
-
 			rv=$RET_OK
         fi
     fi
@@ -1697,7 +1697,7 @@ spawn_forks() {
 	local stats_file="$(mktemp -t stats.XXXXXXXX)"
 
 	# open fd #8 for statistics collection
-	exec 8<> $()
+	exec 8<> "$stats_file"
 
 	# spawn parallel processing
 	while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
@@ -1715,7 +1715,7 @@ spawn_forks() {
 
 	# close the fd
 	exec 8>&-
-	# unlink "$stats_file"
+	unlink "$stats_file"
 
 	# restore main fork id
 	g_system[3]=1
@@ -1730,6 +1730,8 @@ print_stats() {
 
 	declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
 	local i=0
+
+	_msg "statystyki przetwarzania"
 
 	while [ $i -lt ${#g_stats[@]} ]; do
 		_status "${labels[$i]}" "${g_stats[$i]}"
