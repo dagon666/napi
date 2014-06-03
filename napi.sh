@@ -41,7 +41,7 @@ declare -r g_revision="v1.2.1"
 # - string added between the filename and the extension 
 #   only for the converted subtitles
 #
-declare -a g_abbrev=( '' '' )
+declare -a g_abbrev=( "" "" )
 
 #
 # @brief prefix for the original file - before the conversion
@@ -736,7 +736,7 @@ parse_argv() {
         # not requiring any further verification
         if [[ -n "$varname" ]]; then
             shift
-            [ -z "$1" ] && _error $msg && exit -1
+            [ -z "$1" ] && _error $msg && return $RET_FAIL
             eval "${varname}=\$1"
         fi
         shift
@@ -1878,7 +1878,10 @@ main() {
         return $RET_BREAK
 
     _info $LINENO "parsowanie argumentow"
-    parse_argv "$@"
+    if ! parse_argv "$@"; then
+        _error "niepoprawne argumenty..."
+		return $RET_FAIL
+	fi
 
     _info $LINENO "weryfikacja argumentow"
     if ! verify_argv; then 
