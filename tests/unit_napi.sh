@@ -68,33 +68,6 @@ oneTimeTearDown() {
 
 ################################################################################
 
-
-#
-# test verify_credentials routine
-#
-test_verify_credentials() {
-	local status=0
-
-	verify_credentials '' '' 2>&1 > /dev/null
-	status=$?
-	assertEquals 'success on lack of parameters' $RET_OK $status
-
-	verify_credentials 'some user' '' 2>&1 > /dev/null
-	status=$?
-	assertEquals 'failure on lack of password' $RET_PARAM $status
-
-	verify_credentials '' 'some password' 2>&1 > /dev/null
-	status=$?
-	assertEquals 'failure on lack of password' $RET_PARAM $status
-
-	verify_credentials 'some user' 'some password' 2>&1 > /dev/null
-	status=$?
-	assertEquals 'success when both parameters provided' $RET_OK $status
-}
-
-
-
-
 #
 # general function to test printing routines
 #
@@ -640,6 +613,57 @@ test_parse_argv() {
 	g_cred=( ${cp_g_cred[@]} )
 	g_abbrev=( ${cp_g_abbrev[@]} )
 	g_paths=(  )
+}
+
+
+#
+# test verify_credentials routine
+#
+test_verify_credentials() {
+	local status=0
+
+	verify_credentials '' '' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success on lack of parameters' $RET_OK $status
+
+	verify_credentials 'some user' '' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on lack of password' $RET_PARAM $status
+
+	verify_credentials '' 'some password' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on lack of password' $RET_PARAM $status
+
+	verify_credentials 'some user' 'some password' 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success when both parameters provided' $RET_OK $status
+}
+
+
+#
+# test encoding verification routine
+#
+test_verify_encoding() {
+	local cp_path="$PATH"
+	local status=0
+
+	verify_encoding 'default'
+	status=$?
+	assertEquals 'default encoding' $RET_OK $status
+
+	verify_encoding 'utf8'
+	status=$?
+	assertEquals 'utf8 encoding' $RET_OK $status
+
+	verify_encoding 'BOGUS'
+	status=$?
+	assertNotEquals 'bogus encoding' $RET_OK $status
+
+	PATH=/bin
+	verify_encoding 'utf8'
+	status=$?
+	PATH=$cp_path
+	assertNotEquals 'simulating tools absence' $RET_OK $status
 }
 
 
