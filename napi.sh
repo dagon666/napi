@@ -390,7 +390,7 @@ modify_value() {
     rv+=($key=$value)
     echo ${rv[*]}
 
-	return $RET_OK
+    return $RET_OK
 }
 
 ################################ languages #####################################
@@ -457,16 +457,16 @@ verify_language() {
 # @param: language index
 #
 normalize_language() {
-	local i=${1:-0}
-	i=$(( $i + 0 ))
+    local i=${1:-0}
+    i=$(( $i + 0 ))
 
     local lang=${g_LanguageCodes2L[$1]}
-	
+    
     # don't ask me why
     [[ "$lang" = "EN" ]] && lang="ENG"
     echo $lang
 
-	return $RET_OK
+    return $RET_OK
 }
 
 #################################### ENV #######################################
@@ -505,10 +505,10 @@ configure_cmds() {
     if [ "${g_system[0]}" = "darwin" ]; then
         g_cmd_md5="md5" 
         g_cmd_stat="stat -f%z"
-	else
+    else
         g_cmd_md5="md5sum" 
         g_cmd_stat="stat -c%s"
-	fi
+    fi
 
     g_tools+=( "$g_cmd_md5=1" )
 
@@ -599,12 +599,12 @@ count_fps_detectors() {
 get_fps() {
     local fps=0
  
-	# don't bother if there's no tool available or not specified
-	if [[ -z "$1" ]] || [[ "$1" = "default" ]]; then
-		echo $fps
-		return $RET_PARAM
-	fi
-	
+    # don't bother if there's no tool available or not specified
+    if [[ -z "$1" ]] || [[ "$1" = "default" ]]; then
+        echo $fps
+        return $RET_PARAM
+    fi
+    
     local tool=$(lookup_value "$1" ${g_tools[@]})
 
     # prevent empty output
@@ -621,7 +621,7 @@ get_fps() {
             ;;
 
             'ffmpeg' )
-			fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
+            fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
             ;;
 
             *)
@@ -664,8 +664,8 @@ parse_argv() {
             # stats flag
             "--stats") g_stats_print=1 ;;
 
-			# move instead of copy
-			"-M" | "--move") g_cmd_cp='mv' ;;
+            # move instead of copy
+            "-M" | "--move") g_cmd_cp='mv' ;;
 
             # charset conversion
             "-C" | "--charset") varname="g_charset"
@@ -933,7 +933,7 @@ verify_argv() {
             g_lang='PL'
         fi
     else
-		_debug $LINENO "jezyk znaleziony, index = $idx"
+        _debug $LINENO "jezyk znaleziony, index = $idx"
         g_lang=$(normalize_language $idx)
     fi
     unset idx
@@ -1045,7 +1045,7 @@ download_subs() {
     local id="${5:-'pynapi'}"
     local user="${6:-''}"
     local passwd="${7:-''}"
-	local status=$RET_FAIL
+    local status=$RET_FAIL
 
     local rv=$RET_OK
     local http_codes=''
@@ -1059,17 +1059,16 @@ download_subs() {
     [ "$id" = "other" ] && dof=$(mktemp -t napisy.7z.XXXXXXXX)
 
     http_codes=$(download_url "$url" "$dof")
-	status=$?
-	_info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+    status=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
     if [ $status -ne $RET_OK ]; then
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
 
-		# cleanup
-		[ "$id" = "other" ] && 
-			unlink "$dof" 2> /dev/null
+        # cleanup
+        [ "$id" = "other" ] && [ -e "$dof" ] && unlink "$dof"
 
-		# ... and exit
+        # ... and exit
         return $RET_FAIL
     fi
 
@@ -1081,11 +1080,13 @@ download_subs() {
 
         "other")
         7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
-        unlink "$dof"
-        ! [ -s "$of" ] && 
-			_info $LINENO "plik docelowy ma zerowy rozmiar" &&
-			rv=$RET_FAIL && 
-			unlink "$of"
+        [ -e "$dof" ] && unlink "$dof"
+
+        if ! [ -s "$of" ]; then
+            _info $LINENO "plik docelowy ma zerowy rozmiar"
+            rv=$RET_FAIL
+            [ -e "$of" ] && unlink "$of"
+        fi
         ;;
 
         *)
@@ -1096,13 +1097,14 @@ download_subs() {
     # verify the contents
     if [ $rv -eq $RET_OK ]; then
 
-		# check if the file was downloaded successfully by checking
-		# if it exists at all 
-		if [ ! -e "$of" ]; then
-			_error "sciagniety plik nie istnieje, nieznany blad"
-			return $RET_FAIL
-		fi
+        # check if the file was downloaded successfully by checking
+        # if it exists at all 
+        if [ ! -e "$of" ]; then
+            _error "sciagniety plik nie istnieje, nieznany blad"
+            return $RET_FAIL
+        fi
 
+        # count lines in the file
         local lines=$(wc -l "$of" | cut -d ' ' -f 1)
         
         # adjust that if needed
@@ -1111,11 +1113,11 @@ download_subs() {
         if [ $lines -lt $min_lines ]; then
             _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
 
-			local fdata=$(cat "$of")
-			_debug $LINENO "$fdata"
+            local fdata=$(cat "$of")
+            _debug $LINENO "$fdata"
 
             rv=$RET_FAIL
-			unlink "$of"
+            unlink "$of"
         fi
     fi
 
@@ -1137,10 +1139,12 @@ download_cover() {
     rv=$?
 
     if [ $rv -eq $RET_OK ]; then
-        local size=$($g_cmd_stat "$2")
-        [ $size -eq 0 ] && 
-            rv=$RET_UNAV && 
-            unlink "$2"
+
+        # if file doesn't exist or has zero size
+        if ! [ -s "$2" ]; then
+            rv=$RET_UNAV 
+            [ -e "$2" ] && unlink "$2"
+        fi
     fi
 
     return $rv
@@ -1190,40 +1194,40 @@ get_cover() {
 # @param full path to the subtitles file
 #
 get_charset() {
-	local file="$1"
+    local file="$1"
     local ft_presence=$(lookup_value 'file' ${g_tools[@]})
-	local charset='WINDOWS-1250'
-	local et=''
+    local charset='WINDOWS-1250'
+    local et=''
 
-	# sanitizing the value
-	ft_presence=$(( $ft_presence + 0 ))
+    # sanitizing the value
+    ft_presence=$(( $ft_presence + 0 ))
 
-	if [ $ft_presence -eq 1 ]; then
+    if [ $ft_presence -eq 1 ]; then
 
-		et=$(file \
-			--brief \
-			--mime-encoding \
-			--exclude apptype \
-			--exclude tokens \
-			--exclude cdf \
-			--exclude compress \
-			--exclude elf \
-			--exclude soft \
-			--exclude tar \
-			"$file")
+        et=$(file \
+            --brief \
+            --mime-encoding \
+            --exclude apptype \
+            --exclude tokens \
+            --exclude cdf \
+            --exclude compress \
+            --exclude elf \
+            --exclude soft \
+            --exclude tar \
+            "$file")
 
-		if [ "$?" = "0" ] && [ -n "$et" ]; then
-			case "${et,,}" in
-				*utf*) charset="UTF8";;
-				*iso*) charset="ISO-8859-2";;
-				*ascii*) charset="";;
-				*) charset="WINDOWS-1250";;
-			esac
-		fi
-	fi
+        if [ "$?" = "0" ] && [ -n "$et" ]; then
+            case "${et,,}" in
+                *utf*) charset="UTF8";;
+                *iso*) charset="ISO-8859-2";;
+                *ascii*) charset="";;
+                *) charset="WINDOWS-1250";;
+            esac
+        fi
+    fi
 
-	echo "$charset"
-	return $RET_OK
+    echo "$charset"
+    return $RET_OK
 }
 
 
@@ -1237,20 +1241,20 @@ convert_charset() {
     local file="$1"
     local d="${2:-'utf8'}"
     local s="${3}"
-	local rv=$RET_FAIL
+    local rv=$RET_FAIL
 
-	# detect charset
-	[ -z "$s" ] && s=$(get_charset "$file")
+    # detect charset
+    [ -z "$s" ] && s=$(get_charset "$file")
 
     local tmp=$(mktemp -t napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
-	if [ $? -eq $RET_OK ]; then
-		mv "$tmp" "$file"
-		rv=$RET_OK
-	fi
+    if [ $? -eq $RET_OK ]; then
+        mv "$tmp" "$file"
+        rv=$RET_OK
+    fi
 
-	unlink "$tmp"
+    [ -e "$tmp" ] && unlink "$tmp"
     return $rv
 }
 
@@ -1393,13 +1397,13 @@ convert_format() {
     local fps=0
     local fps_opt=''
     local rv=$RET_OK
-	local sb_data=''
+    local sb_data=''
 
     # for the backup
     local tmp="$(mktemp -t napi.XXXXXXXX)"
 
     # create backup
-	_debug $LINENO "backupuje oryginalny plik jako $tmp"
+    _debug $LINENO "backupuje oryginalny plik jako $tmp"
     cp "$path/$input" "$tmp"
 
     # if delete orig flag has been requested don't rename the original file
@@ -1418,11 +1422,11 @@ convert_format() {
     fi
 
     _msg "wolam subotage.sh"
-	sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
+    sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
     status=$?
 
-	# subotage output only on demand
-	_debug $LINENO "$sb_data"
+    # subotage output only on demand
+    _debug $LINENO "$sb_data"
 
     # remove the old format if conversion was successful
     if [[ $status -eq $RET_OK ]]; then
@@ -1439,7 +1443,7 @@ convert_format() {
     fi
 
     # delete a backup
-    unlink "$tmp"
+    [ -e "$tmp" ] && unlink "$tmp"
     return $rv
 }
 
@@ -1451,19 +1455,19 @@ check_subs_presence() {
     local media_file="$1"
     local path="$2"
 
-	# bits
-	# 1 - unconverted available/unavailable
-	# 0 - converted available/unavailable
-	#
-	# default - converted unavailable, unconverted unavailable
-	local rv=0
+    # bits
+    # 1 - unconverted available/unavailable
+    # 0 - converted available/unavailable
+    #
+    # default - converted unavailable, unconverted unavailable
+    local rv=0
 
-	_debug $LINENO "g_cmd_cp = $g_cmd_cp"
+    _debug $LINENO "g_cmd_cp = $g_cmd_cp"
 
     if [ $g_sub_format != 'default' ]; then
 
-		# unconverted unavailable, converted available
-		rv=$(( $rv | 1 ))
+        # unconverted unavailable, converted available
+        rv=$(( $rv | 1 ))
 
         if [[ -e "$path/${g_pf[7]}" ]]; then
             _status "SKIP" "$media_file"
@@ -1482,15 +1486,15 @@ check_subs_presence() {
 
         else
             _info $LINENO "skonwertowany plik niedostepny"
-			rv=$(( $rv & ~1 ))
+            rv=$(( $rv & ~1 ))
         fi
 
-		# we already have what we need - bail out
-		[ $(( $rv & 1 )) -eq 1 ] && return $rv
+        # we already have what we need - bail out
+        [ $(( $rv & 1 )) -eq 1 ] && return $rv
     fi
 
-	# assume unconverted available & verify that
-	rv=$(( $rv | 2 ))
+    # assume unconverted available & verify that
+    rv=$(( $rv | 2 ))
 
     # when the conversion is not required
     if [[ -e "$path/${g_pf[1]}" ]]; then
@@ -1506,11 +1510,11 @@ check_subs_presence() {
 
     else
         _info $LINENO "oryginalny plik niedostepny"
-		rv=$(( $rv & ~2 ))
+        rv=$(( $rv & ~2 ))
     fi
 
-	# exceptionally in this function return value caries the 
-	# information - not the execution status
+    # exceptionally in this function return value caries the 
+    # information - not the execution status
     return $rv
 }
 
@@ -1527,63 +1531,63 @@ obtain_file() {
 
     # file availability
     local av=0
-	local should_convert=0
+    local should_convert=0
 
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
     _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
 
     if [ $g_skip -eq 1 ]; then
-		_debug $LINENO "sprawdzam dostepnosc pliku"
+        _debug $LINENO "sprawdzam dostepnosc pliku"
         check_subs_presence "$media_file" "$path"
-		av=$?
-	fi
+        av=$?
+    fi
 
-	_info $LINENO "dostepnosc pliku $av"
-	_debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
-	_debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
+    _info $LINENO "dostepnosc pliku $av"
+    _debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
+    _debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
 
     # if conversion is requested
     if [ "$g_sub_format" != 'default' ]; then
 
-		case $av in
-			0) # download & convert
-				if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
-					_debug $LINENO "napisy pobrano, nastapi konwersja"
-					should_convert=1
-					g_stats[0]=$(( ${g_stats[0]} + 1 ))
-				else
-					# unable to get the file
-					_debug $LINENO "napisy niedostepne"
-					rv=$RET_UNAV
-				fi
-			;;
+        case $av in
+            0) # download & convert
+                if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
+                    _debug $LINENO "napisy pobrano, nastapi konwersja"
+                    should_convert=1
+                    g_stats[0]=$(( ${g_stats[0]} + 1 ))
+                else
+                    # unable to get the file
+                    _debug $LINENO "napisy niedostepne"
+                    rv=$RET_UNAV
+                fi
+            ;;
 
-			1) # unconverted unavailable, converted available
-				_debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
+            1) # unconverted unavailable, converted available
+                _debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
 
-				# increment skipped counter
-				g_stats[2]=$(( ${g_stats[2]} + 1 ))
-				rv=$RET_OK
-			;;
+                # increment skipped counter
+                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                rv=$RET_OK
+            ;;
 
-			2|3) # convert 
-				_debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
+            2|3) # convert 
+                _debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
 
-				# increment skipped counter
-				g_stats[2]=$(( ${g_stats[2]} + 1 ))
-				should_convert=1
-			;;
-		esac
+                # increment skipped counter
+                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                should_convert=1
+            ;;
+        esac
 
         # original file available - convert it
         if [ $should_convert -eq 1 ]; then
             _msg "konwertowanie do formatu $g_sub_format"
             convert_format "$media_path" "${g_pf[1]}" "${g_pf[3]}" "${g_pf[7]}"
-			rv=$?
+            rv=$?
 
-			# increment converted counter
-			g_stats[3]=$(( ${g_stats[3]} + 1 ))
+            # increment converted counter
+            g_stats[3]=$(( ${g_stats[3]} + 1 ))
         fi
 
     else
@@ -1593,12 +1597,12 @@ obtain_file() {
         if [ ${av[0]} -eq 0 ]; then
             get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
             rv=$?
-			[ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
-		else
+            [ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
+        else
 
-			# increment skipped counter
-			g_stats[2]=$(( ${g_stats[2]} + 1 ))
-			rv=$RET_OK
+            # increment skipped counter
+            g_stats[2]=$(( ${g_stats[2]} + 1 ))
+            rv=$RET_OK
         fi
     fi
     
@@ -1615,19 +1619,19 @@ process_file() {
     local media_file=$(basename "$media_path")
     local path=$(dirname "$media_file")
 
-	local rv=$RET_OK
-	local status=0
-	local si=1
+    local rv=$RET_OK
+    local status=0
+    local si=1
 
-	obtain_file "$media_path"
-	status=$?
+    obtain_file "$media_path"
+    status=$?
 
     if [ $status -eq $RET_OK ]; then
         _status "OK" "$media_file"
 
-		[ "$g_sub_format" != 'default' ] &&
-			_debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
-			si=7
+        [ "$g_sub_format" != 'default' ] &&
+            _debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
+            si=7
 
         # charset conversion
         [ "$g_charset" != 'default' ] && 
@@ -1645,20 +1649,20 @@ process_file() {
         if [ $g_cover -eq 1 ]; then
             if get_cover "$media_path"; then
                 _status "OK" "cover for $media_path"
-				g_stats[4]=$(( ${g_stats[4]} + 1 ))
+                g_stats[4]=$(( ${g_stats[4]} + 1 ))
             else
                 _status "UNAV" "cover for $media_file"
-				g_stats[5]=$(( ${g_stats[5]} + 1 ))
+                g_stats[5]=$(( ${g_stats[5]} + 1 ))
             fi 
         fi # if [[ $g_cover -eq 1 ]]
     else
         _status "UNAV" "$media_file"
-		g_stats[1]=$(( ${g_stats[1]} + 1 ))
+        g_stats[1]=$(( ${g_stats[1]} + 1 ))
         rv=$RET_UNAV
     fi # if [ $status = $RET_OK ]
 
-	# increment total processed counter
-	g_stats[6]=$(( ${g_stats[6]} + 1 ))
+    # increment total processed counter
+    g_stats[6]=$(( ${g_stats[6]} + 1 ))
     return $rv
 }
 
@@ -1670,21 +1674,21 @@ process_file() {
 # 
 process_files() {
 
-	local s=$1
-	local i=$2
+    local s=$1
+    local i=$2
 
-	# current
-	local c=$s
+    # current
+    local c=$s
 
-	while [ $c -lt ${#g_files[@]} ]; do
-		_info $LINENO "#$s - index poczatkowy $c"
-		process_file "${g_files[$c]}"
-		c=$(( $c + $i ))
-	done
+    while [ $c -lt ${#g_files[@]} ]; do
+        _info $LINENO "#$s - index poczatkowy $c"
+        process_file "${g_files[$c]}"
+        c=$(( $c + $i ))
+    done
 
-	# dump statistics to fd #8
-	echo "${g_stats[*]}" >&8
-	return $RET_OK
+    # dump statistics to fd #8
+    echo "${g_stats[*]}" >&8
+    return $RET_OK
 }
 
 
@@ -1692,35 +1696,35 @@ process_files() {
 # @brief summarize statistics collected from forks
 # 
 sum_stats() {
-	local file="$1"
-	local awk_script=''
-	local fc=${#g_stats[@]}
-	local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+    local file="$1"
+    local awk_script=''
+    local fc=${#g_stats[@]}
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
 
-	awk_presence=$(( $awk_presence + 0 ))
+    awk_presence=$(( $awk_presence + 0 ))
 
 # embed small awk program to count the columns
 read -d "" awk_script << EOF
 BEGIN {
-	fmax=$fc
-	for (x=0; x<fmax; x++) cols[x] = 0
+    fmax=$fc
+    for (x=0; x<fmax; x++) cols[x] = 0
 }
 
 {
-	max = fmax > NF ? NF : fmax
-	for (x=0; x<max; x++) cols[x] += \$(x + 1)
+    max = fmax > NF ? NF : fmax
+    for (x=0; x<max; x++) cols[x] += \$(x + 1)
 }
 
 END {
-	for (x=0; x<fmax; x++) 
-		printf "%d ", cols[x]
-	print ""
+    for (x=0; x<fmax; x++) 
+        printf "%d ", cols[x]
+    print ""
 }
 EOF
 
-	# update the contents
-	[ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
-	return $RET_OK
+    # update the contents
+    [ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
+    return $RET_OK
 }
 
 
@@ -1728,32 +1732,32 @@ EOF
 # @brief creates the actual worker forks
 #
 spawn_forks() {
-	local c=0
-	local stats_file="$(mktemp -t stats.XXXXXXXX)"
+    local c=0
+    local stats_file="$(mktemp -t stats.XXXXXXXX)"
 
-	# open fd #8 for statistics collection
-	exec 8<> "$stats_file"
+    # open fd #8 for statistics collection
+    exec 8<> "$stats_file"
 
-	# spawn parallel processing
-	while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
-		g_system[3]=$(( $c + 1 ))
-		_debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
-		process_files $c ${g_system[1]} &
-		c=${g_system[3]}
-	done
-	
-	# wait for all forks
-	wait
+    # spawn parallel processing
+    while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
+        g_system[3]=$(( $c + 1 ))
+        _debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
+        process_files $c ${g_system[1]} &
+        c=${g_system[3]}
+    done
+    
+    # wait for all forks
+    wait
 
-	# sum stats data
-	sum_stats "$stats_file"
+    # sum stats data
+    sum_stats "$stats_file"
 
-	# close the fd
-	exec 8>&-
-	unlink "$stats_file"
+    # close the fd
+    exec 8>&-
+    [ -e "$stats_file" ] && unlink "$stats_file"
 
-	# restore main fork id
-	g_system[3]=1
+    # restore main fork id
+    g_system[3]=1
     return $RET_OK
 }
 
@@ -1763,17 +1767,17 @@ spawn_forks() {
 #
 print_stats() {
 
-	declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
-	local i=0
+    declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
+    local i=0
 
-	_msg "statystyki przetwarzania"
+    _msg "statystyki przetwarzania"
 
-	while [ $i -lt ${#g_stats[@]} ]; do
-		_status "${labels[$i]}" "${g_stats[$i]}"
-		i=$(( $i + 1 ))
-	done
+    while [ $i -lt ${#g_stats[@]} ]; do
+        _status "${labels[$i]}" "${g_stats[$i]}"
+        i=$(( $i + 1 ))
+    done
 
-	return $RET_OK
+    return $RET_OK
 }
 
 ################################################################################
@@ -1806,13 +1810,13 @@ usage() {
     echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
-	echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
+    echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
-	echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
+    echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     
     if [ $subotage_presence -eq 1 ]; then    
         echo "   -d | --delete-orig - Delete the original file"   
@@ -1915,8 +1919,8 @@ main() {
     _info $LINENO "parsowanie argumentow"
     if ! parse_argv "$@"; then
         _error "niepoprawne argumenty..."
-		return $RET_FAIL
-	fi
+        return $RET_FAIL
+    fi
 
     _info $LINENO "weryfikacja argumentow"
     if ! verify_argv; then 
@@ -1934,12 +1938,12 @@ main() {
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
 
-	# do the job
-	spawn_forks
+    # do the job
+    spawn_forks
 
-	[ $g_stats_print -eq 1 ] && print_stats
+    [ $g_stats_print -eq 1 ] && print_stats
 
-	# cleanup & exit
+    # cleanup & exit
     _info $LINENO "przywracam STDOUT"
     redirect_to_stdout
 
