@@ -1056,15 +1056,20 @@ download_subs() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ $id = "other" ] && dof=$(mtemp -t napisy.7z.XXXXXXXX)
+    [ "$id" = "other" ] && dof=$(mktemp -t napisy.7z.XXXXXXXX)
 
     http_codes=$(download_url "$url" "$dof")
 	status=$?
-
 	_info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
-    if [ $? -ne $RET_OK ]; then
+    if [ $status -ne $RET_OK ]; then
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
+
+		# cleanup
+		[ "$id" = "other" ] && 
+			unlink "$dof" 2> /dev/null
+
+		# ... and exit
         return $RET_FAIL
     fi
 
@@ -1077,7 +1082,10 @@ download_subs() {
         "other")
         7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
         unlink "$dof"
-        ! [ -s "$of" ] && rv=$RET_FAIL && unlink "$of"
+        ! [ -s "$of" ] && 
+			_info $LINENO "plik docelowy ma zerowy rozmiar" &&
+			rv=$RET_FAIL && 
+			unlink "$of"
         ;;
 
         *)
@@ -1087,19 +1095,27 @@ download_subs() {
 
     # verify the contents
     if [ $rv -eq $RET_OK ]; then
+
+		# check if the file was downloaded successfully by checking
+		# if it exists at all 
+		if [ ! -e "$of" ]; then
+			_error "sciagniety plik nie istnieje, nieznany blad"
+			return $RET_FAIL
+		fi
+
         local lines=$(wc -l "$of" | cut -d ' ' -f 1)
         
         # adjust that if needed
         local min_lines=3
 
         if [ $lines -lt $min_lines ]; then
-            _info $LINENO "plik zawiera mniej niz $min_lines lin(ie). zostanie usuniety"
+            _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
 
 			local fdata=$(cat "$of")
 			_debug $LINENO "$fdata"
 
-            rv=$RET_FAIL && 
-				unlink "$of"
+            rv=$RET_FAIL
+			unlink "$of"
         fi
     fi
 
@@ -1206,7 +1222,7 @@ get_charset() {
 		fi
 	fi
 
-	echo $charset
+	echo "$charset"
 	return $RET_OK
 }
 
@@ -1221,14 +1237,21 @@ convert_charset() {
     local file="$1"
     local d="${2:-'utf8'}"
     local s="${3}"
+	local rv=$RET_FAIL
 
 	# detect charset
 	[ -z "$s" ] && s=$(get_charset "$file")
 
     local tmp=$(mktemp -t napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
-    mv "$tmp" "$file"
-    return $RET_OK
+
+	if [ $? -eq $RET_OK ]; then
+		mv "$tmp" "$file"
+		rv=$RET_OK
+	fi
+
+	unlink "$tmp"
+    return $rv
 }
 
 ################################# file handling ################################
