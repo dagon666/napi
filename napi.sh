@@ -1133,10 +1133,11 @@ download_subs() {
 download_cover() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     local rv=$RET_FAIL
+	local http_codes=""
 
-    # not interested in the headers
-    download_url "$url" "$2" > /dev/null
+	http_codes=$(download_url "$url" "$2")
     rv=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
     if [ $rv -eq $RET_OK ]; then
 
@@ -1177,9 +1178,9 @@ get_subtitles() {
 #
 get_cover() {
     local sum=$(dd if="$1" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
-    local cover_fn="$(strip_ext $1)"
-
-    local path=$(basename $1)
+    local path=$(dirname "$1")
+	local media_file=$(basename "$1")
+    local cover_fn=$(strip_ext "$media_file")
     
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
@@ -1214,13 +1215,15 @@ get_charset() {
             --exclude elf \
             --exclude soft \
             --exclude tar \
-            "$file")
+            "$file" | lcase)
 
         if [ "$?" = "0" ] && [ -n "$et" ]; then
             case "${et,,}" in
                 *utf*) charset="UTF8";;
                 *iso*) charset="ISO-8859-2";;
-                *ascii*) charset="";;
+				us-ascii) charset="US-ASCII";;
+				csascii) charset="CSASCII";;
+                *ascii*) charset="ASCII";;
                 *) charset="WINDOWS-1250";;
             esac
         fi
@@ -1245,11 +1248,12 @@ convert_charset() {
 
     # detect charset
     [ -z "$s" ] && s=$(get_charset "$file")
-
+	
     local tmp=$(mktemp -t napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
     if [ $? -eq $RET_OK ]; then
+		_debug $LINENO "moving after charset conv. $tmp -> $file"
         mv "$tmp" "$file"
         rv=$RET_OK
     fi

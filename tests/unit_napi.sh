@@ -986,6 +986,21 @@ test_download_cover() {
 #
 test_get_subtitles() {
     local status=0  
+    local cp_g_cmd_wget="$g_cmd_wget"
+	local media=''
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    echo line1 > "./subs.txt"
+    echo line2 >> "./subs.txt"
+    echo line3 >> "./subs.txt"
+    echo line4 >> "./subs.txt"
+    echo line5 >> "./subs.txt"
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "PL"
+    status=$?
+    assertEquals 'download subs success' $RET_OK $status
+
+	unlink "./subs.txt"
+	g_cmd_wget="$g_cmd_wget"
 }
 
 
@@ -994,6 +1009,16 @@ test_get_subtitles() {
 #
 test_get_cover() {
     local status=0  
+    local cp_g_cmd_wget="$g_cmd_wget"
+
+    g_cmd_wget="mocks/wget_log 0 200"
+	echo cover_data > "$g_assets_path/$g_ut_root/av1 file.jpg"
+	get_cover "$g_assets_path/$g_ut_root/av1 file.avi" 
+	status=$?
+	assertEquals 'checking the cover' $RET_OK $status
+
+	unlink "$g_assets_path/$g_ut_root/av1 file.jpg"
+	g_cmd_wget="$g_cmd_wget"
 }
 
 
@@ -1002,7 +1027,18 @@ test_get_cover() {
 #
 test_get_charset() {
     local output=''
+    declare -a tmp=( ${g_tools[@]} )
 
+	LANG=C echo test_file > "./test_file"
+	output=$(get_charset "./test_file")
+	assertEquals 'checking default charset when file=0' 'WINDOWS-1250' "$output"
+	
+	g_tools=( file=1 )
+	output=$(get_charset "./test_file")
+	assertEquals 'checking default charset when file=0' 'US-ASCII' "$output"
+
+	unlink "./test_file"
+    g_tools=( ${tmp[@]} )
 }
 
 
@@ -1011,8 +1047,22 @@ test_get_charset() {
 #
 test_convert_charset() {
     local status=0
+    declare -a tmp=( ${g_tools[@]} )
 
+	LANG=C echo "znaki specjalne ęóąśżźćń" > "./test_file"
+	g_tools=( file=1 )
+	convert_charset "./test_file" 'utf8'
+	status=$?
+	assertEquals 'checking return value' $RET_OK $status
+
+	output=$(get_charset "./test_file")
+	assertEquals 'checking converted charset' 'UTF8' $output
+
+	unlink "./test_file"
+    g_tools=( ${tmp[@]} )
 }
+
+
 
 # shunit call
 . shunit2
