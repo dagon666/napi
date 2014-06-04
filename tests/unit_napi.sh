@@ -829,19 +829,19 @@ test_verify_argv() {
 	g_lang='PL'
 
 	g_sub_format='bogus'
-	verify_argv 2>&1 > /dev/null
+	verify_argv 2> /dev/null
 	status=$?
 	assertEquals 'checking status - bogus subs format' $RET_PARAM $status
 	g_sub_format=$cp_g_sub_format
 
 	g_fps_tool='bogus'
-	verify_argv 2>&1 > /dev/null
+	verify_argv 2> /dev/null
 	status=$?
 	assertEquals 'checking status - bogus fps tool' $RET_PARAM $status
 	g_fps_tool=$cp_g_fps_tool
 
 	g_hook='not_existing_script.sh'
-	verify_argv 2>&1 >/dev/null
+	verify_argv 2>/dev/null
 	status=$?
 	assertEquals 'non-existing external script' $RET_PARAM $status
 	g_hook='none'
@@ -849,13 +849,58 @@ test_verify_argv() {
 	local hook=$(mktemp -t hook.XXXX)
 	chmod +x "$hook"
 	g_hook="$hook"
-	verify_argv 2>&1 >/dev/null
+	verify_argv 2> /dev/null
 	status=$?
 	assertEquals 'existing external script' $RET_OK $status
 	g_hook='none'
 	unlink "$hook"
 }
 
+
+#
+# test status retrieving function
+#
+test_get_http_status() {
+	local status=0
+	status=$(echo "HTTP/1.1 302 Moved Temporarily" | get_http_status | cut -d ' ' -f 2)
+	assertEquals 'checking http status' 302 $status
+}
+
+
+#
+# test download function
+#
+test_download_url() {
+	local status=0
+	local cp_g_cmd_wget="$g_cmd_wget"
+
+	g_cmd_wget="mocks/wget_log 127 none"
+	download_url "test_url.com" "output file with spaces.dat" > /dev/null
+	status=$?
+	assertEquals 'check failure status' $RET_FAIL $status
+
+	g_cmd_wget="mocks/wget_log 0 none"
+	local output=$(download_url "test_url.com" "output file with spaces.dat")
+	status=$?
+	assertEquals 'check success status' $RET_OK $status
+	assertEquals 'check unknown http code' "unknown" $output
+
+	g_cmd_wget="mocks/wget_log 0 301_200"
+	local output=0
+	output=$(download_url "test_url.com" "output file with spaces.dat")
+	status=$?
+	assertEquals 'check success status' $RET_OK $status
+	assertEquals 'check 200 http code' "301 200" "$output"
+
+	g_cmd_wget="mocks/wget_log 0 404"
+	local output=0
+	output=$(download_url "test_url.com" "output file with spaces.dat")
+	status=$?
+	assertEquals 'check success status' $RET_FAIL $status
+	assertEquals 'check 404 http code' "404" "$output"
+
+	g_cmd_wget="$cp_g_cmd_wget"
+}
 
 
 # shunit call

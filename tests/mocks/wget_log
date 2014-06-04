@@ -1,0 +1,70 @@
+#!/bin/bash
+retval=${1:-0}
+response=${2:-200}
+url="$3"
+output="$4"
+
+read -r -d '' r200 << EOF
+HTTP/1.1 200 OK
+content-length: 105651
+server: edgeserver
+content-type: text/html; charset=utf-8
+cache-control: private
+pragma: no-cache
+Connection: keep-alive
+EOF
+
+read -r -d '' r301 << EOF
+HTTP/1.1 301 Moved Permanently
+location: http://www.onet.pl
+server: edgeserver
+Connection: keep-alive
+Transfer-Encoding: chunked
+EOF
+
+
+read -r -d '' r404 << EOF
+HTTP/1.1 404 Not Found
+Date: Wed, 04 Jun 2014 12:50:45 GMT
+Server: Apache
+Set-Cookie: PHPSESSID=s04qurgvucpv5uhpn4uk6vl6u5; path=/
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: public
+Pragma: no-cache
+Set-Cookie: PHPSESSID=moavso9o1hagqh8fim3oc53pc2; path=/
+Vary: Accept-Encoding
+X-Powered-By: PleskLin
+Connection: close
+Transfer-Encoding: chunked
+Content-Type: text/html
+EOF
+
+
+case $response in
+	200)
+		echo -e "$r200" > /dev/stderr
+		;;
+
+	301)
+		echo -e "$r301" > /dev/stderr
+		;;
+	
+	404)
+		echo -e "$r404" > /dev/stderr
+		;;
+
+	"301_200")
+		echo -e "$r301" > /dev/stderr
+		echo -e "$r200" > /dev/stderr
+		;;
+
+	"301_404")
+		echo -e "$r301" > /dev/stderr
+		echo -e "$r404" > /dev/stderr
+		;;
+
+	*)
+	;;
+esac
+
+exit $retval

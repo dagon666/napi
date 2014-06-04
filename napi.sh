@@ -994,7 +994,7 @@ f() {
 # @brief extracts http status from the http headers
 #
 get_http_status() {
-    grep -o "HTTP/[\.0-9*] [0-9]*"
+    grep -o "HTTP/[\.0-9]* [0-9]*"
 }
 
 
@@ -1019,7 +1019,7 @@ download_url() {
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
             code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
-            [ -n $(echo $code | grep 200) ] && rv=$RET_OK
+            [ -n "$(echo $code | grep 200)" ] && rv=$RET_OK
         fi
     else
         rv=$RET_FAIL
@@ -1045,6 +1045,7 @@ download_subs() {
     local id="${5:-'pynapi'}"
     local user="${6:-''}"
     local passwd="${7:-''}"
+	local status=$RET_FAIL
 
     local rv=$RET_OK
     local http_codes=''
@@ -1058,7 +1059,11 @@ download_subs() {
     [ $id = "other" ] && dof=$(mtemp -t napisy.7z.XXXXXXXX)
 
     http_codes=$(download_url "$url" "$dof")
-    if [ $? -ne 0 ]; then
+	status=$?
+
+	_info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+
+    if [ $? -ne $RET_OK ]; then
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
         return $RET_FAIL
     fi
