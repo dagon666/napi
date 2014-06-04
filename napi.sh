@@ -598,6 +598,13 @@ count_fps_detectors() {
 #
 get_fps() {
     local fps=0
+ 
+	# don't bother if there's no tool available or not specified
+	if [[ -z "$1" ]] || [[ "$1" = "default" ]]; then
+		echo $fps
+		return $RET_PARAM
+	fi
+	
     local tool=$(lookup_value "$1" ${g_tools[@]})
 
     # prevent empty output
@@ -623,7 +630,7 @@ get_fps() {
     fi
 
     echo $fps
-    return 0
+    return $RET_OK
 }
 
 

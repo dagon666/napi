@@ -667,5 +667,196 @@ test_verify_encoding() {
 }
 
 
+#
+# test the id verification routine
+#
+test_verify_id() {
+	local status=0
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	g_system[2]='pynapi'
+	verify_id 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success for pynapi' $RET_OK $status
+
+	g_system[2]='other'
+	verify_id 2>&1 > /dev/null
+	status=$?
+	assertEquals 'other - failure 7z marked as absent' $RET_FAIL $status
+
+	# faking 7z presence
+	g_tools=( 7z=1 )
+	verify_id 2>&1 > /dev/null
+	status=$?
+	assertEquals 'other - failure 7z marked as absent' $RET_OK $status
+
+	g_system[2]='unknown_system'
+	verify_id 2>&1 > /dev/null
+	status=$?
+	assertEquals 'unknown_system - failure' $RET_PARAM $status
+
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# test format verification routine
+#
+test_verify_format() {
+	local status=0
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local cp_g_sub_format=$g_sub_format
+
+	# verify default format
+	verify_format
+	status=$?
+	assertEquals 'success for format default' $RET_OK $status
+	
+	# format ok - no subotage.sh
+	g_sub_format='subrip'
+	verify_format 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure due to lack of subotage.sh' $RET_PARAM $status
+
+	g_tools=( subotage.sh=1 )
+	g_sub_format='subrip'
+	verify_format 2>&1 > /dev/null
+	status=$?
+	assertEquals 'format ok, subotage present' $RET_OK $status
+
+	g_sub_format='bogus_format'
+	verify_format 2>&1 > /dev/null
+	status=$?
+	assertEquals 'format unknown, subotage present' $RET_PARAM $status
+
+	g_tools=( ${cp_g_tools[@]} )
+	g_sub_format=$cp_g_sub_format
+}
+
+
+#
+# fps tool verification
+#
+test_verify_fps_tool() {
+	local status=0
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	verify_fps_tool
+	status=$?
+	assertEquals 'no tools available, tool = default' $RET_OK $status
+	
+	g_fps_tool='unsupported_tool'
+	verify_fps_tool 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking unsupported tool' $RET_PARAM $status
+
+	g_fps_tool='mediainfo'
+	verify_fps_tool 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking supported, absent tool' $RET_PARAM $status
+
+	g_tools=( mediainfo=1 )
+	verify_fps_tool 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking supported, present tool' $RET_OK $status
+	
+	# restore original values
+	g_tools=( ${cp_g_tools[@]} )
+	g_fps_tool='default'
+}
+
+
+#
+# test verify argv routine
+#
+test_verify_argv() {
+	local status=0
+	local cp_g_charset=$g_charset
+	local cp_g_fps_tool=$g_fps_tool
+	local cp_g_sub_format=$g_sub_format
+	declare -a cp_g_cred=( ${g_cred[@]} )
+
+	g_cred[0]='user_no_password'
+	verify_argv 2>&1 > /dev/null
+	assertNull 'empty username' "${g_cred[0]}"
+	assertNull 'empty password' "${g_cred[1]}"
+	
+	g_min_size='abc'
+	verify_argv 2>&1 > /dev/null
+	assertEquals 'checking g_min_size resetted to zero' 0 $g_min_size
+
+	g_min_size=666
+	verify_argv 2>&1 > /dev/null
+	assertEquals 'checking g_min_size value' 666 $g_min_size
+
+	g_charset='bogus'
+	verify_argv 2>&1 > /dev/null
+	assertEquals 'checking default encoding' 'default' $g_charset
+
+	g_charset='utf8'
+	verify_argv 2>&1 > /dev/null
+	assertEquals 'checking encoding value' 'utf8' $g_charset
+	g_charset=$cp_g_charset
+
+	g_system[2]='bogus_id'
+	verify_argv 2>&1 > /dev/null
+	assertEquals 'checking incorrect id' 'pynapi' ${g_system[2]}
+
+	g_system[2]='other'
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking failure due to lack of 7z' $RET_PARAM $status
+	g_system[2]='pynapi'
+
+	local logfile=$(mktemp -t logfile.XXXX)
+	g_logfile="$logfile"
+	local output=$(verify_argv | grep "istnieje" | wc -l)
+	assertEquals 'warning on existing logfile' 1 $output
+	unlink "$logfile"
+
+	g_lang='XXX'
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking status - unknown language' $RET_OK $status
+	assertEquals 'checking language - unknown language' 'PL' $g_lang
+
+	g_lang='list'
+	output=$(verify_argv)
+	status=$?
+	output=$(echo $output | grep "PL" | wc -l)
+	assertEquals 'checking status - list languages' $RET_BREAK $status
+	assertEquals 'checking for list' 1 $output
+	g_lang='PL'
+
+	g_sub_format='bogus'
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking status - bogus subs format' $RET_PARAM $status
+	g_sub_format=$cp_g_sub_format
+
+	g_fps_tool='bogus'
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals 'checking status - bogus fps tool' $RET_PARAM $status
+	g_fps_tool=$cp_g_fps_tool
+
+	g_hook='not_existing_script.sh'
+	verify_argv 2>&1 >/dev/null
+	status=$?
+	assertEquals 'non-existing external script' $RET_PARAM $status
+	g_hook='none'
+
+	local hook=$(mktemp -t hook.XXXX)
+	chmod +x "$hook"
+	g_hook="$hook"
+	verify_argv 2>&1 >/dev/null
+	status=$?
+	assertEquals 'existing external script' $RET_OK $status
+	g_hook='none'
+	unlink "$hook"
+}
+
+
+
 # shunit call
 . shunit2
