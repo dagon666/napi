@@ -1051,13 +1051,38 @@ download_url() {
 
 
 #
+# @brief download xml data using new napiprojekt API
+#
+download_data_xml() {
+    local url="http://napiprojekt.pl/api/api-napiprojekt3.php"
+    local client_version="2.2.0.2399"
+    
+    local data="mode=31&\
+        client=NapiProjekt&\
+        client_ver=$client_version&\
+        user_nick=$user&\
+        user_password=$passwd&\
+        downloaded_subtitles_id=$md5sum&\
+        downloaded_subtitles_lang=$lang&\
+        downloaded_cover_id=$md5sum&\
+        advert_type=flashAllowed&\
+        video_info_hash=$md5sum&\
+        video_info_hash2=$h2&\
+        nazwa_pliku=$filename&\
+        rozmiar_pliku_bajty=$byte_size&\
+        the=end"
+
+}
+
+
+#
 # @brief downloads subtitles
 # @param md5 sum of the video file
 # @param hash of the video file
 # @param output filepath
 # @param requested subtitles language
 #
-download_subs() {
+download_subs_classic() {
     local md5sum=${1:-0}
     local h=${2:-0}
     local of="$3"
@@ -1150,7 +1175,7 @@ download_subs() {
 # @param: md5sum
 # @param: outputfile
 #
-download_cover() {
+download_cover_classic() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     local rv=$RET_FAIL
 	local http_codes=""
@@ -1188,7 +1213,7 @@ get_subtitles() {
     local hash=$(f $sum)
 
     _info $LINENO "pobieram napisy dla pliku [$fn]"
-    download_subs $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+    download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
     return $?
 }
 
@@ -1205,7 +1230,7 @@ get_cover() {
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
     
-    download_cover $sum "$path/$cover_fn"
+    download_cover_classic $sum "$path/$cover_fn"
     return $?
 }
 
