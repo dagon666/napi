@@ -52,9 +52,12 @@ declare -r g_ut_root='unit_test_env'
 oneTimeSetUp() {
     # create env
     mkdir -p "$g_assets_path/$g_ut_root"
+    mkdir -p "$g_assets_path/$g_ut_root/sub dir"
     
     # the space in the file name is deliberate
     cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/av1 file.avi"
+    cp -v "$g_assets_path/napi_test_files/av2.dat" "$g_assets_path/$g_ut_root/av2 file.avi"
+    cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/sub dir/av3 file.avi"
 }
 
 
@@ -1063,6 +1066,116 @@ test_convert_charset() {
 }
 
 
+#
+# test verify_extension routine
+#
+test_verify_extension() {
+    local output=''
+    output=$(verify_extension 'plik.txt')
+    assertEquals 'verify txt ext' 0 $output
+    
+    output=$(verify_extension 'plik ze spacja.dat')
+    assertEquals 'verify dat ext' 0 $output
+
+    output=$(verify_extension 'plik ze spacja.avi')
+    assertEquals 'verify dat ext' 1 $output
+}
+
+
+#
+# test prepare_file_list
+#
+test_prepare_file_list() {
+    declare -a cp_g_files=( ${g_files[@]} )
+
+    prepare_file_list 0 "$g_assets_path/$g_ut_root"
+    assertEquals 'number of elements' 3 ${#g_files[@]}
+
+    g_files=()
+    prepare_file_list 20 "$g_assets_path/$g_ut_root"
+    assertEquals 'number of elements (min_size: 20)' 0 ${#g_files[@]}
+
+    g_files=( ${cp_g_files[@]} )
+}
+
+
+#
+# test prepare_filenames
+#
+test_prepare_filenames() {
+    declare -a cp_g_abbrev=( ${g_abbrev[@]} )
+
+    prepare_filenames 'file.avi'
+
+    assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
+    assertEquals 'checking 1' 'file.txt' ${g_pf[1]}
+    assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
+    assertEquals 'checking 3' 'ORIG_file.txt' ${g_pf[3]}
+    assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
+    assertEquals 'checking 5' 'file.txt' ${g_pf[5]}
+    assertEquals 'checking 6' 'file.txt' ${g_pf[6]}
+    assertEquals 'checking 7' 'file.txt' ${g_pf[7]}
+
+    g_abbrev=( 'AB' 'CAB' )
+    prepare_filenames 'file.avi'
+
+    assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
+    assertEquals 'checking 1' 'file.AB.txt' ${g_pf[1]}
+    assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
+    assertEquals 'checking 3' 'ORIG_file.AB.txt' ${g_pf[3]}
+    assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
+    assertEquals 'checking 5' 'file.AB.txt' ${g_pf[5]}
+    assertEquals 'checking 6' 'file.CAB.txt' ${g_pf[6]}
+    assertEquals 'checking 7' 'file.AB.CAB.txt' ${g_pf[7]}
+
+    g_abbrev=( ${cp_g_abbrev[@]} )
+}
+
+test_convert_format() {
+    local cp_g_delete_orig=$g_delete_orig
+    
+    g_delete_orig=$cp_g_delete_orig
+    return 0
+}
+
+test_check_subs_presence() {
+    
+    return 0    
+}
+
+test_obtain_file() {
+    return 0    
+
+}
+
+test_process_file() {
+    return 0    
+    
+}
+
+test_process_files() {
+    return 0    
+
+}
+
+test_sum_stats() {
+    return 0    
+    
+}
+
+test_spawn_forks() {
+    return 0    
+
+}
+
+test_print_stats() {
+    local output=''
+    
+}
+
+test_usage() {
+    local output=''
+}
 
 # shunit call
 . shunit2
