@@ -527,9 +527,9 @@ configure_cmds() {
     g_tools=( "${g_tools[@]}" "$g_cmd_md5=1" )
 
     _debug $LINENO "sprawdzam czy wget wspiera opcje -S"
-    local cmd_test=$(wget --help 2>&1 | grep "\-S")
+    local s_test=$(wget --help 2>&1 | grep "\-S")
 
-    [ -n "$cmd_test" ] && 
+    [ -n "$s_test" ] && 
         g_cmd_wget='wget -q -S -O' &&
         _info $LINENO "wget wspiera opcje -S"
 
@@ -1022,19 +1022,31 @@ get_http_status() {
 # @brief wrapper for wget
 # @param url
 # @param output file
+# @param POST data - if set the POST request will be done instead of GET (default)
 #
 # returns the http code(s)
 #
 download_url() {
     local url="$1"
     local output="$2"
+    local post="$3"
     local headers=""
     local rv=$RET_OK
     local code='unknown'
 
-    headers=$($g_cmd_wget "$output" "$url" 2>&1)
+    local status=$RET_OK
 
-    if [ $? -eq $RET_OK ]; then
+    # determine whether to perform a GET or a POST
+    if [ -z "$post" ]; then
+        headers=$($g_cmd_wget "$output" "$url" 2>&1)
+        status=$?
+    else
+        headers=$($g_cmd_wget "$output " --post-data="$post" "$url" 2>&1)
+        status=$?
+    fi
+
+    # check the status of the command
+    if [ $status -eq $RET_OK ]; then
         # check the headers
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
@@ -1051,14 +1063,55 @@ download_url() {
 
 
 #
+# extract xml contents
+#
+extract_xml_tag() {
+
+    local file="$1"
+    local tag="$2"
+
+    local awk_script=''
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+    awk_presence=$(( $awk_presence + 0 ))
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    RS=">"
+    ORS=">\\\n"
+}
+/<$tag/,/<\\\/$tag/ { print }
+EOF
+
+    # update the contents
+    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file"
+    awk "$awk_script" "$file"
+    return $RET_OK
+}
+
+
+#
 # @brief download xml data using new napiprojekt API
 #
 download_data_xml() {
     local url="http://napiprojekt.pl/api/api-napiprojekt3.php"
     local client_version="2.2.0.2399"
+
+    local md5sum=${1:-0}
+    local filename=''
+    local byte_size=0
+    local of="$2"
+
+    local lang="${3:-'PL'}"
+    local user="${4:-''}"
+    local passwd="${5:-''}"
     
-    local data="mode=31&\
-        client=NapiProjekt&\
+    local rv=$RET_OK
+    local http_codes=''
+    local status=$RET_OK
+    
+    local data="mode=1&\
+        client=NapiProjektPython&\
         client_ver=$client_version&\
         user_nick=$user&\
         user_password=$passwd&\
@@ -1067,11 +1120,33 @@ download_data_xml() {
         downloaded_cover_id=$md5sum&\
         advert_type=flashAllowed&\
         video_info_hash=$md5sum&\
-        video_info_hash2=$h2&\
         nazwa_pliku=$filename&\
         rozmiar_pliku_bajty=$byte_size&\
         the=end"
 
+
+    http_codes=$(download_url "$url" "$of" "$data")
+    status=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+
+    if [ $status -ne $RET_OK ]; then
+        _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
+        # ... and exit
+        rv=$RET_FAIL
+    fi
+
+    return $rv
+}
+
+
+extract_subs_xml() {
+    
+}
+
+
+extract_cover_xml() {
+
+    return 0
 }
 
 
@@ -1171,7 +1246,7 @@ download_subs_classic() {
 
 
 #
-# @brief: retrieve cover
+# @brief: retrieve cover (probably deprecated okladka_pobierz doesn't exist - 404)
 # @param: md5sum
 # @param: outputfile
 #
@@ -1213,6 +1288,10 @@ get_subtitles() {
     local hash=$(f $sum)
 
     _info $LINENO "pobieram napisy dla pliku [$fn]"
+
+    download_data_xml $sum "$of" $lang ${g_system[2]} ${g_cred[@]}
+    exit
+
     download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
     return $?
 }
