@@ -100,14 +100,126 @@ $o = NapiTest::qx_napi($shell, " --stats -f subrip -s -e orig " . $test_file_pat
 %o = NapiTest::parse_summary($o);
 is ( -e $test_txt_path =~ s/\.[^\.]+$/\.srt/r, 
 		1, 
-		"Testing skipping with already downloaded original" );
+		"testing skipping with already downloaded original" );
 
 ok ( ! -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r, 
-		"Checking if original file has been removed" );
+		"checking if original file has been removed" );
 
-is ($o{ok}, 0, "Number of skipped");
-is ($o{conv}, 1, "Number of converted");
+is ($o{ok}, 0, "number of skipped");
+is ($o{conv}, 1, "number of converted");
+NapiTest::clean_testspace();
+
+
+#>TESTSPEC
+#
+# Brief:
+# Verify skipping with abbreviation specified
+#
+# Preconditions:
+# - download subs for a media file
+# - media file for which the subtitles are available
+#
+# Procedure:
+# - specify skip flag
+# - specify abbrev=AB, conv_abbrev=CAB
+# - try to download subs
+#
+# Expected results:
+# - subtitles shouldn't be downloaded
+# - existing subtitles should be copied to the new filename (containing abbrev)
+#
+copy $NapiTest::assets . '/av1.dat', $test_file_path;
+NapiTest::qx_napi($shell, " -s " . $test_file_path);
+ok ( -e $test_txt_path,
+		"check if preconditions are met" );
+
+$o = NapiTest::qx_napi($shell, " --stats -s -a AB --conv-abbrev CAB " . $test_file_path);
+%o = NapiTest::parse_summary($o);
+ok ( -e $test_txt_path,
+		"check if original file still exists" );
+
+ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
+		"check if file with abbreviation exists" );
+
+is ($o{skip}, 1, "number of skipped");
+is ($o{ok}, 0, "number of downloaded");
+
+
+#>TESTSPEC
+#
+# Brief:
+# Verify skipping with abbreviation specified
+#
+# Preconditions:
+# - subs for a media file
+# - media file for which the subtitles are available
+#
+# Procedure:
+# - specify skip flag
+# - specify abbrev=AB, conv_abbrev=CAB
+# - try to download subs
+#
+# Expected results:
+# - subtitles shouldn't be downloaded
+#
+$o = NapiTest::qx_napi($shell, " --stats -s -a AB --conv-abbrev CAB " . $test_file_path);
+%o = NapiTest::parse_summary($o);
+ok ( -e $test_txt_path,
+		"check if original file still exists" );
+
+ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
+		"check if file with abbreviation exists" );
+is ($o{skip}, 1, "number of skipped");
+is ($o{ok}, 0, "number of downloaded");
+NapiTest::clean_testspace();
+
+
+#
+#>TESTSPEC
+#
+# Brief:
+# Verify skipping with abbreviation specified and -M flag (move instead of copy)
+#
+# Preconditions:
+# - download subs for a media file
+# - media file for which the subtitles are available
+#
+# Procedure:
+# - specify skip flag
+# - specify abbrev=AB, conv_abbrev=CAB
+# - specify -M flag
+# - try to download subs
+#
+# Expected results:
+# - subtitles shouldn't be downloaded
+#
+copy $NapiTest::assets . '/av1.dat', $test_file_path;
+NapiTest::qx_napi($shell, " -s " . $test_file_path);
+ok ( -e $test_txt_path,
+		"check if preconditions are met" );
+
+$o = NapiTest::qx_napi($shell, " -M --stats -s -a AB --conv-abbrev CAB " . $test_file_path);
+%o = NapiTest::parse_summary($o);
+ok ( ! -e $test_txt_path,
+		"check if original file has been moved" );
+
+ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
+		"check if file with abbreviation exists" );
+
+is ($o{skip}, 1, "number of skipped");
+is ($o{ok}, 0, "number of downloaded");
+
+
+
+
+#- download subs (and skip)
+#- copy subs to ORIG_
+#- check skip with prefix specified
+#- check skip without prefix specified
+#
 
 
 NapiTest::clean_testspace();
 done_testing();
+
+

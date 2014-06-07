@@ -21,9 +21,8 @@ if [ $uni_status -ne 0 ]; then
 fi
 
 # run system tests
-# time vagrant ssh -c "cd /vagrant/tests && prove"
-# sys_status=$?
-sys_status=0
+time vagrant ssh -c "cd /vagrant/tests && prove"
+sys_status=$?
 
 if [ $uni_status -eq 0 ] && [ $sys_status -eq 0 ]; then
 	echo '==========================================='
