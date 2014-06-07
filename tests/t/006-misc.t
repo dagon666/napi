@@ -66,13 +66,13 @@ ok ( ! -e $test_txt_path,
 # - subtitles should not be downloaded twice
 # - the skip counter should be reflected in the summary
 # 
-my $o = NapiTest::qx_napi($shell, " -s -e orig " . $test_file_path);
+my $o = NapiTest::qx_napi($shell, " --stats -s -e orig " . $test_file_path);
 my %o = NapiTest::parse_summary($o);
 is ( -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r, 
 		1, 
 		"Skipping with explicitly specified extension (file test)" );
 
-is ($o{pominieto}, 1, "Number of skipped");
+is ($o{skip}, 1, "Number of skipped");
 
 
 #>TESTSPEC
@@ -96,7 +96,7 @@ is ($o{pominieto}, 1, "Number of skipped");
 # - the original subtitles should be converted to requested format
 # - after conversion both files should exist in the filesystem (original one with prefix prepended)
 # 
-$o = NapiTest::qx_napi($shell, " -f subrip -s -e orig " . $test_file_path);
+$o = NapiTest::qx_napi($shell, " --stats -f subrip -s -e orig " . $test_file_path);
 %o = NapiTest::parse_summary($o);
 is ( -e $test_txt_path =~ s/\.[^\.]+$/\.srt/r, 
 		1, 
@@ -105,9 +105,9 @@ is ( -e $test_txt_path =~ s/\.[^\.]+$/\.srt/r,
 ok ( ! -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r, 
 		"Checking if original file has been removed" );
 
-is ($o{pobrano}, 0, "Number of skipped");
-is ($o{przekonw}, 1, "Number of converted");
+is ($o{ok}, 0, "Number of skipped");
+is ($o{conv}, 1, "Number of converted");
 
 
-# NapiTest::clean_testspace();
+NapiTest::clean_testspace();
 done_testing();

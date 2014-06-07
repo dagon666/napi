@@ -116,12 +116,12 @@ is ( NapiTest::system_napi($shell, "--help | grep iconv"), 0, "Iconv detection" 
 # - None
 #
 # Procedure:
-# - Call the -L option without arguments
+# - Call the -L option with list argument
 #
 # Expected results:
-# - without any arguments napi should produce a list of supported languages (that includes polish)
+# - with list argument napi should produce a list of supported languages (that includes polish)
 #
-is ( NapiTest::system_napi($shell, "-L 2>/dev/null | grep Polski"), 0, "Language selection" );
+is ( NapiTest::system_napi($shell, "-L list 2>/dev/null | grep Polski"), 0, "Language selection" );
 
 
 done_testing();

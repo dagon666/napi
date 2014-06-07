@@ -1009,7 +1009,7 @@ download_url() {
     local url="$1"
     local output="$2"
     local headers=""
-    local rv=0
+    local rv=$RET_OK
     local code='unknown'
 
     headers=$($g_cmd_wget "$output" "$url" 2>&1)
@@ -1034,7 +1034,7 @@ download_url() {
 # @brief downloads subtitles
 # @param md5 sum of the video file
 # @param hash of the video file
-# @param output filename
+# @param output filepath
 # @param requested subtitles language
 #
 download_subs() {
@@ -1154,8 +1154,8 @@ download_cover() {
 
 #
 # @brief downloads subtitles for a given media file
-# @param media filename
-# @param subtitles filename
+# @param media file path
+# @param subtitles file path
 # @param requested subtitles language
 #
 get_subtitles() {
@@ -1236,7 +1236,7 @@ get_charset() {
 
 #
 # @brief convert charset of the file
-# @param input file
+# @param input file path
 # @param output charset
 # @param input charset or null
 #
@@ -1539,7 +1539,7 @@ check_subs_presence() {
 obtain_file() {
     local media_path="$1"
     local media_file=$(basename "$media_path")
-    local path=$(dirname "$media_file")
+    local path=$(dirname "$media_path")
     local rv=$RET_FAIL
 
     # file availability
@@ -1549,6 +1549,7 @@ obtain_file() {
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
     _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
+	_debug $LINE "katalog docelowy [$path]"
 
     if [ $g_skip -eq 1 ]; then
         _debug $LINENO "sprawdzam dostepnosc pliku"
@@ -1630,7 +1631,7 @@ obtain_file() {
 process_file() {
     local media_path="$1"
     local media_file=$(basename "$media_path")
-    local path=$(dirname "$media_file")
+    local path=$(dirname "$media_path")
 
     local rv=$RET_OK
     local status=0

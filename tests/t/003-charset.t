@@ -71,7 +71,7 @@ like(`file -b $test_txt_path`,
 #
 # Brief:
 # 
-# Verify if napi doesn't overwrite already existing file if skip option has been specified
+# Verify if napi performs file processing if skip option has been specified
 #
 # Preconditions:
 # - napi.sh & subotage.sh must be available in public $PATH
@@ -80,15 +80,15 @@ like(`file -b $test_txt_path`,
 # - subtitles file should already exist for the media file (with known charset) on the fs
 #
 # Procedure:
-# - Call napi with the any charset different than the one in which the subtitles file is encoded
+# - Call napi with any charset different than the one in which the subtitles file is encoded
 #
 # Expected results:
-# - napi shouldn't overwrite already existing file, the charset should stay the same
+# - napi should overwrite already existing file, the charset should be converted
 #
 
 NapiTest::qx_napi($shell, " -s -C utf8 " . $test_file_path);
 like(`file -b $test_txt_path`, 
-		qr/ISO-8859/, "Checking conversion result for ISO with skip option");
+		qr/UTF-8/, "Checking conversion result for ISO with skip option");
 
 NapiTest::clean_testspace();
 done_testing();

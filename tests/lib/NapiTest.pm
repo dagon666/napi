@@ -163,17 +163,19 @@ sub prepare_shells {
 
 sub parse_summary {
 	my @strings = qw/
-		Pominieto
-		Pobrano
-		Przekonw
-		Niedostepne
-		Lacznie
+		OK
+		UNAV
+		SKIP
+	   	CONV
+	   	COVER_OK
+	   	COVER_UNAV
+	   	TOTAL
 		/;
 
 	my %output = ();
 	my $input = shift // '';
 
-	($output{lc $_}) = ($input =~ m/$_:\s+\[(\d+)\]/) foreach (@strings);
+	($output{lc $_}) = ($input =~ m/#\d?\s*$_\s->\s(\d+)/g) foreach (@strings);
 	return %output;	
 }
 

@@ -81,7 +81,7 @@ foreach (@files) {
 	my $subs = $NapiTest::testspace . '/' . $_->{res};
 
 	like ( scalar NapiTest::qx_napi($shell, $filename),
-			qr/\[$_->{pattern}\]/,
+			qr/#\d?\s$_->{pattern}\s->\s/,
 			"Single File ($_->{dst}) test");
 
 	is (-e $subs ? 1 : 0, 
@@ -92,7 +92,7 @@ foreach (@files) {
 	unlink $NapiTest::testspace . '/' . $_->{res} if $_->{res};
 }
 
-
+#
 #>TESTSPEC
 #
 # Brief:
@@ -115,13 +115,13 @@ foreach (@files) {
 prepare_assets();
 
 my %output = ();
-my $output = NapiTest::qx_napi($shell, $NapiTest::testspace);
+my $output = NapiTest::qx_napi($shell, " --stats " . $NapiTest::testspace);
 
 %output = NapiTest::parse_summary($output);
-is ($output{pobrano}, $total_available, "Total number downloaded");
-is ($output{niedostepne}, $total_unavailable, "Total number of unavailable");
-is ($output{pobrano} + $output{niedostepne}, $output{lacznie}, "Total processed");
-is ($output{lacznie}, $total_available + $total_unavailable, "Total processed 2");
+is ($output{ok}, $total_available, "Total number downloaded");
+is ($output{unav}, $total_unavailable, "Total number of unavailable");
+is ($output{ok} + $output{unav}, $output{total}, "Total processed");
+is ($output{total}, $total_available + $total_unavailable, "Total processed 2");
 
 
 #>TESTSPEC
@@ -142,11 +142,11 @@ is ($output{lacznie}, $total_available + $total_unavailable, "Total processed 2"
 # - napi shouldn't download the subtitles for the media files (for which they are available) if it detects that the
 # subtitles file already exist
 #
-$output = NapiTest::qx_napi($shell, "-s " . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--stats -s " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
-is ($output{pominieto}, $total_available, "Total number of skipped");
-is ($output{pominieto} + $output{niedostepne}, $output{lacznie}, "Total processed (with skipping)");
-is ($output{lacznie}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
+is ($output{skip}, $total_available, "Total number of skipped");
+is ($output{skip} + $output{unav}, $output{total}, "Total processed (with skipping)");
+is ($output{total}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
 
 
 #>TESTSPEC
@@ -183,18 +183,18 @@ foreach my $dir (glob ($NapiTest::testspace . '/*')) {
 	$dir_cnt++;
 }
 
-$output = NapiTest::qx_napi($shell, "-b 12" . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--stats -b 12 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
-is ($output{niedostepne}, $dir_cnt * 2, "Number of processed files bigger than given size");
+is ($output{unav}, $dir_cnt * 2, "Number of processed files bigger than given size");
 
-$output = NapiTest::qx_napi($shell, "-b 16" . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--stats -b 16 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
-is ($output{niedostepne}, $dir_cnt, "Number of processed files bigger than given size 2");
+is ($output{unav}, $dir_cnt, "Number of processed files bigger than given size 2");
 
-$output = NapiTest::qx_napi($shell, "-b 4" . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--stats -b 4 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
-is ($output{lacznie},
-	$output{niedostepne} + $output{pobrano}, 
+is ($output{total},
+	$output{unav} + $output{ok}, 
 	"Number of processed files bigger than given size 2");
 
 NapiTest::clean_testspace();
