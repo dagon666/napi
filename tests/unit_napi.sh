@@ -30,6 +30,7 @@ declare -r SHUNIT_TESTS=1
 # path to the test env root
 #
 declare -r g_assets_path="${1:-/home/vagrant}"
+shift
 
 
 #
