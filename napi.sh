@@ -1687,8 +1687,8 @@ process_file() {
 # 
 process_files() {
 
-    local s=$1
-    local i=$2
+    local s=${1:-0}
+    local i=${2:-1}
 
     # current
     local c=$s
@@ -1699,14 +1699,15 @@ process_files() {
         c=$(( $c + $i ))
     done
 
-    # dump statistics to fd #8
-    echo "${g_stats[*]}" >&8
+	# dump statistics to fd #8 (if it has been opened before)
+    [ -e "/proc/self/fd/8" ] && echo "${g_stats[*]}" >&8
     return $RET_OK
 }
 
 
 #
 # @brief summarize statistics collected from forks
+# @param statistics file
 # 
 sum_stats() {
     local file="$1"

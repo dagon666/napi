@@ -71,61 +71,21 @@ oneTimeTearDown() {
 
 ################################################################################
 
-
-
-
-
+#
+# test obtain file routine
+#
 test_obtain_file() {
     return 0    
 
 }
 
+#
+# test process file routine
+#
 test_process_file() {
     return 0    
     
 }
-
-test_process_files() {
-    return 0    
-
-}
-
-test_sum_stats() {
-    return 0    
-    
-}
-
-test_spawn_forks() {
-    return 0    
-
-}
-
-test_print_stats() {
-    local output=''
-    
-}
-
-test_usage() {
-    local output=''
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
 
 
 #
@@ -1275,6 +1235,165 @@ test_check_subs_presence() {
 	g_abbrev=()
 	g_sub_format='default'
 	g_pf=()
+    return 0    
+}
+
+
+#
+# test the statistics printing routine
+#
+test_print_stats() {
+    local output=''
+	declare -a cp_g_stats=( ${g_stats[@]} )
+    
+	g_stats=( 1 2 3 4 5 6 7 )
+	output=$(print_stats | grep -w OK | rev | cut -d ' ' -f 1)
+	assertEquals 'OK stats' 1 ${output:-0}
+
+	output=$(print_stats | grep -w UNAV | rev | cut -d ' ' -f 1)
+	assertEquals 'UNAV stats' 2 ${output:-0}
+
+	output=$(print_stats | grep -w SKIP | rev | cut -d ' ' -f 1)
+	assertEquals 'SKIP stats' 3 ${output:-0}
+
+	output=$(print_stats | grep -w CONV | rev | cut -d ' ' -f 1)
+	assertEquals 'CONV stats' 4 ${output:-0}
+
+	output=$(print_stats | grep -w COVER_OK | rev | cut -d ' ' -f 1)
+	assertEquals 'COVER_OK stats' 5 ${output:-0}
+
+	output=$(print_stats | grep -w COVER_UNAV | rev | cut -d ' ' -f 1)
+	assertEquals 'COVER_UNAV stats' 6 ${output:-0}
+
+	output=$(print_stats | grep -w TOTAL | rev | cut -d ' ' -f 1)
+	assertEquals 'TOTAL stats' 7 ${output:-0}
+
+	g_stats=( ${cp_g_stats[@]} )
+}
+
+
+#
+# test usage routine
+#
+test_usage() {
+    local output=''
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	output=$(usage | grep "\-\-charset" | wc -l)
+	assertEquals 'no charset option, when iconv missing' 0 $output
+
+	output=$(usage | grep "\-\-format" | wc -l)
+	assertEquals 'no subotage options, when subotage missing' 0 $output
+
+	g_tools=( subotage.sh=1 iconv=1 )
+	output=$(usage | grep "\-\-charset" | wc -l)
+	assertEquals 'charset option, when iconv available' 1 $output
+
+	output=$(usage | grep "\-\-format" | wc -l)
+	assertEquals 'subotage options, when subotage available' 1 $output
+
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# test statistics summing routine
+#
+test_sum_stats() {
+	declare -a cp_g_stats=( ${g_stats[@]} )
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	echo "1 2 3 4 5 6 7" > "$g_assets_path/$g_ut_root/stats.txt"	
+	echo "8 9 10 11 12 13 14" >> "$g_assets_path/$g_ut_root/stats.txt"
+
+	g_tools=( awk=1 )
+	sum_stats "$g_assets_path/$g_ut_root/stats.txt"
+
+	assertEquals 'checking column 0' 9 ${g_stats[0]}
+	assertEquals 'checking column 1' 11 ${g_stats[1]}
+	assertEquals 'checking column 2' 13 ${g_stats[2]}
+	assertEquals 'checking column 3' 15 ${g_stats[3]}
+	assertEquals 'checking column 4' 17 ${g_stats[4]}
+	assertEquals 'checking column 5' 19 ${g_stats[5]}
+	assertEquals 'checking column 6' 21 ${g_stats[6]}
+
+	g_stats=( ${cp_g_stats[@]} )
+	g_tools=( ${cp_g_tools[@]} )
+
+	unlink "$g_assets_path/$g_ut_root/stats.txt"
+}
+
+
+#
+# check the fork spawning function
+#
+test_spawn_forks() {
+	declare -a cp_g_system=( ${g_system[@]} )
+
+	local forks_info="$g_assets_path/$g_ut_root/forks.info"
+
+	g_files=( file1 file2 file3 file4 )
+	g_system[1]=2
+
+	# setup some mocks first
+	(
+	process_files() {
+		echo "mock params $@" >> "$forks_info"
+		sleep 1
+	}
+
+	export -f process_files
+	spawn_forks
+
+	local no_forks="$(cat $forks_info | wc -l)"
+
+	assertTrue 'checking forks info file' "[ -e \"$forks_info\" ]"
+	assertEquals 'checking number of forks' 2 $no_forks
+
+	assertEquals 'checking fork params #1' 1 "$(grep '0 2' $forks_info | wc -l)"
+	assertEquals 'checking fork params #2' 1 "$(grep '1 2' $forks_info | wc -l)"
+
+	unlink "$forks_info"
+
+	g_files=( file1 file3 file4 )
+	g_system[1]=4
+
+	spawn_forks
+	local no_forks="$(cat $forks_info | wc -l)"
+
+	assertTrue 'checking forks info file' "[ -e \"$forks_info\" ]"
+	assertEquals 'checking number of forks (less files than forks)' 3 $no_forks
+	unlink "$forks_info"
+	)
+
+	g_files=()
+	g_system=( ${cp_g_system[@]} )
+    return 0    
+}
+
+
+#
+# test files processing routine
+#
+test_process_files() {
+
+	g_files=( file1 file2 file3 )
+
+	(
+	file_cnt=0
+	process_file() {
+		file_cnt=$(( $file_cnt + 1 ))
+	}
+	export -f process_file
+
+	process_files 0 1
+	assertEquals 'checking total no. of process files' ${#g_files[@]} $file_cnt
+
+	file_cnt=0
+	process_files 0 2
+	assertEquals 'checking total no. of process files (incr = 2)' 2 $file_cnt
+	)
+
     return 0    
 }
 
