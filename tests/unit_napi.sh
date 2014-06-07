@@ -71,6 +71,63 @@ oneTimeTearDown() {
 
 ################################################################################
 
+
+
+
+
+test_obtain_file() {
+    return 0    
+
+}
+
+test_process_file() {
+    return 0    
+    
+}
+
+test_process_files() {
+    return 0    
+
+}
+
+test_sum_stats() {
+    return 0    
+    
+}
+
+test_spawn_forks() {
+    return 0    
+
+}
+
+test_print_stats() {
+    local output=''
+    
+}
+
+test_usage() {
+    local output=''
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+
 #
 # general function to test printing routines
 #
@@ -187,7 +244,7 @@ test_to_stderr() {
 # test logfile redirection
 #
 test_logfile() {
-    g_logfile='file.log'
+    g_logfile="$g_assets_path/$g_ut_root/logfile.txt"
     local e=0
     redirect_to_logfile
 
@@ -430,7 +487,7 @@ test_verify_tools() {
 #
 # check the get extension routine
 #
-test_get_ext() {
+test_get_sub_ext() {
 
     local ext=''
 
@@ -878,26 +935,26 @@ test_download_url() {
     local cp_g_cmd_wget="$g_cmd_wget"
 
     g_cmd_wget="mocks/wget_log 127 none"
-    download_url "test_url.com" "output file with spaces.dat" > /dev/null
+    download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
     status=$?
     assertEquals 'check failure status' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 none"
-    local output=$(download_url "test_url.com" "output file with spaces.dat")
+    local output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check unknown http code' "unknown" $output
 
     g_cmd_wget="mocks/wget_log 0 301_200"
     local output=0
-    output=$(download_url "test_url.com" "output file with spaces.dat")
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check 200 http code' "301 200" "$output"
 
     g_cmd_wget="mocks/wget_log 0 404"
     local output=0
-    output=$(download_url "test_url.com" "output file with spaces.dat")
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_FAIL $status
     assertEquals 'check 404 http code' "404" "$output"
@@ -912,40 +969,41 @@ test_download_url() {
 test_download_subs() {
     local status=0
     local cp_g_cmd_wget="$g_cmd_wget"
+	local output_file="$g_assets_path/$g_ut_root/output file" 
 
     g_cmd_wget="mocks/wget_log 127 none"
-    download_subs 123 123 "output_file" PL other "" "" 2> /dev/null
+    download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying wget error' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 404"
-    download_subs 123 123 "output_file" PL other "" "" 2> /dev/null
+    download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying error when 404' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 200"
-    download_subs 123 123 "output_file" PL other "" "" 2> /dev/null
+    download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 200"
-    echo test > "./output_file"
-    download_subs 123 123 "output_file" PL pynapi "" ""
+    echo test > "$output_file"
+    download_subs 123 123 "$output_file" PL pynapi "" ""
     status=$?
     assertEquals 'verifying small file' $RET_FAIL $status
-    assertFalse 'check if file has been removed' "[ -s output_file ]"
+    assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
 
     g_cmd_wget="mocks/wget_log 0 200"
-    echo line1 > "./output_file"
-    echo line2 >> "./output_file"
-    echo line3 >> "./output_file"
-    echo line4 >> "./output_file"
-    echo line5 >> "./output_file"
-    download_subs 123 123 "output_file" PL pynapi "" ""
+    echo line1 > "$output_file"
+    echo line2 >> "$output_file"
+    echo line3 >> "$output_file"
+    echo line4 >> "$output_file"
+    echo line5 >> "$output_file"
+    download_subs 123 123 "$output_file" PL pynapi "" ""
     status=$?
     assertEquals 'verifying big enough file' $RET_OK $status
-    assertTrue 'check if file still exists' "[ -s output_file ]"
-    unlink "./output_file"
+    assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
+    unlink "$output_file"
 
     g_cmd_wget="$g_cmd_wget"
 }
@@ -957,28 +1015,29 @@ test_download_subs() {
 test_download_cover() {
     local status=0  
     local cp_g_cmd_wget="$g_cmd_wget"
+	local output_file="$g_assets_path/$g_ut_root/output file" 
 
     g_cmd_wget="mocks/wget_log 255 none"
-    download_cover 123 "output_file"
+    download_cover 123 "$output_file"
     status=$?
     assertEquals 'wget failure' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 404"
-    download_cover 123 "output_file"
+    download_cover 123 "$output_file"
     status=$?
     assertEquals 'wget 404' $RET_FAIL $status
 
     g_cmd_wget="mocks/wget_log 0 200"
-    download_cover 123 "output_file"
+    download_cover 123 "$output_file"
     status=$?
     assertEquals 'file doesnt exist' $RET_UNAV $status
 
     g_cmd_wget="mocks/wget_log 0 200"
-    echo test > "./output_cover"
-    download_cover 123 "output_cover"
+    echo test > "$output_file"
+    download_cover 123 "$output_file"
     status=$?
     assertEquals 'file exists' $RET_OK $status
-    unlink "./output_cover"
+    unlink "$output_file"
 
     g_cmd_wget="$g_cmd_wget"
 }
@@ -991,18 +1050,19 @@ test_get_subtitles() {
     local status=0  
     local cp_g_cmd_wget="$g_cmd_wget"
 	local media=''
+	local output_file="$g_assets_path/$g_ut_root/subs.txt" 
 
     g_cmd_wget="mocks/wget_log 0 200"
-    echo line1 > "./subs.txt"
-    echo line2 >> "./subs.txt"
-    echo line3 >> "./subs.txt"
-    echo line4 >> "./subs.txt"
-    echo line5 >> "./subs.txt"
-	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "PL"
+    echo line1 > "$output_file"
+    echo line2 >> "$output_file"
+    echo line3 >> "$output_file"
+    echo line4 >> "$output_file"
+    echo line5 >> "$output_file"
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
     status=$?
     assertEquals 'download subs success' $RET_OK $status
 
-	unlink "./subs.txt"
+	unlink "$output_file"
 	g_cmd_wget="$g_cmd_wget"
 }
 
@@ -1031,16 +1091,17 @@ test_get_cover() {
 test_get_charset() {
     local output=''
     declare -a tmp=( ${g_tools[@]} )
+	local output_file="$g_assets_path/$g_ut_root/test_file" 
 
-	LANG=C echo test_file > "./test_file"
-	output=$(get_charset "./test_file")
+	LANG=C echo test_file > "$output_file"
+	output=$(get_charset "$output_file")
 	assertEquals 'checking default charset when file=0' 'WINDOWS-1250' "$output"
 	
 	g_tools=( file=1 )
-	output=$(get_charset "./test_file")
+	output=$(get_charset "$output_file")
 	assertEquals 'checking default charset when file=0' 'US-ASCII' "$output"
 
-	unlink "./test_file"
+	unlink "$output_file"
     g_tools=( ${tmp[@]} )
 }
 
@@ -1051,17 +1112,18 @@ test_get_charset() {
 test_convert_charset() {
     local status=0
     declare -a tmp=( ${g_tools[@]} )
+	local output_file="$g_assets_path/$g_ut_root/test_file" 
 
-	LANG=C echo "znaki specjalne ęóąśżźćń" > "./test_file"
+	LANG=C echo "znaki specjalne ęóąśżźćń" > "$output_file"
 	g_tools=( file=1 )
-	convert_charset "./test_file" 'utf8'
+	convert_charset "$output_file" 'utf8'
 	status=$?
 	assertEquals 'checking return value' $RET_OK $status
 
-	output=$(get_charset "./test_file")
+	output=$(get_charset "$output_file")
 	assertEquals 'checking converted charset' 'UTF8' $output
 
-	unlink "./test_file"
+	unlink "$output_file"
     g_tools=( ${tmp[@]} )
 }
 
@@ -1131,51 +1193,92 @@ test_prepare_filenames() {
     g_abbrev=( ${cp_g_abbrev[@]} )
 }
 
+
+#
+# test the conversion routine
+#
 test_convert_format() {
     local cp_g_delete_orig=$g_delete_orig
+	local cp_g_sub_format=$g_sub_format
+	local status=0
+
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on non existing subs' $RET_FAIL $status
+
+	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
+	
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on default subs format' $RET_FAIL $status
+
+	g_delete_orig=1
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+
+	g_sub_format='subrip'
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success on subrip subs format' $RET_OK $status
+	assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+	assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
     
     g_delete_orig=$cp_g_delete_orig
+	g_sub_format=$cp_g_sub_format
     return 0
 }
 
+
+#
+# test subs file detection routine
+#
 test_check_subs_presence() {
+
+	local rv=0
     
+	g_abbrev=( 'AB' 'CAB' )
+	prepare_filenames "video.avi"
+	g_sub_format='default'
+
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals 'nothing available' 0 $rv
+
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '0 available, checking rv' 2 $rv
+	assertTrue '0 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[1]}"
+
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[3]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '3 available, checking rv' 2 $rv
+	assertTrue '3 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[3]}"
+
+	g_sub_format='subrip'
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[6]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '6 available, checking rv' 1 $rv
+	assertTrue '6 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[7]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[6]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[7]}"
+
+	g_abbrev=()
+	g_sub_format='default'
+	g_pf=()
     return 0    
 }
 
-test_obtain_file() {
-    return 0    
 
-}
-
-test_process_file() {
-    return 0    
-    
-}
-
-test_process_files() {
-    return 0    
-
-}
-
-test_sum_stats() {
-    return 0    
-    
-}
-
-test_spawn_forks() {
-    return 0    
-
-}
-
-test_print_stats() {
-    local output=''
-    
-}
-
-test_usage() {
-    local output=''
-}
 
 # shunit call
 . shunit2

@@ -1406,14 +1406,23 @@ convert_format() {
     # for the backup
     local tmp="$(mktemp -t napi.XXXXXXXX)"
 
+	# verify original file existence before proceeding further
+	! [ -e "$path/$input" ] &&
+		_error "oryginalny plik nie istnieje" &&
+		return $RET_FAIL
+
     # create backup
     _debug $LINENO "backupuje oryginalny plik jako $tmp"
     cp "$path/$input" "$tmp"
 
     # if delete orig flag has been requested don't rename the original file
-    [ $g_delete_orig -eq 0 ] && 
+    if [ $g_delete_orig -eq 0 ]; then
         _info $LINENO "kopiuje oryginalny plik jako [$orig]" &&
         cp "$path/$input" "$path/$orig"
+	else
+		# get rid of it, if it already exists
+		[ -e "$path/$orig" ] && unlink "$path/$orig"
+	fi
 
     # detect video file framerate
     [ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
@@ -1443,7 +1452,7 @@ convert_format() {
 
         # restore the backup (the original file may be corrupted due to failed conversion)
         cp "$tmp" "$path/$input"
-        rv=$RV_FAIL
+        rv=$RET_FAIL
     fi
 
     # delete a backup
@@ -1478,15 +1487,15 @@ check_subs_presence() {
         
         elif [[ -e "$path/${g_pf[6]}" ]]; then
             _status "COPY" "${g_pf[6]} -> ${g_pf[7]}"
-            $g_cmd_cp "${g_pf[6]}" "${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[6]}" "$path/${g_pf[7]}"
 
         elif [[ -e "$path/${g_pf[5]}" ]]; then
             _status "COPY" "${g_pf[5]} -> ${g_pf[7]}"
-            $g_cmd_cp "${g_pf[5]}" "${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[5]}" "$path/${g_pf[7]}"
 
         elif [[ -e "$path/${g_pf[4]}" ]]; then
             _status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
-            $g_cmd_cp "${g_pf[4]}" "${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[4]}" "$path/${g_pf[7]}"
 
         else
             _info $LINENO "skonwertowany plik niedostepny"
@@ -1506,11 +1515,11 @@ check_subs_presence() {
     
     elif [[ -e "$path/${g_pf[0]}" ]]; then
         _status "COPY" "${g_pf[0]} -> ${g_pf[1]}"
-        $g_cmd_cp "${g_pf[0]}" "${g_pf[1]}"
+        $g_cmd_cp "$path/${g_pf[0]}" "$path/${g_pf[1]}"
 
     elif [[ -e "$path/${g_pf[3]}" ]]; then
         _status "COPY" "${g_pf[3]} -> ${g_pf[1]}"
-        $g_cmd_cp "${g_pf[3]}" "${g_pf[1]}"
+        $g_cmd_cp "$path/${g_pf[3]}" "$path/${g_pf[1]}"
 
     else
         _info $LINENO "oryginalny plik niedostepny"
