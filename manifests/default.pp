@@ -38,6 +38,31 @@ package { "patch":
     require => Exec["apt-get update"],
 }
 
+package { "shunit2":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+package { "mplayer":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+package { "mplayer2":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+package { "mediainfo":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+package { "ffmpeg":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
 
 package { "gcc-multilib":
 	ensure => present,

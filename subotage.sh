@@ -1319,7 +1319,7 @@ else
 fi
     
 # remove the temporary processing file
-rm -rf "$g_ProcTmpFile"
+unlink "$g_ProcTmpFile"
 echo "Done"
 
 ###############################################################################

@@ -1,12 +1,20 @@
 #!/bin/bash
 
+#
+# script version
+#
+declare -r g_revision="v1.2.1"
+
 ########################################################################
 ########################################################################
 ########################################################################
 
-#  Copyright (C) 2010 Tomasz Wisniewski aka DAGON <tomasz.wisni3wski@gmail.com>
-#  http://www.dagon.bblog.pl
-#  http://hekate.homeip.net
+#  Copyright (C) 2014 Tomasz Wisniewski aka 
+#       DAGON <tomasz.wisni3wski@gmail.com>
+#
+#  http://github.com/dagon666
+#  http://pcarduino.blogspot.co.ul
+# 
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -25,36 +33,370 @@
 ########################################################################
 ########################################################################
 
+#
+# @brief abbreviation 
+# - string added between the filename and the extension
+#
+# @brief conversion abbreviation 
+# - string added between the filename and the extension 
+#   only for the converted subtitles
+#
+declare -a g_abbrev=( "" "" )
 
-# napi project user/password configuration
-# (may be left blank)
-g_User=""
-g_Pass=""
-g_NapiPass="iBlm8NTigvru0Jr0"
-g_Lang="PL"
+#
+# @brief prefix for the original file - before the conversion
+#
+declare g_orig_prefix='ORIG_'
 
-#system detection
-g_System=$(uname | tr '[:upper:]' '[:lower:]')
+#
+# system - detected system type
+# - linux
+# - darwin - mac osx
+#
+# numer of forks
+#
+# id
+# - pynapi - identifies itself as pynapi
+# - other - identifies itself as other
+#
+# fork id
+#
+declare -a g_system=( 'linux' '1' 'pynapi' 1 )
 
-if [ $g_System = "darwin" ]; then 
-    g_Md5="md5"
-    g_StatParams="-f%z "
-else
-    g_Md5="md5sum"
-    g_StatParams="-c%s "
-fi
+#
+# @brief minimum size of files to be processed
+#
+declare g_min_size=0
+
+#
+# @brief whether to download cover or not
+#
+declare g_cover=0
+
+#
+# @brief whether to skip downloading if file is already present
+#
+declare g_skip=0
+
+#
+# @brief whether to delete the original file after conversion
+#
+declare g_delete_orig=0
+
+#
+# @brief defines the charset of the resulting file
+#
+declare g_charset='default'
+
+#
+# @brief default subtitles language
+#
+declare g_lang='PL'
+
+#
+# @brief default subtitles extension
+#
+declare g_default_ext='txt'
+
+#
+# @brief subtitles format
+#
+declare g_sub_format='default'
+
+#
+# @brief preferred fps detection tool
+#
+declare g_fps_tool='default'
+
+#
+# @brief external script
+#
+declare g_hook='none'
+
+#
+# @brief napiprojekt.pl user credentials
+# 0 - user
+# 1 - password
+#
+declare -a g_cred=( '' '' )
+
+#
+# verbosity (kept outside of g_settings to be more flexible)
+# - 0 - be quiet (prints only errors)
+# - 1 - standard level (prints errors, warnings, statuses & msg)
+# - 2 - info level (prints errors, warnings, statuses, msg & info's)
+# - 3 - debug level (prints errors, warnings, statuses, msg, info's and debugs)
+#
+declare g_verbosity=1 
+
+#
+# @brief the name of the file containing the output
+#
+declare g_logfile='none'
+
+#
+# global paths list
+#
+declare -a g_paths=()
+
+#
+# global files list
+#
+declare -a g_files=()
+
+#
+# @brief prepare all the possible filename combinations 
+#
+declare -a g_pf=()
+
+#
+# @brief processing stats
+# 0 - downloaded
+# 1 - unavailable
+# 2 - skipped
+# 3 - converted
+# 4 - covers downloaded
+# 5 - covers unavailable
+# 6 - total processed
+#
+declare -a g_stats=( 0 0 0 0 0 0 0 )
+
+#
+# controls whether to print statistics on exit or not
+#
+g_stats_print=0
+
+################################### TOOLS ######################################
+
+#
+# @brief global tools array 
+# =1 - mandatory tool
+# =0 - optional tool
+#
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+
+# fps detectors
+declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
+
+g_cmd_stat='stat -c%s'
+g_cmd_wget='wget -q -O'
+g_cmd_md5='md5sum'
+g_cmd_cp='cp'
+
+################################## RETVAL ######################################
+
+# success
+declare -r RET_OK=0
+
+# function failed
+declare -r RET_FAIL=255
+
+# parameter error
+declare -r RET_PARAM=254
+
+# parameter/result will cause the script to break
+declare -r RET_BREAK=253
+
+# resource unavailable
+declare -r RET_UNAV=252
+
+################################## STDOUT ######################################
+
+#
+# @brief print a debug verbose information
+#
+_debug() {
+    local line=${1:-0} && shift
+    [ $g_verbosity -ge 3 ] && echo -e "#${g_system[3]} --- $line: $*"
+    return $RET_OK
+}
 
 
-# supported video file extentions
-declare -a g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
+#
+# @brief print information 
+#
+_info() {
+    local line=${1:-0} && shift
+    [ $g_verbosity -ge 2 ] && echo -e "#${g_system[3]} -- $line: $*"
+    return $RET_OK
+}
 
-# list of all mandatory to basic functionality tools
-declare -a g_MandatoryTools=(  $g_Md5 'tr' 'printf' 
-                    'wget' 'find' 'dd' 
-                    'grep' 'sed' 'cut' 'seq' )
+
+#
+# @brief print warning 
+#
+_warning() {
+    _status "WARNING" "$*"
+    return $RET_OK
+}
+
+
+#
+# @brief print error message
+#
+_error() {
+    local tmp=$g_verbosity
+    g_verbosity=1
+    _status "ERROR" "$*" | to_stderr
+    g_verbosity=$tmp
+    return $RET_OK
+}
+
+
+#
+# @brief print standard message
+#
+_msg() {
+    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} - $*"
+    return $RET_OK
+}
+
+
+#
+# @brief print status type message
+#
+_status() {
+    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} $1 -> $2"
+    return $RET_OK
+}
+
+
+#
+# @brief redirect errors to standard error output
+#
+to_stderr() {
+    if [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ]; then
+        cat > /dev/stderr
+    else
+        cat
+    fi
+}
+
+
+#
+# @brief redirect stdout to logfile
+#
+redirect_to_logfile() {
+    [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 3>&1 1> "$g_logfile"
+}
+
+
+#
+# @brief redirect output to stdout
+#
+redirect_to_stdout() {
+    [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 1>&3 3>&-
+}
+
+################################### misc #######################################
+
+#
+# @brief lowercase the input
+#
+lcase() {
+    tr '[:upper:]' '[:lower:]'
+}
+
+#
+# @brief get the extension of the input
+#
+get_ext() {
+    echo "${1##*.}"
+}
+
+#
+# @brief strip the extension of the input
+#
+strip_ext() {
+    echo "${1%.*}"
+}
+
+
+#
+# @brief get the value from strings like key=value
+#
+get_value() {
+    echo "${1##*=}"
+}
+
+
+#
+# @brief get the key from strings like key=value
+#
+get_key() {
+    echo "${1%=*}"
+}
+
+#
+# @brief search for specified key and return it's value
+# @param key
+# @param array
+#
+lookup_value() {
+    local i=''
+    local rv=$RET_FAIL
+    local key="$1" && shift
+
+    for i in $*; do
+        if [ $(get_key "$i") = "$key" ]; then
+            get_value $i
+            rv=$RET_OK
+            break
+        fi
+    done
+    return $rv
+}
+
+
+#
+# @brief lookup index in the array for given value
+# returns the index of the value and 0 on success
+#
+lookup_key() {
+    local i=''
+    local idx=0
+    local rv=$RET_FAIL
+    local key="$1" 
+
+    shift
+
+    for i in "$@"; do
+        [ "$i" = "$key" ] && rv=$RET_OK && break
+        idx=$(( $idx + 1 ))
+    done
+
+    echo $idx
+    return $rv
+}
+
+
+#
+# @brief modify value in the array (it will be added if the key doesn't exist)
+# @param key
+# @param value
+# @param array
+#
+modify_value() {
+    local key=$1 && shift
+    local value=$1 && shift
+
+    local i=0
+    declare -a rv=()
+
+    for i in $*; do
+        [ "$(get_key $i)" != "$key" ] && rv+=( "$i" )
+    done
+
+    rv+=($key=$value)
+    echo ${rv[*]}
+
+    return $RET_OK
+}
+
+################################ languages #####################################
 
 # language code arrays
-declare -a g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
+declare -ar g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
         'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
         'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
         'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
@@ -64,135 +406,16 @@ declare -a g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski'
         'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
         'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
 
-declare -a g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
+declare -ar g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
                     'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
                     'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
                     'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
 
-declare -a g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
+declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
                     'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
                     'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
                     'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
                     'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
-
-# if pynapi is not acceptable then use "other" - in this case p7zip is 
-# required to finish processing
-g_Revison="v1.1.13"
-g_Version="pynapi"
-#g_Version="other"
-
-# global file list
-declare -a g_FileList=( )
-declare -a g_Formats=( )
-declare -a g_Params=( )
-
-g_Cover=""
-g_Skip=0
-g_Format="no_conversion"
-g_Abbrev=""
-g_ConvAbbrev=""
-g_Script=""
-g_Charset=""
-
-g_OrigPrefix="ORIG_"
-g_OrigDelete=0
-
-# subotage presence indicator
-g_SubotagePresence=0
-
-# iconv presence
-g_IconvPresence=0
-
-# fps detection tools: mediainfo mplayer
-g_FpsTool=""
-g_Fps=0
-g_LogFile="none"
-
-# default extension
-g_DefaultExt="txt"
-
-# minimum size
-g_MinimumSize=0;
-
-# statistical data
-g_Skipped=0
-g_Downloaded=0
-g_Unavailable=0
-g_Converted=0
-
-########################################################################
-########################################################################
-########################################################################
-
-display_help() {
-    echo "=============================================================="
-    echo "napi.sh version $g_Revison (identifies as $g_Version)"
-    echo "napi.sh [OPCJE] <plik|katalog|*>"
-    echo "   -c | --cover - pobierz okladke"
-
-    if [[ $g_IconvPresence -eq 1 ]]; then    
-        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
-    fi
-
-    echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
-    echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
-    echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
-    echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
-    echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
-    echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
-    echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
-    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
-    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
-        
-    if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-        echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_OrigPrefix)"   
-        echo "   -d | --delete-orig - Delete the original file"   
-		echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
-    fi
-        
-    echo "=============================================================="
-    echo
-    if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "Obslugiwane formaty konwersji napisow"
-        subotage.sh -gl
-        echo
-    fi
-
-    echo "Przyklady:"
-    echo " napi.sh film.avi          - sciaga napisy dla film.avi."
-    echo " napi.sh -c film.avi       - sciaga napisy i okladke dla film.avi."
-    echo " napi.sh -u foo -p bar -c film.avi - sciaga napisy i okladke do"
-    echo "                             film.avi jako uzytkownik foo"
-    echo " napi.sh *                 - szuka plikow wideo w obecnym katalogu"
-    echo "                             i podkatalogach, po czym stara sie dla"
-    echo "                             nich znalezc i pobrac napisy."
-    echo " napi.sh *.avi             - wyszukiwanie tylko plikow avi."
-    echo " napi.sh katalog_z_filmami - wyszukiwanie we wskazanym katalogu"
-    echo "                             i podkatalogach."
-        
-    if [[ $g_SubotagePresence -ne 1 ]]; then
-        echo " "
-        echo "UWAGA !!!"
-        echo "napi.sh moze automatycznie dokonywac konwersji napisow"
-        echo "do wybranego przez Ciebie formatu. Zainstaluj uniwersalny"
-        echo "konwerter formatow dla basha: subotage.sh"
-        echo "http://sourceforge.net/projects/subotage/"
-        echo
-    else
-        echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
-        echo "                           po czym konwertuje je do formatu subrip"
-    
-        if [[ -z $g_FpsTool ]]; then 
-            echo
-            echo "By moc okreslac FPS na podstawie pliku video a nie na"
-            echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
-            echo "zainstaluj dodatkowo jedno z tych narzedzi (dowolnie ktore)"
-            echo -e "- mediainfo\n- mplayer\n- ffmpeg\n"
-            echo
-        fi
-    fi
-}
 
 
 #
@@ -210,81 +433,546 @@ list_languages() {
 #
 # @brief verify that the given language code is supported
 #
-check_language() {
-    local lang="$1"
-    declare -a local l_arr=(  )
-    local l_arr_name=""
+verify_language() {
+    local lang="${1:-''}"
     local i=0
+    declare -a l_arr=( )
     
-    if [[ ${#lang} -ne 2 ]] && [[ ${#lang} -ne 3 ]]; then
-        return
-    fi
+    [ ${#lang} -ne 2 ] && [ ${#lang} -ne 3 ] && return $RET_PARAM
 
-    l_arr_name="g_LanguageCodes${#lang}L";
+    local l_arr_name="g_LanguageCodes${#lang}L";
     eval l_arr=\( \${${l_arr_name}[@]} \)
 
-    while [[ $i -lt ${#l_arr[@]} ]]; do
-        if [[ "${l_arr[$i]}" = "$lang" ]]; then
-            echo "$i"
-            return
-        fi
-        i=$(( $i + 1 ))
-    done
+    i=$(lookup_key "$lang" ${l_arr[@]})
+    local found=$?
+
+    echo $i 
+    [ $found -eq $RET_OK ] && return $RET_OK
+    return $RET_FAIL
 }
+
 
 #
 # @brief set the language variable
 # @param: language index
 #
-set_language() {
-    declare -a local lang=${g_LanguageCodes2L[$1]}
+normalize_language() {
+    local i=${1:-0}
+    i=$(( $i + 0 ))
 
+    local lang=${g_LanguageCodes2L[$1]}
+    
     # don't ask me why
-    if [[ $lang = "EN" ]]; then
-        lang="ENG"
+    [[ "$lang" = "EN" ]] && lang="ENG"
+    echo $lang
+
+    return $RET_OK
+}
+
+#################################### ENV #######################################
+
+#
+# @brief checks if the tool is available in the PATH
+#
+verify_tool_presence() {
+    echo $(builtin type -P "$1")
+}
+
+
+#
+# determines number of available cpu's in the system
+#
+get_cores() {
+    grep -i processor /proc/cpuinfo | wc -l
+}
+
+
+#
+# @brief detects running system type
+#
+get_system() {
+    uname | lcase
+}
+
+
+#
+# @brief configure external commands
+#
+configure_cmds() {
+    _debug $LINENO "konfiguruje stat i md5"
+
+    # verify stat & md5 tool
+    if [ "${g_system[0]}" = "darwin" ]; then
+        g_cmd_md5="md5" 
+        g_cmd_stat="stat -f%z"
+    else
+        g_cmd_md5="md5sum" 
+        g_cmd_stat="stat -c%s"
     fi
 
-    g_Lang="$lang"
+    g_tools+=( "$g_cmd_md5=1" )
+
+    _debug $LINENO "sprawdzam czy wget wspiera opcje -S"
+    local cmd_test=$(wget --help 2>&1 | grep "\-S")
+
+    [ -n "$cmd_test" ] && 
+        g_cmd_wget='wget -q -S -O' &&
+        _info $LINENO "wget wspiera opcje -S"
+
+    return $RET_OK
 }
 
 
 #
-# @brief: check if the given file is a video file
-# @param: video filename
-# @return: bool 1 - is video file, 0 - is not a video file
+# @brief verify system settings and gather info about commands
 #
-check_extention() {
-    local is_video=0  
-    local filename=$(basename "$1")
-    local extention=$(echo "${filename##*.}" | tr '[A-Z]' '[a-z]')
-    local ext
+verify_system() {
+    _debug $LINENO "weryfikuje system"
+    g_system[0]="$(get_system)"
+    g_system[1]=$(( $(get_cores) * 2 ))
+}
 
-    for ext in "${g_VideoUris[@]}"; do
-        if [[ "$ext" = "$extention" ]]; then
-            is_video=1
-            break
-        fi
+
+#
+# @brief perform tools presence verification
+#
+verify_tools() {
+
+    declare -a ret=()
+    local rv=$RET_OK
+
+    local tool=''
+    local p=0
+    local m=0
+    local t=''
+
+    for t in "$@"; do
+        p=1
+        tool="$(get_key $t)"
+        m="$(get_value $t)"
+
+        [ -z "$(verify_tool_presence $tool)" ] && p=0
+        ret+=( "$tool=$p" )
+        
+        # break if mandatory tool is missing
+        [[ $m -eq 1 ]] && [[ $p -eq 0 ]] && rv=$RET_FAIL && break
     done
-    
-    echo $is_video
+
+    echo ${ret[*]}
+    return $rv
 }
 
 
+#
+# @brief get extension for given subtitle format
+#
+get_sub_ext() {
+    declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
+    lookup_value "$1" ${fmte[@]}
+    [ $? -ne $RET_OK ] && echo $g_default_ext
+    return $RET_OK
+}
+
+##################################### fps ######################################
+
+#
+# @brief returns the number of available fps detection tools in the system
+#
+count_fps_detectors() {
+    local c=0
+    local t=""
+
+    for t in ${g_tools_fps[@]}; do      
+        [[ "$(lookup_value $t ${g_tools[@]})" = "1" ]] && c=$(( $c + 1 ))
+    done
+
+    echo $c
+    return $RET_OK
+}
+
+
+#
+# @brief detect fps of the video file
+# @param tool
+# @param filename
+#
+get_fps() {
+    local fps=0
+ 
+    # don't bother if there's no tool available or not specified
+    if [[ -z "$1" ]] || [[ "$1" = "default" ]]; then
+        echo $fps
+        return $RET_PARAM
+    fi
+    
+    local tool=$(lookup_value "$1" ${g_tools[@]})
+
+    # prevent empty output
+    tool=$(( $tool + 0 ))
+
+    if [[ $tool -ne 0 ]]; then
+        case "$1" in
+            'mplayer' | 'mplayer2' )
+            fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
+            ;;
+
+            'mediainfo' )
+            fps=$($1 "$2" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]')
+            ;;
+
+            'ffmpeg' )
+            fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
+            ;;
+
+            *)
+            ;;
+        esac
+    fi
+
+    echo $fps
+    return $RET_OK
+}
+
+
+#################################### ARGV ######################################
+
+#
+# @brief parse the cli arguments
+#
+parse_argv() {
+    # command line arguments parsing
+    while [ $# -gt 0 ]; do
+        unset varname
+        # when adding a new option, please remember to maintain the same order as generated by usage()
+        case "$1" in
+            # abbrev
+            "-a" | "--abbrev") varname="g_abbrev[0]"
+            msg="nie określono wstawki"
+            ;;
+
+            "-b" | "--bigger-than") varname="g_min_size"
+            msg="nie okreslono minimalnego rozmiaru"
+            ;;
+
+            # cover download
+            "-c" | "--cover" ) g_cover=1 ;;
+            # orig prefix 
+            "-d" | "--delete-orig") g_delete_orig=1 ;;
+            # skip flag
+            "-s" | "--skip") g_skip=1 ;;
+
+            # stats flag
+            "--stats") g_stats_print=1 ;;
+
+            # move instead of copy
+            "-M" | "--move") g_cmd_cp='mv' ;;
+
+            # charset conversion
+            "-C" | "--charset") varname="g_charset"
+            msg="nie podano docelowego kodowania"
+            ;;
+
+            # extension
+            "-e" | "--ext") varname="g_default_ext"
+            msg="nie okreslono domyslnego rozszerzenia dla pobranych plikow"
+            ;;
+
+            # identification
+            "-I" | "--id") varname="g_system[2]"
+            msg="okresl typ narzedzia jako pynapi albo other"
+            ;;
+
+            # logfile
+            "-l" | "--log") varname="g_logfile"
+            msg="nie podano nazwy pliku loga"
+            ;;
+
+            # languages
+            "-L" | "--language") varname="g_lang"
+            msg="wybierz jeden z dostepnych 2/3 literowych kodow jezykowych (-L list - zeby wyswietlic)"
+            ;;
+
+            # password
+            "-p" | "--pass") varname="g_cred[1]"
+            msg="nie podano hasla"
+            ;;
+
+            # external script
+            "-S" | "--script") varname="g_hook"
+            msg="nie okreslono sciezki do skryptu"
+            ;;
+
+            # user login
+            "-u" | "--user") varname="g_cred[0]"
+            msg="nie podano nazwy uzytkownika"
+            ;;
+
+            # verbosity
+            "-v" | "--verbosity") varname="g_verbosity"
+            msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy)"
+            ;;
+            
+            # destination format definition
+            "-f" | "--format") varname="g_sub_format"
+            msg="nie określono formatu docelowego"
+            ;;
+
+            "-P" | "--pref-fps") varname="g_fps_tool"
+            msg="nie określono narzedzia do detekcji fps"
+            ;;
+
+            # orig prefix 
+            "-o" | "--orig-prefix") varname="g_orig_prefix"
+            msg="nie określono domyslnego prefixu"
+            ;;
+
+            # abbrev
+            "--conv-abbrev") varname="g_abbrev[1]"
+            msg="nie określono wstawki dla konwersji"
+            ;;
+
+            "-F" | "--forks") varname="g_system[1]"
+            msg="nie określono ilosci watkow"
+            ;;
+
+            # parameter is not a known argument, probably a filename
+            *) g_paths+=( "$1" ) ;;
+        esac
+
+        # set the global var for simple switches
+        # not requiring any further verification
+        if [[ -n "$varname" ]]; then
+            shift
+            [ -z "$1" ] && _error $msg && return $RET_FAIL
+            eval "${varname}=\$1"
+        fi
+        shift
+    done
+    return $RET_OK
+}
+
+
+#
+# @brief validate username and password
+#
+verify_credentials() {
+
+    local user="${1:-}"
+    local passwd="${2:-}"
+    local rv=$RET_OK
+    
+    if [ -z "$user" ] && [ -n "$passwd" ]; then
+        _warning "podano haslo, brak loginu. tryb anonimowy."
+        rv=$RET_PARAM
+    fi
+
+    if [ -n "$user" ] && [ -z "$passwd" ]; then
+        _warning "podano login, brak hasla. tryb anonimowy."
+        rv=$RET_PARAM
+    fi
+
+    return $rv
+}
+
+
+#
+# @brief checks if the given encoding is supported
+#
+verify_encoding() {
+    [ "$1" = 'default' ] && return $RET_OK
+    echo test | iconv -t $1 > /dev/null 2>&1
+    return $?
+}
+
+
+#
+# @brief checks id
+#
+verify_id() {
+    local rv=$RET_OK
+
+    case ${g_system[2]} in
+        'pynapi' | 'other' ) ;;
+        *) 
+        rv=$RET_PARAM
+        g_system[2]='pynapi'
+        ;;
+    esac
+
+    if [[ "${g_system[2]}" = 'other' ]]; then
+        local p=$(lookup_value '7z' ${g_tools[@]})
+        if [ $(( $p + 0 )) -eq 0 ]; then
+            _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
+            rv=$RET_FAIL
+        fi
+    fi
+    return $rv
+}
+
+
+#
+# @brief format verification
+#
+verify_format() {
+    # format verification if conversion requested
+    if [ "$g_sub_format" != 'default' ]; then
+        local sp=$(lookup_value 'subotage.sh' ${g_tools[@]})
+
+        # make sure it's a number
+        sp=$(( $sp + 0 ))
+
+        if [ $sp -eq 0 ]; then
+            _error "subotage.sh nie jest dostepny. konwersja nie jest mozliwa"
+            return $RET_PARAM
+        fi
+
+        declare -a formats=( $(subotage.sh -gf) )
+
+        if ! lookup_key $g_sub_format ${formats[@]} > /dev/null; then
+            _error "podany format docelowy jest niepoprawny [$g_sub_format]"
+            return $RET_PARAM
+        fi
+    fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief verify fps tool
+#
+verify_fps_tool() {
+    local t=''
+    local sp=0
+
+    # verify selected fps tool
+    if [ "$g_fps_tool" != 'default' ]; then
+        if ! lookup_key "$g_fps_tool" ${g_tools_fps[@]} > /dev/null; then
+            _error "podane narzedzie jest niewspierane [$g_fps_tool]"
+            return $RET_PARAM
+        fi
+        
+        sp=$(lookup_value "$g_fps_tool" ${g_tools[@]})
+
+        # make sure it's a number
+        sp=$(( $sp + 0 ))
+
+        if [ $sp -eq 0 ]; then
+            _error "$g_fps_tool nie jest dostepny"
+            return $RET_PARAM
+        fi
+    else
+        # choose first available as the default tool
+        if [ $(count_fps_detectors) -gt 0 ]; then 
+            for t in ${g_tools_fps[@]}; do
+                [ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && 
+                    g_fps_tool=$t && 
+                    break
+            done
+        fi
+    fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief verify correctness of the argv settings provided
+#
+verify_argv() {
+    local status=0
+
+    # verify credentials correctness
+    _debug $LINENO 'sprawdzam dane uwierzytelniania'
+    if ! verify_credentials "${g_cred[0]}" "${g_cred[1]}"; then
+        g_cred[0]='' && g_cred[1]=''
+    fi
+
+    # make sure we have a number here
+    _debug $LINENO 'normalizacja parametrow numerycznych'
+    g_min_size=$(( $g_min_size + 0 ))
+    g_verbosity=$(( $g_verbosity + 0 ))
+    g_system[1]=$(( ${g_system[1]} + 0 ))
+
+    # verify encoding request
+    _debug $LINENO 'sprawdzam wybrane kodowanie'
+    if ! verify_encoding "$g_charset"; then
+        _warning "charset [$g_charset] niewspierany, ignoruje zadanie"
+        g_charset='default'
+    fi
+
+    # verify the id setting
+    _debug $LINENO 'sprawdzam id'
+    verify_id
+    status=$?
+
+    if [ $status = $RET_PARAM ]; then
+        _warning "nieznany id [${g_system[2]}], przywracam domyslny"
+
+    elif [ $status = $RET_FAIL ]; then
+        _error "brak wymaganych narzedzi"
+        return $RET_PARAM
+    fi
+    
+    # logfile verification  
+    _debug $LINENO 'sprawdzam logfile'
+    [ -e "$g_logfile" ] && 
+        _warning "plik loga istnieje - bedzie nadpisany"
+    
+    # language verification
+    _debug $LINENO 'sprawdzam wybrany jezyk'
+    local idx=0
+    idx=$(verify_language "$g_lang")
+
+    if [ $? -ne $RET_OK ]; then
+        if [ "$g_lang" = "list" ]; then 
+            list_languages
+            return $RET_BREAK
+        else
+            _warning "nieznany jezyk [$g_lang]. przywracam PL"
+            g_lang='PL'
+        fi
+    else
+        _debug $LINENO "jezyk znaleziony, index = $idx"
+        g_lang=$(normalize_language $idx)
+    fi
+    unset idx
+
+    # format verification
+    _debug $LINENO 'sprawdzam format'
+    ! verify_format && return $RET_PARAM
+
+    # fps tool verification
+    _debug $LINENO 'sprawdzam wybrane narzedzie fps'
+    ! verify_fps_tool && return $RET_PARAM
+
+    # verify external script
+    _debug $LINENO 'sprawdzam zewnetrzny skrypt'
+    if [ "$g_hook" != 'none' ]; then
+       [ ! -x "$g_hook" ] &&
+           _error "podany skrypt jest niedostepny (lub nie ma uprawnien do wykonywania)" &&
+           return $RET_PARAM
+    fi
+
+    return $RET_OK
+}
+
+################################# napiprojekt ##################################
 
 #
 # @brief: mysterious f() function
 # @param: md5sum
 #
 f() {
-    declare -a local t_idx=( 0xe 0x3 0x6 0x8 0x2 )
-    declare -a local t_mul=( 2 2 5 4 3 )
-    declare -a local t_add=( 0 0xd 0x10 0xb 0x5 )
+    declare -a t_idx=( 0xe 0x3 0x6 0x8 0x2 )
+    declare -a t_mul=( 2 2 5 4 3 )
+    declare -a t_add=( 0 0xd 0x10 0xb 0x5 )
     local sum="$1"
     local b=""    
     local i=0
 
-    # for i in {0..4}; do
-    for i in $(seq 0 4); do
+    for i in {0..4}; do
+    # for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
         local g=${t_idx[$i]}        
@@ -294,49 +982,146 @@ f() {
         
         local x=$(( (v*m) % 0x10 ))
         local z=$(printf "%X" $x)
-        b="$b$(echo $z | tr '[A-Z]' '[a-z]')"
+        b="$b$(echo $z | lcase)"
     done
+
     echo "$b"
+    return $RET_OK
 }
 
 
 #
-# @brief: retrieve subtitles
-# @param: md5sum
-# @param: hash
-# @param: outputfile
+# @brief extracts http status from the http headers
 #
-get_subtitles() {   
-    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$g_Lang&f=$1&t=$2&v=$g_Version&kolejka=false&nick=$g_User&pass=$g_Pass&napios=posix"
+get_http_status() {
+    grep -o "HTTP/[\.0-9]* [0-9]*"
+}
 
-    if [[ $g_Version = "other" ]]; then
-        wget -q -O napisy.7z "$url"
-        
-        if [[ -z "$(builtin type -P 7z)" ]]; then
-            f_print_error "7zip jest niedostepny\nzmodyfikuj zmienna g_Version tak by napi.sh identyfikowal sie jako \"pynapi\"" 
-            exit
-        fi
-                
-        7z x -y -so -p"$g_NapiPass" napisy.7z 2> /dev/null > "$3"
-        rm -rf napisy.7z
-    
-        if [[ -s "$3" ]]; then
-            echo "1"
-        else
-            echo "0"
-            rm -rf "$3"     
+
+#
+# @brief wrapper for wget
+# @param url
+# @param output file
+#
+# returns the http code(s)
+#
+download_url() {
+    local url="$1"
+    local output="$2"
+    local headers=""
+    local rv=0
+    local code='unknown'
+
+    headers=$($g_cmd_wget "$output" "$url" 2>&1)
+
+    if [ $? -eq $RET_OK ]; then
+        # check the headers
+        if [ -n "$headers" ]; then
+            rv=$RET_FAIL
+            code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
+            [ -n "$(echo $code | grep 200)" ] && rv=$RET_OK
         fi
     else
-        wget -q -O "$3" "$url"
-        local size=$(stat $g_StatParams "$3")
+        rv=$RET_FAIL
+    fi
     
-        if [[ $size -le 4 ]]; then
-            echo "0"
-            rm -rf "$3"
-        else
-            echo "1"            
+    echo $code
+    return $rv
+}
+
+
+#
+# @brief downloads subtitles
+# @param md5 sum of the video file
+# @param hash of the video file
+# @param output filename
+# @param requested subtitles language
+#
+download_subs() {
+    local md5sum=${1:-0}
+    local h=${2:-0}
+    local of="$3"
+    local lang="${4:-'PL'}"
+    local id="${5:-'pynapi'}"
+    local user="${6:-''}"
+    local passwd="${7:-''}"
+    local status=$RET_FAIL
+
+    local rv=$RET_OK
+    local http_codes=''
+
+    # downloaded filename
+    local dof="$of"
+    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$lang&f=$md5sum&t=$h&v=$id&kolejka=false&nick=$user&pass=$passwd&napios=posix"
+    local napi_pass="iBlm8NTigvru0Jr0"
+
+    # should be enough to avoid clashing
+    [ "$id" = "other" ] && dof=$(mktemp -t napisy.7z.XXXXXXXX)
+
+    http_codes=$(download_url "$url" "$dof")
+    status=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+
+    if [ $status -ne $RET_OK ]; then
+        _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
+
+        # cleanup
+        [ "$id" = "other" ] && [ -e "$dof" ] && unlink "$dof"
+
+        # ... and exit
+        return $RET_FAIL
+    fi
+
+    # it seems that we've got the file perform some verifications on it
+    case $id in
+        "pynapi" )
+        # no need to do anything
+        ;;
+
+        "other")
+        7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
+        [ -e "$dof" ] && unlink "$dof"
+
+        if ! [ -s "$of" ]; then
+            _info $LINENO "plik docelowy ma zerowy rozmiar"
+            rv=$RET_FAIL
+            [ -e "$of" ] && unlink "$of"
         fi
-    fi      
+        ;;
+
+        *)
+        _error "not supported"
+        ;;
+    esac
+
+    # verify the contents
+    if [ $rv -eq $RET_OK ]; then
+
+        # check if the file was downloaded successfully by checking
+        # if it exists at all 
+        if [ ! -e "$of" ]; then
+            _error "sciagniety plik nie istnieje, nieznany blad"
+            return $RET_FAIL
+        fi
+
+        # count lines in the file
+        local lines=$(wc -l "$of" | cut -d ' ' -f 1)
+        
+        # adjust that if needed
+        local min_lines=3
+
+        if [ $lines -lt $min_lines ]; then
+            _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
+
+            local fdata=$(cat "$of")
+            _debug $LINENO "$fdata"
+
+            rv=$RET_FAIL
+            unlink "$of"
+        fi
+    fi
+
+    return $rv
 }
 
 
@@ -345,21 +1130,171 @@ get_subtitles() {
 # @param: md5sum
 # @param: outputfile
 #
-get_cover() {
+download_cover() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
-    wget -q -O "$2" "$url"
+    local rv=$RET_FAIL
+	local http_codes=""
 
-	local size=$(stat $g_StatParams "$2")
-	[[ $size -eq 0 ]] && rm -rf "$2"
+	http_codes=$(download_url "$url" "$2")
+    rv=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+
+    if [ $rv -eq $RET_OK ]; then
+
+        # if file doesn't exist or has zero size
+        if ! [ -s "$2" ]; then
+            rv=$RET_UNAV 
+            [ -e "$2" ] && unlink "$2"
+        fi
+    fi
+
+    return $rv
+}
+
+
+#
+# @brief downloads subtitles for a given media file
+# @param media filename
+# @param subtitles filename
+# @param requested subtitles language
+#
+get_subtitles() {
+    local fn="$1"
+    local of="$2"
+    local lang="$3"
+
+    # md5sum and hash calculation
+    local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
+    local hash=$(f $sum)
+
+    _info $LINENO "pobieram napisy dla pliku [$fn]"
+    download_subs $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+    return $?
+}
+
+
+#
+# @param media file path
+#
+get_cover() {
+    local sum=$(dd if="$1" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
+    local path=$(dirname "$1")
+	local media_file=$(basename "$1")
+    local cover_fn=$(strip_ext "$media_file")
+    
+    # TODO correct this - extension hardcoded
+    cover_fn="${cover_fn}.jpg"
+    
+    download_cover $sum "$path/$cover_fn"
+    return $?
+}
+
+
+#
+# @brief detects the charset of the subtitles file
+# @param full path to the subtitles file
+#
+get_charset() {
+    local file="$1"
+    local ft_presence=$(lookup_value 'file' ${g_tools[@]})
+    local charset='WINDOWS-1250'
+    local et=''
+
+    # sanitizing the value
+    ft_presence=$(( $ft_presence + 0 ))
+
+    if [ $ft_presence -eq 1 ]; then
+
+        et=$(file \
+            --brief \
+            --mime-encoding \
+            --exclude apptype \
+            --exclude tokens \
+            --exclude cdf \
+            --exclude compress \
+            --exclude elf \
+            --exclude soft \
+            --exclude tar \
+            "$file" | lcase)
+
+        if [ "$?" = "0" ] && [ -n "$et" ]; then
+            case "${et,,}" in
+                *utf*) charset="UTF8";;
+                *iso*) charset="ISO-8859-2";;
+				us-ascii) charset="US-ASCII";;
+				csascii) charset="CSASCII";;
+                *ascii*) charset="ASCII";;
+                *) charset="WINDOWS-1250";;
+            esac
+        fi
+    fi
+
+    echo "$charset"
+    return $RET_OK
+}
+
+
+#
+# @brief convert charset of the file
+# @param input file
+# @param output charset
+# @param input charset or null
+#
+convert_charset() {
+    local file="$1"
+    local d="${2:-'utf8'}"
+    local s="${3}"
+    local rv=$RET_FAIL
+
+    # detect charset
+    [ -z "$s" ] && s=$(get_charset "$file")
+	
+    local tmp=$(mktemp -t napi.XXXXXXXX)
+    iconv -f "$s" -t "$d" "$file" > "$tmp"
+
+    if [ $? -eq $RET_OK ]; then
+		_debug $LINENO "moving after charset conv. $tmp -> $file"
+        mv "$tmp" "$file"
+        rv=$RET_OK
+    fi
+
+    [ -e "$tmp" ] && unlink "$tmp"
+    return $rv
+}
+
+################################# file handling ################################
+
+#
+# @brief: check if the given file is a video file
+# @param: video filename
+# @return: bool 1 - is video file, 0 - is not a video file
+#
+verify_extension() {
+    local filename=$(basename "$1")
+    local extension=$(get_ext "$filename" | lcase)
+    local is_video=0  
+
+    declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 
+        'mpeg' 'wmv' '3gp' 'asf' 'divx' 
+        'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
+
+    lookup_key "$extension" ${formats[@]} > /dev/null && is_video=1
+
+    echo $is_video
+    return $RET_OK
 }
 
 
 #
 # @brief prepare a list of file which require processing
+# @param minimum filesize
 # @param space delimited file list string
 #
 prepare_file_list() {
     local file=""
+    local min_size=${1:-0}
+
+    shift
     for file in "$@"; do
 
         # check if file exists, if not skip it
@@ -367,495 +1302,702 @@ prepare_file_list() {
             continue
 
         elif [[ ! -s "$file" ]]; then
-            echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik jest pusty !!!"
+            _warning "podany plik jest pusty [$file]"
             continue
 
         # check if is a directory
         # if so, then recursively search the dir
         elif [[ -d "$file" ]]; then
             local tmp="$file"
-            prepare_file_list "$tmp"/*
+            prepare_file_list $min_size "$tmp"/*
 
         else
             # check if the respective file is a video file (by extention)       
-            if [[ $(check_extention "$file") -eq 1 ]] &&
-               [[ $(stat $g_StatParams "$file") -ge $(( $g_MinimumSize*1024*1024 )) ]]; then
-                g_FileList=( "${g_FileList[@]}" "$file" )
+            if [[ $(verify_extension "$file") -eq 1 ]] &&
+               [[ $($g_cmd_stat "$file") -ge $(( $min_size*1024*1024 )) ]]; then
+                g_files+=( "$file" )
             fi
-
         fi
     done
-}
 
-#
-# @brief try to download subs for all the files present in the list
-#
-download_subs() {   
-    local file=""
-
-    if [[ ${#g_FileList[*]} -gt 0 ]]; then
-        echo "Pobieram napisy..."
-    fi
-        
-    for file in "${g_FileList[@]}"; do
-        
-        # input/output filename manipulation
-		
-        # movie filename without path
-        local base=$(basename "$file")
-		   
-        # movie path without filename
-        local output_path=$(dirname "$file")
-		
-        # movie filename without extension
-        local output_file_noext="${base%.*}"
-
-        # jezeli ustawiona wstawka, to dodaje
-        if [[ "$g_Abbrev" != "" ]]; then
-            echo "Dodaje '$g_Abbrev' do rozszerzenia"
-            output_file_noext="${output_file_noext}.${g_Abbrev}"
-        fi
-
-		# output filename for the subtitles file
-        local output_file="$output_file_noext.$g_DefaultExt"
-		
-        # output path for the subtitles file
-        local output="$output_path/$output_file"
-		
-        # if a conversion has been requested this is the original subtitles path
-        local conv_output="$output_path/${g_OrigPrefix}$output_file"
-
-		# path after conversion
-		local final_output="$output"
-		
-        # output image filename
-        local output_img="$output_path/${base%.*}.jpg"
-		
-        # this flag is set to 1 if the subtitles already exist
-        local fExists=0
-        
-        # determine the output extention and the output filename
-        # if ext == $g_DefaultExt then copy the original with a ORIG_ prefix
-        case "$g_Format" in
-        "subrip")
-            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}srt"
-            ;;
-                
-        "subviewer")
-            final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}sub"
-            ;;
-		*)
-        	final_output="$output_path/${output_file_noext}.${g_ConvAbbrev:+$g_ConvAbbrev.}$g_DefaultExt"
-            ;;
-		esac
-		
-        # set the exists flag if the original or to be converted already exists
-        if [[ -e "$final_output" ]]; then
-            fExists=1
-        fi
-
-        # skip if requested and already exists
-        if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then    
-            echo -e "[SKIP]\t[$final_output]:\tPlik z napisami juz istnieje !!!"
-            g_Skipped=$(( $g_Skipped + 1 ))
-            continue    
-        else
-            # md5sum and hash calculation
-            local sum=$(dd if="$file" bs=1024k count=10 2> /dev/null | $g_Md5 | cut -d ' ' -f 1)
-            local hash=$(f $sum)        
-            local napiStatus=$(get_subtitles $sum $hash "$output")
-            
-            if [[ $napiStatus = "1" ]]; then
-                echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
-                g_Downloaded=$(( $g_Downloaded + 1 ))
-                    
-                # conversion to different format requested
-                if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
-					# path for the converted subtitles file
-                    local outputSubs=""
-                    local subotage_c2=""
-
-                    echo " -- Konwertuje napisy do formatu: [$g_Format]"
-                
-                    # if delete orig flag has been requested don't rename the original file
-                    if [[ $g_OrigDelete -eq 0 ]]; then
-                        # copy not converted file (the original one to ORIG_)
-                        cp "$output" "$conv_output"
-                    fi
-
-					if [[ "$output" == "$final_output" ]]; then
-                        outputSubs="$output"
-                        output="$conv_output"
-					else
-						outputSubs="$final_output"
-					fi
-                                                                    
-                    f_detect_fps "$file"
-                    if [[ "$g_Fps" != "0" ]]; then
-                        echo " -- FPS okreslony na podstawie pliku wideo: [$g_Fps]"
-                        subotage_c2="-fi $g_Fps"
-                    else
-                        echo " -- Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
-                        subotage_c2=""
-                    fi
-                            
-                    echo " -- Wolam subotage.sh"
-                    subotage.sh -i "$output" -of $g_Format -o "$outputSubs" $subotage_c2
-                    local subotage_code=$?
-
-                    # remove the old format if conversion was successful
-					if [[ $subotage_code -eq 0 ]]; then
-                    	[[ "$output" != "$outputSubs" ]] && rm -f "$output"
-                        output="$outputSubs"
-						g_Converted=$(( $g_Converted + 1 ))
-					fi
-
-                fi # [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]
-
-                # charset conversion
-                if [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]; then
-                    echo " -- Konwertuje kodowanie"
-                    local tmp=`mktemp -t napi.XXXXXXXXXX`
-                    iconv -f WINDOWS-1250 -t $g_Charset "$output" > $tmp
-                    mv $tmp "$output"
-                fi # [[ $g_IconvPresence -eq 1 ]] && [[ $g_Charset != "" ]]
-
-                # execute external script 
-				if [[ $g_Script != "" ]]; then
-					echo " -- Wolam: $g_Script \"$output\""
-					$g_Script "$output"
-				fi
-
-            else # [[ $napiStatus = "1" ]]
-                    echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
-                    g_Unavailable=$(( $g_Unavailable + 1 ))
-                    continue
-            fi # [[ $napiStatus = "1" ]]
-                
-            # download cover if requested
-            if [[ $g_Cover = "1" ]]; then
-                get_cover "$sum" "$output_img"
-            fi
-
-        fi # [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]
-    done    
+    return $RET_OK
 }
 
 
 #
-# @brief check if subotage.sh is installed and available
+# @brief prepare all the possible filenames for the output file (in order to check if it already exists)
 #
-f_check_for_subotage() {
-    if [[ -n $(builtin type -P subotage.sh) ]]; then
-        g_SubotagePresence=1
-    fi
+# this function prepares global variables g_pf containing all the possible output filenames
+# index description
+#
+# @param video filename (without path)
+#
+prepare_filenames() {
+    
+    # media filename (with path)
+    local fn="${1:-''}"
+
+    # media filename without extension
+    local noext=$(strip_ext "$fn")
+
+    # converted extension
+    local cext=$(get_sub_ext $g_sub_format)
+
+    local ab=${g_abbrev[0]}
+    local cab=${g_abbrev[1]}
+
+    # empty the array
+    g_pf=()
+
+    # array contents description
+    #
+    # original_file (o) - as download from napiprojekt.pl (with extension changed only)
+    # abbreviation (a)
+    # conversion abbreviation (A)
+    # prefix (p) - g_orig_prefix for the original file
+    # converted_file (c) - filename with converted subtitles format (may have differect extension)
+    #
+    # 0 - o - filename + g_default_ext
+    # 1 - o + a - filename + abbreviation + g_default_ext
+    # 2 - p + o - g_orig_prefix + filename + g_default_ext
+    # 3 - p + o + a - g_orig_prefix + filename + abbreviation + g_default_ext
+    # 4 - c - filename + get_sub_ext
+    # 5 - c + a - filename + abbreviation + get_sub_ext
+    # 6 - c + A - filename + conversion_abbreviation + get_sub_ext
+    # 7 - c + a + A - filename + abbreviation + conversion_abbreviation + get_sub_ext
+
+    # original
+    g_pf+=( "${noext}.$g_default_ext" )
+    g_pf+=( "${noext}.${ab:+$ab.}$g_default_ext" )
+    g_pf+=( "${g_orig_prefix}${g_pf[0]}" )
+    g_pf+=( "${g_orig_prefix}${g_pf[1]}" )
+
+    # converted
+    g_pf+=( "${noext}.$cext" )
+    g_pf+=( "${noext}.${ab:+$ab.}$cext" )
+    g_pf+=( "${noext}.${cab:+$cab.}$cext" )
+    g_pf+=( "${noext}.${ab:+$ab.}${cab:+$cab.}$cext" )
+
+    return $RET_OK
 }
 
 
 #
-# @brief check if ifconv is installed and available
+# @brief convert format
+# @param full path to the media file
+# @param original (as downloaded) subtitles filename
+# @param filename to which unconverted subtitles should be renamed
+# @param filename for converted subtitles
 #
-f_check_for_iconv() {
-    if [[ -n $(builtin type -P iconv) ]]; then
-        g_IconvPresence=1
-    fi
-}
+convert_format() {
 
+    local media_path="$1"
+    local input="$2"
+    local orig="$3"
+    local conv="$4"
 
-#
-# @brief check for FPS detection tools
-#
-f_check_for_fps_detectors() {
-    if [[ -n $(builtin type -P mediainfo) ]]; then
-        g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
-    elif [[ -n $(builtin type -P mplayer2) ]]; then    
-        g_FpsTool="mplayer2 -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
-    elif [[ -n $(builtin type -P mplayer) ]]; then    
-        g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
-    elif [[ -n $(builtin type -P ffmpeg) ]]; then
-        g_FpsTool="ffmpeg -i \"{}\" 2>&1 | grep \"Video:\" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1"
-    fi
-}
+    local path=$(dirname "$media_path")
 
-# @brief error wrapper
-f_print_error() {
-   if [[ "$g_LogFile" != "none" ]]; then   
-      echo -e "$@"
-   else
-      echo -e "$@" > /dev/stderr
-   fi
-}
+    local fps=0
+    local fps_opt=''
+    local rv=$RET_OK
+    local sb_data=''
 
-# @brief detect fps from video file
-f_detect_fps() {
-   if [[ -n $g_FpsTool ]]; then
-        echo "Okreslam FPS na podstawie pliku video"
-        local cmd=${g_FpsTool/\{\}/"$1"}                
-        local tmpFps=$(eval $cmd)
-        
-        if [[ $(echo $tmpFps | sed -r 's/^[0-9]+[0-9.]*$/success/') = "success" ]]; then
-            g_Fps=$tmpFps
-        fi      
+    # for the backup
+    local tmp="$(mktemp -t napi.XXXXXXXX)"
+
+	# verify original file existence before proceeding further
+	! [ -e "$path/$input" ] &&
+		_error "oryginalny plik nie istnieje" &&
+		return $RET_FAIL
+
+    # create backup
+    _debug $LINENO "backupuje oryginalny plik jako $tmp"
+    cp "$path/$input" "$tmp"
+
+    # if delete orig flag has been requested don't rename the original file
+    if [ $g_delete_orig -eq 0 ]; then
+        _info $LINENO "kopiuje oryginalny plik jako [$orig]" &&
+        cp "$path/$input" "$path/$orig"
+	else
+		# get rid of it, if it already exists
+		[ -e "$path/$orig" ] && unlink "$path/$orig"
+	fi
+
+    # detect video file framerate
+    [ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
+
+    if [[ "$fps" != 0 ]]; then
+        _msg "wykryty fps: $fps"
+        fps_opt="-fi $fps"
     else
-        echo -e "Brak narzedzi do wykrywania FPS.\nFPS zostanie okreslony na podstawie pliku napisow, lub przyjmie sie wartosc domyslna."
+        _msg "fps nieznany, okr. na podstawie napisow albo wart. domyslna"
     fi
+
+    _msg "wolam subotage.sh"
+    sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
+    status=$?
+
+    # subotage output only on demand
+    _debug $LINENO "$sb_data"
+
+    # remove the old format if conversion was successful
+    if [[ $status -eq $RET_OK ]]; then
+        _msg "pomyslnie przekonwertowano do $g_sub_format"
+        [[ "$input" != "$conv" ]] &&
+            _msg "usuwam oryginalny plik" &&
+            unlink "$path/$input"
+    else
+        _msg "konwersja do $g_sub_format niepomyslna"
+
+        # restore the backup (the original file may be corrupted due to failed conversion)
+        cp "$tmp" "$path/$input"
+        rv=$RET_FAIL
+    fi
+
+    # delete a backup
+    [ -e "$tmp" ] && unlink "$tmp"
+    return $rv
 }
 
-# scan if all needed tools are available
-f_check_mandatory_tools() {
-    local elem=""
 
-    for elem in "${g_MandatoryTools[@]}"; do
-        if [[ -z "$(builtin type -P $elem)" ]]; then
-            f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
-            exit
-        fi  
-    done    
+#
+# @brief check file presence
+#
+check_subs_presence() {
+    local media_file="$1"
+    local path="$2"
+
+    # bits
+    # 1 - unconverted available/unavailable
+    # 0 - converted available/unavailable
+    #
+    # default - converted unavailable, unconverted unavailable
+    local rv=0
+
+    _debug $LINENO "g_cmd_cp = $g_cmd_cp"
+
+    if [ $g_sub_format != 'default' ]; then
+
+        # unconverted unavailable, converted available
+        rv=$(( $rv | 1 ))
+
+        if [[ -e "$path/${g_pf[7]}" ]]; then
+            _status "SKIP" "$media_file"
+        
+        elif [[ -e "$path/${g_pf[6]}" ]]; then
+            _status "COPY" "${g_pf[6]} -> ${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[6]}" "$path/${g_pf[7]}"
+
+        elif [[ -e "$path/${g_pf[5]}" ]]; then
+            _status "COPY" "${g_pf[5]} -> ${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[5]}" "$path/${g_pf[7]}"
+
+        elif [[ -e "$path/${g_pf[4]}" ]]; then
+            _status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
+            $g_cmd_cp "$path/${g_pf[4]}" "$path/${g_pf[7]}"
+
+        else
+            _info $LINENO "skonwertowany plik niedostepny"
+            rv=$(( $rv & ~1 ))
+        fi
+
+        # we already have what we need - bail out
+        [ $(( $rv & 1 )) -eq 1 ] && return $rv
+    fi
+
+    # assume unconverted available & verify that
+    rv=$(( $rv | 2 ))
+
+    # when the conversion is not required
+    if [[ -e "$path/${g_pf[1]}" ]]; then
+        _status "SKIP" "$media_file"
+    
+    elif [[ -e "$path/${g_pf[0]}" ]]; then
+        _status "COPY" "${g_pf[0]} -> ${g_pf[1]}"
+        $g_cmd_cp "$path/${g_pf[0]}" "$path/${g_pf[1]}"
+
+    elif [[ -e "$path/${g_pf[3]}" ]]; then
+        _status "COPY" "${g_pf[3]} -> ${g_pf[1]}"
+        $g_cmd_cp "$path/${g_pf[3]}" "$path/${g_pf[1]}"
+
+    else
+        _info $LINENO "oryginalny plik niedostepny"
+        rv=$(( $rv & ~2 ))
+    fi
+
+    # exceptionally in this function return value caries the 
+    # information - not the execution status
+    return $rv
 }
 
-########################################################################
-########################################################################
-########################################################################
 
-# initialisation
-f_check_for_subotage
-f_check_for_iconv
-f_check_for_fps_detectors
+#
+# @brief try to obtain media file from napiprojekt or skip
+# @param media file full path
+#
+obtain_file() {
+    local media_path="$1"
+    local media_file=$(basename "$media_path")
+    local path=$(dirname "$media_file")
+    local rv=$RET_FAIL
+
+    # file availability
+    local av=0
+    local should_convert=0
+
+    # prepare all the possible filename combinations
+    prepare_filenames "$media_file"
+    _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
+
+    if [ $g_skip -eq 1 ]; then
+        _debug $LINENO "sprawdzam dostepnosc pliku"
+        check_subs_presence "$media_file" "$path"
+        av=$?
+    fi
+
+    _info $LINENO "dostepnosc pliku $av"
+    _debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
+    _debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
+
+    # if conversion is requested
+    if [ "$g_sub_format" != 'default' ]; then
+
+        case $av in
+            0) # download & convert
+                if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
+                    _debug $LINENO "napisy pobrano, nastapi konwersja"
+                    should_convert=1
+                    g_stats[0]=$(( ${g_stats[0]} + 1 ))
+                else
+                    # unable to get the file
+                    _debug $LINENO "napisy niedostepne"
+                    rv=$RET_UNAV
+                fi
+            ;;
+
+            1) # unconverted unavailable, converted available
+                _debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
+
+                # increment skipped counter
+                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                rv=$RET_OK
+            ;;
+
+            2|3) # convert 
+                _debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
+
+                # increment skipped counter
+                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                should_convert=1
+            ;;
+        esac
+
+        # original file available - convert it
+        if [ $should_convert -eq 1 ]; then
+            _msg "konwertowanie do formatu $g_sub_format"
+            convert_format "$media_path" "${g_pf[1]}" "${g_pf[3]}" "${g_pf[7]}"
+            rv=$?
+
+            # increment converted counter
+            g_stats[3]=$(( ${g_stats[3]} + 1 ))
+        fi
+
+    else
+        _info $LINENO "konwersja nie wymagana"
+
+        # file is not available - download
+        if [ ${av[0]} -eq 0 ]; then
+            get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
+            rv=$?
+            [ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
+        else
+
+            # increment skipped counter
+            g_stats[2]=$(( ${g_stats[2]} + 1 ))
+            rv=$RET_OK
+        fi
+    fi
+    
+    # return the subtitles index
+    return $rv
+}
 
 
-if [[ $g_SubotagePresence -eq 1 ]]; then
-    g_Formats=( $(subotage.sh -gf) )
-fi
+#
+# @brief process a single media file
+#
+process_file() {
+    local media_path="$1"
+    local media_file=$(basename "$media_path")
+    local path=$(dirname "$media_file")
 
-# if no arguments are given, then print help and exit
-if [[ $# -lt 1 ]] || [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
-    f_check_mandatory_tools
-    display_help
-    exit
-fi
+    local rv=$RET_OK
+    local status=0
+    local si=1
 
+    obtain_file "$media_path"
+    status=$?
 
-# command line arguments parsing
-while [ $# -gt 0 ]; do
+    if [ $status -eq $RET_OK ]; then
+        _status "OK" "$media_file"
 
-    case "$1" in
-        # cover download
-        "-c" | "--cover")
-        g_Cover=1
-        ;;
+        [ "$g_sub_format" != 'default' ] &&
+            _debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
+            si=7
 
         # charset conversion
-        "-C" | "--charset")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano docelowego kodowania"
-            exit
-        fi
-        g_Charset="$1"
-        ;;
+        [ "$g_charset" != 'default' ] && 
+            _msg "konwertowanie kodowania do $g_charset" &&
+            convert_charset "$path/${g_pf[$si]}" $g_charset
 
-        # skip flag
-        "-s" | "--skip")
-        g_Skip=1
-        ;;
-        
-        # user login
-        "-u" | "--user")        
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano nazwy uzytkownika"
-            exit
-        fi
-        g_User="$1"
-        ;;
-        
-        # password
-        "-p" | "--pass")
-        shift
-                
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano hasla dla uzytkownika [$g_User]"
-            exit
-        fi      
-        g_Pass="$1"     
-        ;;
+        # process hook
+        [ "$g_hook" != 'none' ] &&
+            _msg "wywoluje zewnetrzny skrypt" &&
+            $g_hook "$path/${g_pf[$si]}"
 
-        # extension
-        "-e" | "--ext")
-        shift
-        if [[ -z "$1" ]]; then
-            f_printf_error "Nie okreslono domyslnego rozszerzenia dla pobranych plikow"
-            exit
-        fi
-        g_DefaultExt="$1"
-        ;;
+        # download cover
+        # assumed here that cover is only available
+        # if subtitles are
+        if [ $g_cover -eq 1 ]; then
+            if get_cover "$media_path"; then
+                _status "OK" "cover for $media_path"
+                g_stats[4]=$(( ${g_stats[4]} + 1 ))
+            else
+                _status "UNAV" "cover for $media_file"
+                g_stats[5]=$(( ${g_stats[5]} + 1 ))
+            fi 
+        fi # if [[ $g_cover -eq 1 ]]
+    else
+        _status "UNAV" "$media_file"
+        g_stats[1]=$(( ${g_stats[1]} + 1 ))
+        rv=$RET_UNAV
+    fi # if [ $status = $RET_OK ]
 
-        "-b" | "--bigger-than")
-        shift
-        if [[ -z "$1" ]]; then
-            f_printf_error "Nie okreslono minimalnego rozmiaru"
-            exit
-        fi
-        g_MinimumSize="$1"
-        ;;
+    # increment total processed counter
+    g_stats[6]=$(( ${g_stats[6]} + 1 ))
+    return $rv
+}
 
 
-        # logfile
-        "-l" | "--log")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Nie podano nazwy pliku dziennika"
-            exit        
-        fi
-        g_LogFile="$1"           
-        ;;
+#
+# @brief this is a worker function it will run over the files array with a given step starting from given index
+# @param starting index
+# @param increment
+# 
+process_files() {
 
-        # languages
-        "-L" | "--language")
-        shift
-        if [[ -z "$1" ]]; then
-            f_print_error "Wybierz jeden z dostepnych 2/3 literowych kodow jezykowych"
-            list_languages
-            exit        
-        fi
+    local s=${1:-0}
+    local i=${2:-1}
 
-        tmp=$(check_language "$1")
-        if [[ -n "$tmp" ]]; then            
-            set_language "$tmp"
-        else
-            f_print_error "Nieznany kod jezyka [$1]"
-            list_languages
-            exit
-        fi
-        ;;
-        
-        # abbrev
-        "-a" | "--abbrev")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono wstawki"
-          exit
-        fi
-        
-        g_Abbrev="$1"
-        ;;
-		
-        # abbrev
-        "--conv-abbrev")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono wstawki dla konwersji"
-          exit
-        fi
-		
-        g_ConvAbbrev="$1"
-        ;;
-		
-        # script
-        "-S" | "--script")
-        shift
-        if [[ -z "$1" ]]; then
-          f_print_error "Nie określono sciezki do skryptu"
-          exit
-        fi
-        
-		g_Script="$1"
-        ;;
-		
-		
-        # orig prefix 
-        "-d" | "--delete-orig")
-        g_OrigDelete=1
-        ;;
+    # current
+    local c=$s
 
-        # orig prefix 
-        "-o" | "--orig-prefix")
-        shift
-        g_OrigPrefix="$1"
-        ;;
-        
-        # destination format definition
-        "-f" | "--format")
-        shift
-        g_Format="$1"
-        ;;
-    
-        # parameter is not a known argument, probably a filename
-        *)
-        g_Params=( "${g_Params[@]}" "$1" )
-        ;;
-        
-    esac        
-    shift
-done
+    while [ $c -lt ${#g_files[@]} ]; do
+        _info $LINENO "#$s - index poczatkowy $c"
+        process_file "${g_files[$c]}"
+        c=$(( $c + $i ))
+    done
 
-########################################################################
-########################################################################
-########################################################################
+	# dump statistics to fd #8 (if it has been opened before)
+    [ -e "/proc/self/fd/8" ] && echo "${g_stats[*]}" >&8
+    return $RET_OK
+}
 
-# parameters validation
-if [[ -n "$g_Pass" ]] && [[ -z "$g_User" ]]; then
-    f_print_error "Podano haslo, lecz nie podano loginu. Uzupelnij dane !!!"
-    exit
-fi
 
-if [[ -z "$g_Pass" ]] && [[ -n "$g_User" ]]; then
-    f_print_error "Podano login, lecz nie podano hasla, uzupelnij dane !!!"
-    exit
-fi
+#
+# @brief summarize statistics collected from forks
+# @param statistics file
+# 
+sum_stats() {
+    local file="$1"
+    local awk_script=''
+    local fc=${#g_stats[@]}
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
 
-if [[ $g_SubotagePresence -eq 1 ]]; then    
-    f_valid=0
-    for i in "${g_Formats[@]}"; do      
-        if [[ "$i" = "$g_Format" ]]; then
-            f_valid=1
-            break
-        fi      
+    awk_presence=$(( $awk_presence + 0 ))
+
+# embed small awk program to count the columns
+read -d "" awk_script << EOF
+BEGIN {
+    fmax=$fc
+    for (x=0; x<fmax; x++) cols[x] = 0
+}
+
+{
+    max = fmax > NF ? NF : fmax
+    for (x=0; x<max; x++) cols[x] += \$(x + 1)
+}
+
+END {
+    for (x=0; x<fmax; x++) 
+        printf "%d ", cols[x]
+    print ""
+}
+EOF
+
+    # update the contents
+    [ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
+    return $RET_OK
+}
+
+
+#
+# @brief creates the actual worker forks
+#
+spawn_forks() {
+    local c=0
+    local stats_file="$(mktemp -t stats.XXXXXXXX)"
+
+    # open fd #8 for statistics collection
+    exec 8<> "$stats_file"
+
+    # spawn parallel processing
+    while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
+        g_system[3]=$(( $c + 1 ))
+        _debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
+        process_files $c ${g_system[1]} &
+        c=${g_system[3]}
     done
     
-    if [[ $f_valid -eq 0 ]] && [[ "$g_Format" != "no_conversion" ]]; then
-        f_print_error "Podany format docelowy jest niepoprawny: [$g_Format] !!!"
-        exit
+    # wait for all forks
+    wait
+
+    # sum stats data
+    sum_stats "$stats_file"
+
+    # close the fd
+    exec 8>&-
+    [ -e "$stats_file" ] && unlink "$stats_file"
+
+    # restore main fork id
+    g_system[3]=1
+    return $RET_OK
+}
+
+
+#
+# print stats summary
+#
+print_stats() {
+
+    declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
+    local i=0
+
+    _msg "statystyki przetwarzania"
+
+    while [ $i -lt ${#g_stats[@]} ]; do
+        _status "${labels[$i]}" "${g_stats[$i]}"
+        i=$(( $i + 1 ))
+    done
+
+    return $RET_OK
+}
+
+################################################################################
+
+#
+# @brief prints the help & options overview
+#
+usage() {
+    local subotage_presence=$(lookup_value 'subotage.sh' ${g_tools[@]})
+    local iconv_presence=$(lookup_value 'iconv' ${g_tools[@]})
+
+    # precaution to prevent variables from being empty
+    subotage_presence=$(( $subotage_presence + 0 ))
+    iconv_presence=$(( $iconv_presence + 0 ))
+
+    echo "=============================================================="
+    echo "napi.sh version $g_revision (identifies as ${g_system[2]})"
+    echo "napi.sh [OPCJE] <plik|katalog|*>"
+    echo
+
+    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
+    echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
+    echo "   -c | --cover - pobierz okladke"
+
+    [ $iconv_presence -eq 1 ] && 
+        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
+
+    echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
+    echo "   -F | --forks - okresl recznie ile rownoleglych procesow utworzyc (dom. ${g_system[1]})"
+    echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
+    echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
+    echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
+    echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
+    echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
+    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
+    echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
+    echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
+    echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
+    echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
+    
+    if [ $subotage_presence -eq 1 ]; then    
+        echo "   -d | --delete-orig - Delete the original file"   
+        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+        echo "   -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
+        echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_orig_prefix)"   
+        echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
+        echo
+        echo "Obslugiwane formaty konwersji napisow"
+        subotage.sh -gl
     fi
-fi
 
-# be sure not to overwrite actual video file
-if [[ ${#g_Params[*]} -eq 0 ]] && [[ "$g_LogFile" != "none" ]]; then
-   f_print_error "Nie podales pliku loga !!!"
-   exit   
-elif [[ "$g_LogFile" != "none" ]]; then
-   exec 3>&1 1> "$g_LogFile"
-fi
+    echo
+    echo "Przyklady:"
+    echo " napi.sh film.avi          - sciaga napisy dla film.avi."
+    echo " napi.sh -c film.avi       - sciaga napisy i okladke dla film.avi."
+    echo " napi.sh -u foo -p bar -c film.avi - sciaga napisy i okladke do"
+    echo "                             film.avi jako uzytkownik foo"
+    echo " napi.sh *                 - szuka plikow wideo w obecnym katalogu"
+    echo "                             i podkatalogach, po czym stara sie dla"
+    echo "                             nich znalezc i pobrac napisy."
+    echo " napi.sh *.avi             - wyszukiwanie tylko plikow avi."
+    echo " napi.sh katalog_z_filmami - wyszukiwanie we wskazanym katalogu"
+    echo "                             i podkatalogach."
+    
+    if [ $subotage_presence -ne 1 ]; then
+        echo " "
+        echo "UWAGA !!!"
+        echo "napi.sh moze automatycznie dokonywac konwersji napisow"
+        echo "do wybranego przez Ciebie formatu. Zainstaluj uniwersalny"
+        echo "konwerter formatow dla basha: subotage.sh"
+        echo "http://sourceforge.net/projects/bashnapi/"
+        echo
+    else
+        echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
+        echo "                           po czym konwertuje je do formatu subrip"
 
-# initialisation 2
-f_check_mandatory_tools
+        if [ $(count_fps_detectors) -gt 0 ]; then 
+            echo
+            echo "Wykryte narzedzia detekcji FPS"
 
-########################################################################
-########################################################################
-########################################################################
+            local t=0
+            for t in ${g_tools_fps[@]}; do
+                [ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && echo $t
+            done
+            echo
+        else
+            echo
+            echo "By moc okreslac FPS na podstawie pliku video a nie na"
+            echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
+            echo "zainstaluj dodatkowo jedno z tych narzedzi (dowolne)"
+            ( IFS=$'\n'; echo "${g_tools_fps[*]}" )
+            echo
+        fi
+    fi
 
-echo "Wywolano o [$(date)]"
-#set -- "${g_Params[@]}"
-prepare_file_list "${g_Params[@]}"
-download_subs
+    return $RET_OK
+}
 
-########################################################################
-########################################################################
-########################################################################
+################################################################################
 
-echo
-echo "Podsumowanie"
-echo -e "Pominieto:\t[$g_Skipped]"
-echo -e "Pobrano:\t[$g_Downloaded]"
-if [[ $g_SubotagePresence -eq 1 ]]; then    
-	echo -e "Przekonw.:\t[$g_Converted]"
-fi
-echo -e "Niedostepne:\t[$g_Unavailable]"
-echo -e "Lacznie:\t[${#g_FileList[*]}]"
-      
-# restore original stdout
-if [[ "$g_LogFile" != "none" ]]; then   
-   exec 1>&3 3>&-
-fi
+#
+# @brief main function 
+# 
+main() {
+    # first positional
+    local arg1="${1:-''}"
+
+    # debug
+    _debug $LINENO "$0: ($g_revision) uruchamianie ..." 
+
+    # print bash version
+    if [ -z "$BASH_VERSION" ]; then
+        _debug $LINENO "interpreter inny niz bash ($SHELL)"
+    else
+        _debug $LINENO "interpreter to bash $BASH_VERSION"
+    fi
+
+    # system verification
+    verify_system
+
+    # commands configuration
+    configure_cmds
+
+    # verify tools presence
+    _debug $LINENO "sprawdzam narzedzia ..." 
+    g_tools=( $(verify_tools ${g_tools[@]}) )
+    if [ $? -ne $RET_OK ]; then
+        _error "nie wszystkie wymagane narzedzia sa dostepne"
+        return $RET_FAIL
+    fi
+
+    _debug $LINENO ${g_tools[*]}
+
+    # if no arguments are given, then print help and exit
+    [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
+        usage &&
+        return $RET_BREAK
+
+    _info $LINENO "parsowanie argumentow"
+    if ! parse_argv "$@"; then
+        _error "niepoprawne argumenty..."
+        return $RET_FAIL
+    fi
+
+    _info $LINENO "weryfikacja argumentow"
+    if ! verify_argv; then 
+        _error "niepoprawne argumenty..."
+        return $RET_FAIL
+    fi
+
+    _info $LINENO "ustawiam STDOUT"
+    redirect_to_logfile
+
+    _msg "wywolano o $(date)"
+    _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
+
+    _info $LINENO "przygotowuje liste plikow..."
+    prepare_file_list $g_min_size "${g_paths[@]}"
+    _msg "znaleziono ${#g_files[@]} plikow..."
+
+    # do the job
+    spawn_forks
+
+    [ $g_stats_print -eq 1 ] && print_stats
+
+    # cleanup & exit
+    _info $LINENO "przywracam STDOUT"
+    redirect_to_stdout
+
+    return $RET_OK
+}
+
+# call the main
+[[ $SHUNIT_TESTS -eq 0 ]] && main "$@"
 
 # EOF
+######################################################################## 
+######################################################################## 
+
+
+############################## DB ######################################
+
+# that was an experiment which I decided to drop after all. 
+# those functions provide a mechanism to generate consistently names global vars
+# i.e. _db_set "abc" 1 will create glob. var ___g_db___abc=1
+# left as a reference - do not use it
+
+## #
+## # @global prefix for the global variables generation
+## #
+## g_GlobalPrefix="___g_db___"
+## 
+## 
+## #
+## # @brief get variable from the db
+## #
+## _db_get() {
+##  eval "echo \$${g_GlobalPrefix}_$1"  
+## }
+## 
+## 
+## #
+## # @brief set variable in the db
+## #
+## _db_set() {
+##  eval "${g_GlobalPrefix}_${1/./_}=\$2"
+## }
+
+######################################################################## 
