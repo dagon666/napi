@@ -72,23 +72,6 @@ oneTimeTearDown() {
 ################################################################################
 
 #
-# test obtain file routine
-#
-test_obtain_file() {
-    return 0    
-
-}
-
-#
-# test process file routine
-#
-test_process_file() {
-    return 0    
-    
-}
-
-
-#
 # general function to test printing routines
 #
 _test_printers() {
@@ -1394,6 +1377,24 @@ test_process_files() {
 	assertEquals 'checking total no. of process files (incr = 2)' 2 $file_cnt
 	)
 
+    return 0    
+}
+
+
+#
+# test obtain file routine
+#
+test_obtain_file() {
+	# empty for now, will be verified with system tests
+    return 0    
+}
+
+
+#
+# test process file routine
+#
+test_process_file() {
+	# empty for now, will be verified with system tests
     return 0    
 }
 
