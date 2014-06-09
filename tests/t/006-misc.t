@@ -14,9 +14,11 @@ my $shell = $ENV{NAPI_TEST_SHELL} // "/bin/bash";
 # prepare test file
 my $test_file = 'video.avi';
 my $test_txt = 'video.txt';
+my $test_orig_txt = 'ORIG_video.txt';
 
 my $test_file_path = $NapiTest::testspace . '/' . $test_file;
 my $test_txt_path = $NapiTest::testspace . '/' . $test_txt;
+my $test_orig_txt_path = $NapiTest::testspace . '/' . $test_orig_txt;
 
 copy $NapiTest::assets . '/av1.dat', $test_file_path;
 
@@ -174,7 +176,6 @@ is ($o{ok}, 0, "number of downloaded");
 NapiTest::clean_testspace();
 
 
-#
 #>TESTSPEC
 #
 # Brief:
@@ -208,15 +209,44 @@ ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
 
 is ($o{skip}, 1, "number of skipped");
 is ($o{ok}, 0, "number of downloaded");
+NapiTest::clean_testspace();
 
 
-
-
-#- download subs (and skip)
-#- copy subs to ORIG_
-#- check skip with prefix specified
-#- check skip without prefix specified
+#>TESTSPEC
 #
+# Brief:
+# 
+# Download subtitles with both abbrev and conv-abbrev specified and format conversion request
+#
+# Preconditions:
+# - napi.sh & subotage.sh should be visible in public $PATH
+# - media file for which the subtitles are available
+#
+# Procedure:
+# - specify the abbreviation as AB
+# - specify the conv-abbreviation as CAB
+# - specify conversion request
+#
+# Expected results:
+# - the subtitles should be downloaded and converted to the requested format
+# - the original subtitles should be renamed to default prefix and should contain the abbreviation in the filename
+# - after conversion both files should exist in the filesystem (original one with prefix prepended)
+# - converted file should have both abbrev and conversion abbrev inserted into the file name
+# 
+copy $NapiTest::assets . '/av1.dat', $test_file_path;
+$o = NapiTest::qx_napi($shell, " --stats -f subrip -s -a AB --conv-abbrev CAB " . $test_file_path);
+%o = NapiTest::parse_summary($o);
+
+ok ( -e $test_orig_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
+		"check for original file" );
+
+ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.CAB\.srt/r,
+		"checking for converted file and abbreviations" );
+
+is ($o{ok}, 1, "number of downloaded");
+is ($o{conv}, 1, "number of converted");
+NapiTest::clean_testspace();
+
 
 
 NapiTest::clean_testspace();
