@@ -1268,12 +1268,12 @@ esac
 
 # check if conversion is really needed
 if [[ ${g_InputFormatData[0]} == $g_OutputFormat ]]; then
-    
+
     # additional format specific checks
     case "${g_InputFormatData[0]}" in
     
         "microdvd")
-            if [[ $g_InputFrameRate -eq $g_OutputFrameRate ]]; then
+            if [[ "${g_InputFrameRate:0:5}" == "${g_OutputFrameRate:0:5}" ]]; then
                 f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
                 exit -1
             fi
