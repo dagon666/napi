@@ -41,7 +41,7 @@ g_Quiet=0
 g_Version="0.17 alpha"
 
 # supported subtitle file formats
-g_FileFormats=( "microdvd" "mpl2" "subrip" "tmplayer" "subviewer" "fab" )
+g_FileFormats=( "microdvd" "mpl2" "subrip" "subviewer" "tmplayer" "fab" )
 
 # description for every supported file format
 g_FormatDescription=( "Format based on frames. Uses given framerate\n\t\t(default is [$g_InputFrameRate] fps)"
@@ -676,7 +676,7 @@ function f_write_subviewer_format
                         int((\$3 - int(\$3))*100));
                         for (i=4; i<=NF; i++) printf(\"%s \", \$i); 
                         printf (\"\n\n\");
-             }" | tr '|' '\n' > "$1"
+             }" | tr '|' '\n' >> "$1"
     ;;
     
     "hmsms")
@@ -689,7 +689,7 @@ function f_write_subviewer_format
                 (stop[1]),(stop[2]),(stop[3]),
                 int((stop[3] - int(stop[3]))*100));
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
+            printf \"\n\n\" }" | tr '|' '\n' >> "$1"
     ;;  
 
     "hms")
@@ -702,7 +702,7 @@ function f_write_subviewer_format
                 (stop[1]),(stop[2]),(stop[3]),
                 (0));
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
+            printf \"\n\n\" }" | tr '|' '\n' >> "$1"
     ;;
     
     *)
@@ -1150,7 +1150,7 @@ while [ $# -gt 0 ]; do
             exit -1
         fi
         
-        detectedFormat=$(f_guess_format "$1")
+		detectedFormat=$(f_guess_format "$1")
         echo $detectedFormat
         exit
         ;;
@@ -1268,12 +1268,12 @@ esac
 
 # check if conversion is really needed
 if [[ ${g_InputFormatData[0]} == $g_OutputFormat ]]; then
-    
+
     # additional format specific checks
     case "${g_InputFormatData[0]}" in
     
         "microdvd")
-            if [[ $g_InputFrameRate -eq $g_OutputFrameRate ]]; then
+            if [[ "${g_InputFrameRate:0:5}" == "${g_OutputFrameRate:0:5}" ]]; then
                 f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
                 exit -1
             fi
@@ -1319,7 +1319,7 @@ else
 fi
     
 # remove the temporary processing file
-rm -rf "$g_ProcTmpFile"
+unlink "$g_ProcTmpFile"
 echo "Done"
 
 ###############################################################################

@@ -1,3 +1,8 @@
+version v1.2.1
+- Major code redesign which includes
+-- decomposing code into small functional blocks
+
+
 version v1.1.13 (2014-05-03)
 - contributions from Maciej Lopacinski (iconv charset conversion) merged
 - contributions from github user "emfor" merged (abbreviations support)
