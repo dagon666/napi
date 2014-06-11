@@ -173,7 +173,7 @@ g_stats_print=0
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
@@ -384,10 +384,11 @@ modify_value() {
     declare -a rv=()
 
     for i in $*; do
-        [ "$(get_key $i)" != "$key" ] && rv+=( "$i" )
+		# unfortunately old shells don't support rv+=( "$i" )
+        [ "$(get_key $i)" != "$key" ] && rv=( "${rv[@]}" "$i" )
     done
 
-    rv+=($key=$value)
+    rv=( "${rv[@]}" "$key=$value" )
     echo ${rv[*]}
 
     return $RET_OK
@@ -396,25 +397,25 @@ modify_value() {
 ################################ languages #####################################
 
 # language code arrays
-declare -ar g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' 
-        'Chiński' 'Chorwacki' 'Czeski' 'Duński' 
-        'Estoński' 'Fiński' 'Francuski' 'Galicyjski' 
-        'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' 
-        'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' 
-        'Niemiecki' 'Norweski' 'Oksytański' 'Perski' 
-        'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' 
-        'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' 
+declare -ar g_Language=( 'Albański' 'Angielski' 'Arabski' 'Bułgarski' \
+        'Chiński' 'Chorwacki' 'Czeski' 'Duński' \
+        'Estoński' 'Fiński' 'Francuski' 'Galicyjski' \
+        'Grecki' 'Hebrajski' 'Hiszpanski' 'Holenderski' \
+        'Indonezyjski' 'Japoński' 'Koreański' 'Macedoński' \
+        'Niemiecki' 'Norweski' 'Oksytański' 'Perski' \
+        'Polski' 'Portugalski' 'Portugalski' 'Rosyjski' \
+        'Rumuński' 'Serbski' 'Słoweński' 'Szwedzki' \
         'Słowacki' 'Turecki' 'Wietnamski' 'Węgierski' 'Włoski' )
 
-declare -ar g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' 
-                    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' 
-                    'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' 
+declare -ar g_LanguageCodes2L=( 'SQ' 'EN' 'AR' 'BG' 'ZH' 'HR' 'CS' 'DA' 'ET' 'FI' \
+                    'FR' 'GL' 'EL' 'HE' 'ES' 'NL' 'ID' 'JA' 'KO' 'MK' \
+                    'DE' 'NO' 'OC' 'FA' 'PL' 'PT' 'PB' 'RU' 'RO' 'SR' \
                     'SL' 'SV' 'SK' 'TR' 'VI' 'HU' 'IT' )
 
-declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' 
-                    'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' 
-                    'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' 
-                    'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' 
+declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' \
+                    'DAN' 'EST' 'FIN' 'FRE' 'GLG' 'ELL' 'HEB' \
+                    'SPA' 'DUT' 'IND' 'JPN' 'KOR' 'MAC' 'GER' \
+                    'NOR' 'OCI' 'PER' 'POL' 'POR' 'POB' 'RUS' \
                     'RUM' 'SCC' 'SLV' 'SWE' 'SLO' 'TUR' 'VIE' 'HUN' 'ITA' )
 
 
@@ -423,7 +424,7 @@ declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE'
 #
 list_languages() {
     local i=0
-    while [[ $i -lt ${#g_Language[@]} ]]; do
+    while [ $i -lt ${#g_Language[@]} ]; do
         echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
         i=$(( $i + 1 ))
     done
@@ -463,7 +464,7 @@ normalize_language() {
     local lang=${g_LanguageCodes2L[$1]}
     
     # don't ask me why
-    [[ "$lang" = "EN" ]] && lang="ENG"
+    [ "$lang" = "EN" ] && lang="ENG"
     echo $lang
 
     return $RET_OK
@@ -475,7 +476,19 @@ normalize_language() {
 # @brief checks if the tool is available in the PATH
 #
 verify_tool_presence() {
-    echo $(builtin type -P "$1")
+    local tool=$(builtin type -p "$1")
+	local tool2=''
+	local rv=$RET_UNAV
+
+	# make sure it's really there
+	if [ -z "$tool" ]; then
+		type "$1" > /dev/null 2>&1
+		rv=$?
+	else
+		rv=$RET_OK
+	fi
+
+	return $rv
 }
 
 
@@ -510,7 +523,8 @@ configure_cmds() {
         g_cmd_stat="stat -c%s"
     fi
 
-    g_tools+=( "$g_cmd_md5=1" )
+    # g_tools+=( "$g_cmd_md5=1" )
+    g_tools=( "${g_tools[@]}" "$g_cmd_md5=1" )
 
     _debug $LINENO "sprawdzam czy wget wspiera opcje -S"
     local cmd_test=$(wget --help 2>&1 | grep "\-S")
@@ -551,11 +565,12 @@ verify_tools() {
         tool="$(get_key $t)"
         m="$(get_value $t)"
 
-        [ -z "$(verify_tool_presence $tool)" ] && p=0
-        ret+=( "$tool=$p" )
+        ! verify_tool_presence "$tool" && p=0
+        # ret+=( "$tool=$p" )
+        ret=( "${ret[@]}" "$tool=$p" )
         
         # break if mandatory tool is missing
-        [[ $m -eq 1 ]] && [[ $p -eq 0 ]] && rv=$RET_FAIL && break
+        [ $m -eq 1 ] && [ $p -eq 0 ] && rv=$RET_FAIL && break
     done
 
     echo ${ret[*]}
@@ -583,7 +598,7 @@ count_fps_detectors() {
     local t=""
 
     for t in ${g_tools_fps[@]}; do      
-        [[ "$(lookup_value $t ${g_tools[@]})" = "1" ]] && c=$(( $c + 1 ))
+        [ "$(lookup_value $t ${g_tools[@]})" = "1" ] && c=$(( $c + 1 ))
     done
 
     echo $c
@@ -598,9 +613,10 @@ count_fps_detectors() {
 #
 get_fps() {
     local fps=0
+	local t="${1:-default}"
  
     # don't bother if there's no tool available or not specified
-    if [[ -z "$1" ]] || [[ "$1" = "default" ]]; then
+    if [ -z "$t" ] || [ "$t" = "default" ]; then
         echo $fps
         return $RET_PARAM
     fi
@@ -610,7 +626,7 @@ get_fps() {
     # prevent empty output
     tool=$(( $tool + 0 ))
 
-    if [[ $tool -ne 0 ]]; then
+    if [ $tool -ne 0 ]; then
         case "$1" in
             'mplayer' | 'mplayer2' )
             fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
@@ -736,12 +752,15 @@ parse_argv() {
             ;;
 
             # parameter is not a known argument, probably a filename
-            *) g_paths+=( "$1" ) ;;
+            *) 
+			# g_paths+=( "$1" ) 
+			g_paths=( "${g_paths[@]}" "$1" ) 
+			;;
         esac
 
         # set the global var for simple switches
         # not requiring any further verification
-        if [[ -n "$varname" ]]; then
+        if [ -n "$varname" ]; then
             shift
             [ -z "$1" ] && _error $msg && return $RET_FAIL
             eval "${varname}=\$1"
@@ -799,7 +818,7 @@ verify_id() {
         ;;
     esac
 
-    if [[ "${g_system[2]}" = 'other' ]]; then
+    if [ "${g_system[2]}" = 'other' ]; then
         local p=$(lookup_value '7z' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
@@ -971,8 +990,9 @@ f() {
     local b=""    
     local i=0
 
-    for i in {0..4}; do
-    # for i in $(seq 0 4); do
+    # for i in {0..4}; do
+	# again in order to be compliant with bash < 3.0
+    for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
         local g=${t_idx[$i]}        
@@ -1218,7 +1238,7 @@ get_charset() {
             "$file" | lcase)
 
         if [ "$?" = "0" ] && [ -n "$et" ]; then
-            case "${et,,}" in
+            case "$et" in
                 *utf*) charset="UTF8";;
                 *iso*) charset="ISO-8859-2";;
 				us-ascii) charset="US-ASCII";;
@@ -1274,8 +1294,8 @@ verify_extension() {
     local extension=$(get_ext "$filename" | lcase)
     local is_video=0  
 
-    declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 
-        'mpeg' 'wmv' '3gp' 'asf' 'divx' 
+    declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' \
+        'mpeg' 'wmv' '3gp' 'asf' 'divx' \
         'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
 
     lookup_key "$extension" ${formats[@]} > /dev/null && is_video=1
@@ -1298,24 +1318,25 @@ prepare_file_list() {
     for file in "$@"; do
 
         # check if file exists, if not skip it
-        if [[ ! -e "$file" ]]; then
+        if [ ! -e "$file" ]; then
             continue
 
-        elif [[ ! -s "$file" ]]; then
+        elif [ ! -s "$file" ]; then
             _warning "podany plik jest pusty [$file]"
             continue
 
         # check if is a directory
         # if so, then recursively search the dir
-        elif [[ -d "$file" ]]; then
+        elif [ -d "$file" ]; then
             local tmp="$file"
             prepare_file_list $min_size "$tmp"/*
 
         else
             # check if the respective file is a video file (by extention)       
-            if [[ $(verify_extension "$file") -eq 1 ]] &&
-               [[ $($g_cmd_stat "$file") -ge $(( $min_size*1024*1024 )) ]]; then
-                g_files+=( "$file" )
+            if [ $(verify_extension "$file") -eq 1 ] &&
+               [ $($g_cmd_stat "$file") -ge $(( $min_size*1024*1024 )) ]; then
+                # g_files+=( "$file" )
+                g_files=( "${g_files[@]}" "$file" )
             fi
         fi
     done
@@ -1367,16 +1388,16 @@ prepare_filenames() {
     # 7 - c + a + A - filename + abbreviation + conversion_abbreviation + get_sub_ext
 
     # original
-    g_pf+=( "${noext}.$g_default_ext" )
-    g_pf+=( "${noext}.${ab:+$ab.}$g_default_ext" )
-    g_pf+=( "${g_orig_prefix}${g_pf[0]}" )
-    g_pf+=( "${g_orig_prefix}${g_pf[1]}" )
+    g_pf[0]="${noext}.$g_default_ext"
+    g_pf[1]="${noext}.${ab:+$ab.}$g_default_ext"
+    g_pf[2]="${g_orig_prefix}${g_pf[0]}"
+    g_pf[3]="${g_orig_prefix}${g_pf[1]}"
 
     # converted
-    g_pf+=( "${noext}.$cext" )
-    g_pf+=( "${noext}.${ab:+$ab.}$cext" )
-    g_pf+=( "${noext}.${cab:+$cab.}$cext" )
-    g_pf+=( "${noext}.${ab:+$ab.}${cab:+$cab.}$cext" )
+    g_pf[4]="${noext}.$cext"
+    g_pf[5]="${noext}.${ab:+$ab.}$cext"
+    g_pf[6]="${noext}.${cab:+$cab.}$cext"
+    g_pf[7]="${noext}.${ab:+$ab.}${cab:+$cab.}$cext"
 
     return $RET_OK
 }
@@ -1427,7 +1448,7 @@ convert_format() {
     # detect video file framerate
     [ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
 
-    if [[ "$fps" != 0 ]]; then
+    if [ "$fps" != "0" ]; then
         _msg "wykryty fps: $fps"
         fps_opt="-fi $fps"
     else
@@ -1442,9 +1463,9 @@ convert_format() {
     _debug $LINENO "$sb_data"
 
     # remove the old format if conversion was successful
-    if [[ $status -eq $RET_OK ]]; then
+    if [ $status -eq $RET_OK ]; then
         _msg "pomyslnie przekonwertowano do $g_sub_format"
-        [[ "$input" != "$conv" ]] &&
+        [ "$input" != "$conv" ] &&
             _msg "usuwam oryginalny plik" &&
             unlink "$path/$input"
     else
@@ -1482,18 +1503,18 @@ check_subs_presence() {
         # unconverted unavailable, converted available
         rv=$(( $rv | 1 ))
 
-        if [[ -e "$path/${g_pf[7]}" ]]; then
+        if [ -e "$path/${g_pf[7]}" ]; then
             _status "SKIP" "$media_file"
         
-        elif [[ -e "$path/${g_pf[6]}" ]]; then
+        elif [ -e "$path/${g_pf[6]}" ]; then
             _status "COPY" "${g_pf[6]} -> ${g_pf[7]}"
             $g_cmd_cp "$path/${g_pf[6]}" "$path/${g_pf[7]}"
 
-        elif [[ -e "$path/${g_pf[5]}" ]]; then
+        elif [ -e "$path/${g_pf[5]}" ]; then
             _status "COPY" "${g_pf[5]} -> ${g_pf[7]}"
             $g_cmd_cp "$path/${g_pf[5]}" "$path/${g_pf[7]}"
 
-        elif [[ -e "$path/${g_pf[4]}" ]]; then
+        elif [ -e "$path/${g_pf[4]}" ]; then
             _status "COPY" "${g_pf[4]} -> ${g_pf[7]}"
             $g_cmd_cp "$path/${g_pf[4]}" "$path/${g_pf[7]}"
 
@@ -1510,14 +1531,14 @@ check_subs_presence() {
     rv=$(( $rv | 2 ))
 
     # when the conversion is not required
-    if [[ -e "$path/${g_pf[1]}" ]]; then
+    if [ -e "$path/${g_pf[1]}" ]; then
         _status "SKIP" "$media_file"
     
-    elif [[ -e "$path/${g_pf[0]}" ]]; then
+    elif [ -e "$path/${g_pf[0]}" ]; then
         _status "COPY" "${g_pf[0]} -> ${g_pf[1]}"
         $g_cmd_cp "$path/${g_pf[0]}" "$path/${g_pf[1]}"
 
-    elif [[ -e "$path/${g_pf[3]}" ]]; then
+    elif [ -e "$path/${g_pf[3]}" ]; then
         _status "COPY" "${g_pf[3]} -> ${g_pf[1]}"
         $g_cmd_cp "$path/${g_pf[3]}" "$path/${g_pf[1]}"
 
@@ -1668,7 +1689,7 @@ process_file() {
                 _status "UNAV" "cover for $media_file"
                 g_stats[5]=$(( ${g_stats[5]} + 1 ))
             fi 
-        fi # if [[ $g_cover -eq 1 ]]
+        fi # if [ $g_cover -eq 1 ]
     else
         _status "UNAV" "$media_file"
         g_stats[1]=$(( ${g_stats[1]} + 1 ))
@@ -1921,6 +1942,7 @@ main() {
     g_tools=( $(verify_tools ${g_tools[@]}) )
     if [ $? -ne $RET_OK ]; then
         _error "nie wszystkie wymagane narzedzia sa dostepne"
+        _debug $LINENO "${g_tools[*]}"
         return $RET_FAIL
     fi
 
@@ -1966,7 +1988,7 @@ main() {
 }
 
 # call the main
-[[ $SHUNIT_TESTS -eq 0 ]] && main "$@"
+[ ${SHUNIT_TESTS:-0} -eq 0 ] && main "$@"
 
 # EOF
 ######################################################################## 
