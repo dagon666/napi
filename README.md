@@ -3,7 +3,7 @@
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
 
-This script works on Linux & OS X systems. It has very limited requirements and is mostly depending on bash and coreutils (which should be available on most modern systems, no perl or python is required).
+This script works on Linux & OS X systems. It has very limited requirements and is mostly depending on bash (it is proven to run from bash 2.04 - which makes ideal for embedded devices) and coreutils (which should be available on most modern systems, no perl or python is required).
 
 Usage example:
 ==============
@@ -78,6 +78,8 @@ Required External Tools
 - grep
 - awk
 - iconv (optional)
+- any of: ffmpeg/mediainfo/mplayer/mplayer2 (for fps detection - optional)
+- mktemp
 
 To check if the listed tools are available in your system and their functionality meets the subotage.sh script requirements please use the attached test_tools.sh script.
 

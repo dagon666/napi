@@ -107,13 +107,16 @@ sub prepare_shells {
 	my $shell_bin_path = $path_root . '/' . $shell_bin_dir;
 	
 	my $url = "http://ftp.gnu.org/gnu/bash";
+	
+	# those are not supported at the moment
+	# bash-2.0.tar.gz
+	# bash-2.01.1.tar.gz
+	# bash-2.01.tar.gz
+	# bash-2.02.1.tar.gz
+	# bash-2.02.tar.gz
+	# bash-2.03.tar.gz
+
 	my @versions = qw/
-		bash-2.0.tar.gz
-		bash-2.01.1.tar.gz
-		bash-2.01.tar.gz
-		bash-2.02.1.tar.gz
-		bash-2.02.tar.gz
-		bash-2.03.tar.gz
 		bash-2.04.tar.gz
 		bash-2.05.tar.gz
 		bash-2.05a.tar.gz

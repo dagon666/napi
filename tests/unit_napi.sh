@@ -356,11 +356,13 @@ test_normalize_lang() {
 #
 test_verify_tool_presence() {
     local presence=0
-    presence=$(verify_tool_presence 'bash')
-    assertNotEquals 'verifying bash presence' 0 ${#presence}
+    verify_tool_presence 'bash'
+	presence=$?
+    assertEquals 'verifying bash presence' 0 $presence
 
-    presence=$(verify_tool_presence 'strange_not_existing_tool')
-    assertEquals 'verifying bogus tool' 0 ${#presence}
+	verify_tool_presence 'strange_not_existing_tool'
+    presence=$?
+    assertNotEquals 'verifying bogus tool' 0 $presence
 }
 
 
