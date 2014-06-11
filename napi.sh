@@ -58,6 +58,8 @@ declare g_orig_prefix='ORIG_'
 # id
 # - pynapi - identifies itself as pynapi
 # - other - identifies itself as other
+# - NapiProjektPython - uses new napiprojekt3 API - NapiProjektPython
+# - NapiProjekt - uses new napiprojekt3 API - NapiProjekt
 #
 # fork id
 #
@@ -182,6 +184,9 @@ g_cmd_stat='stat -c%s'
 g_cmd_wget='wget -q -O'
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
+
+# flag defining if wget supports post requests
+g_wget_supports_post=0
 
 ################################## RETVAL ######################################
 
@@ -533,6 +538,13 @@ configure_cmds() {
         g_cmd_wget='wget -q -S -O' &&
         _info $LINENO "wget wspiera opcje -S"
 
+    _debug $LINENO "sprawdzam czy wget wspiera zadania POST"
+    local p_test=$(wget --help 2>&1 | grep "\-\-post\-")
+
+    [ -n "$p_test" ] && 
+		g_wget_supports_post=1 && 
+        _info $LINENO "wget wspiera opcje -S"
+
     return $RET_OK
 }
 
@@ -811,14 +823,17 @@ verify_id() {
     local rv=$RET_OK
 
     case ${g_system[2]} in
-        'pynapi' | 'other' ) ;;
-        *) 
+        'pynapi' | 'other' | 'NapiProjektPython' | 'NapiProjekt' ) ;;
+		
+        *) # any other - revert to napi projekt 'classic'
         rv=$RET_PARAM
         g_system[2]='pynapi'
         ;;
     esac
 
-    if [ "${g_system[2]}" = 'other' ]; then
+    if [ "${g_system[2]}" = 'other' ] || 
+		[ "${g_system[2]}" = 'NapiProjektPython' ] ||
+		[ "${g_system[2]}" = 'NapiProjekt' ]; then
         local p=$(lookup_value '7z' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
@@ -1034,13 +1049,13 @@ download_url() {
     local rv=$RET_OK
     local code='unknown'
 
-    local status=$RET_OK
+    local status=$RET_FAIL
 
     # determine whether to perform a GET or a POST
     if [ -z "$post" ]; then
         headers=$($g_cmd_wget "$output" "$url" 2>&1)
         status=$?
-    else
+    elif [ $g_wget_supports_post -eq 1 ]; then
         headers=$($g_cmd_wget "$output " --post-data="$post" "$url" 2>&1)
         status=$?
     fi
@@ -1063,7 +1078,7 @@ download_url() {
 
 
 #
-# extract xml contents
+# extracts xml tag contents
 #
 extract_xml_tag() {
 
@@ -1096,6 +1111,7 @@ EOF
 download_data_xml() {
     local url="http://napiprojekt.pl/api/api-napiprojekt3.php"
     local client_version="2.2.0.2399"
+	local client_id="${g_system[2]}" # should be something like NapiProjektPython
 
     local md5sum=${1:-0}
     local filename=''
@@ -1111,7 +1127,7 @@ download_data_xml() {
     local status=$RET_OK
     
     local data="mode=1&\
-        client=NapiProjektPython&\
+        client=$client_id&\
         client_ver=$client_version&\
         user_nick=$user&\
         user_password=$passwd&\
@@ -1140,6 +1156,7 @@ download_data_xml() {
 
 
 extract_subs_xml() {
+	return 0
     
 }
 
@@ -1947,7 +1964,7 @@ usage() {
 
     echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -F | --forks - okresl recznie ile rownoleglych procesow utworzyc (dom. ${g_system[1]})"
-    echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
+    echo "   -I | --id <pynapi|other|NapiProjektPython|NapiProjekt> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
