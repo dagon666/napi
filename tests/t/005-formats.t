@@ -69,7 +69,7 @@ is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 # mpl2
 NapiTest::qx_napi($shell, " -f mpl2 " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
-ok ( -e $subs_path{sub}, 'checking the converted mpl2 file' );
+ok ( -e $subs_path{txt}, 'checking the converted mpl2 file' );
 
 is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 	'mpl2',
@@ -80,7 +80,7 @@ is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 # tmplayer
 NapiTest::qx_napi($shell, " -f tmplayer " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
-ok ( -e $subs_path{sub}, 'checking the converted tmplayer file' );
+ok ( -e $subs_path{txt}, 'checking the converted tmplayer file' );
 
 is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 	'tmplayer',
@@ -91,7 +91,7 @@ is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 # fab
 NapiTest::qx_napi($shell, " -f fab " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
-ok ( -e $subs_path{sub}, 'checking the converted fab file' );
+ok ( -e $subs_path{txt}, 'checking the converted fab file' );
 
 is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
 	'fab',
