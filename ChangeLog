@@ -1,6 +1,14 @@
-version v1.2.1
+version v1.2.1 (2014-06-11)
 - Major code redesign which includes
 -- decomposing code into small functional blocks
+-- assuring more compatibility with old shells
+-- implemented multithreading (spawning multiple processes ata time to speed
+		up the processing -F options)
+-- "skip" option reimplemented and made more flexible
+-- multiple verbosity levels
+- implemented unit test suite for napi.sh
+- prepared test environment for system & unit tests (based on Vagrant & Puppet)
+- prepared system tests for napi & subotage
 
 
 version v1.1.13 (2014-05-03)
