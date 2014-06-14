@@ -180,13 +180,15 @@ declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
 
+# 
+# @brief wget details
+# 0 - cmd
+# 1 - flag defining if wget supports post requests
+declare -a g_cmd_wget=( 'wget -q -O' '0' )
+
 g_cmd_stat='stat -c%s'
-g_cmd_wget='wget -q -O'
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
-
-# flag defining if wget supports post requests
-g_wget_supports_post=0
 
 ################################## RETVAL ######################################
 
@@ -535,14 +537,14 @@ configure_cmds() {
     local s_test=$(wget --help 2>&1 | grep "\-S")
 
     [ -n "$s_test" ] && 
-        g_cmd_wget='wget -q -S -O' &&
+        g_cmd_wget[0]='wget -q -S -O' &&
         _info $LINENO "wget wspiera opcje -S"
 
     _debug $LINENO "sprawdzam czy wget wspiera zadania POST"
     local p_test=$(wget --help 2>&1 | grep "\-\-post\-")
 
     [ -n "$p_test" ] && 
-		g_wget_supports_post=1 && 
+		g_cmd_wget[1]=1 &&
         _info $LINENO "wget wspiera opcje -S"
 
     return $RET_OK
@@ -1053,10 +1055,10 @@ download_url() {
 
     # determine whether to perform a GET or a POST
     if [ -z "$post" ]; then
-        headers=$($g_cmd_wget "$output" "$url" 2>&1)
+        headers=$(${g_cmd_wget[0]} "$output" "$url" 2>&1)
         status=$?
-    elif [ $g_wget_supports_post -eq 1 ]; then
-        headers=$($g_cmd_wget "$output " --post-data="$post" "$url" 2>&1)
+    elif [ ${g_cmd_wget[1]} -eq 1 ]; then
+        headers=$(${g_cmd_wget[0]} "$output " --post-data="$post" "$url" 2>&1)
         status=$?
     fi
 
@@ -1113,18 +1115,18 @@ download_data_xml() {
     local client_version="2.2.0.2399"
 	local client_id="${g_system[2]}" # should be something like NapiProjektPython
 
+	# input data
     local md5sum=${1:-0}
-    local filename=''
-    local byte_size=0
-    local of="$2"
-
-    local lang="${3:-'PL'}"
-    local user="${4:-''}"
-    local passwd="${5:-''}"
+    local movie_file="${2:-}"
+    local byte_size=${3:-0};
+    local of="$4"
+    local lang="${5:-'PL'}"
+    local user="${6:-''}"
+    local passwd="${7:-''}"
     
-    local rv=$RET_OK
     local http_codes=''
     local status=$RET_OK
+    local rv=$RET_OK
     
     local data="mode=1&\
         client=$client_id&\
@@ -1136,7 +1138,7 @@ download_data_xml() {
         downloaded_cover_id=$md5sum&\
         advert_type=flashAllowed&\
         video_info_hash=$md5sum&\
-        nazwa_pliku=$filename&\
+        nazwa_pliku=$movie_file&\
         rozmiar_pliku_bajty=$byte_size&\
         the=end"
 
@@ -1155,7 +1157,39 @@ download_data_xml() {
 }
 
 
+#
+# @brief get the compound xml file containing all the data
+#
+# This is a wrapper for download_data_xml
+#
+get_xml() {
+    local md5sum=${1:-0}
+    local movie_file="${2:-}"
+    local byte_size=${3:-0};
+    local lang="${4:-'PL'}"
+
+	local base=$(strip_ext "$movie_file")
+	local xmlfile="${base}.xml"
+
+	# assume failure
+	local rv=$RET_FAIL;
+
+	if [ -e "$xmlfile" ]; then
+		# oh good, we already have it
+		rv=$RET_OK
+	else
+		# snap, it needs to be downloaded
+		download_data_xml $sum "$movie_file" $byte_size "$xmlfile" $lang ${g_system[2]} ${g_cred[@]}
+		rv=$?
+	fi
+
+	return $rv
+}
+
+
 extract_subs_xml() {
+
+
 	return 0
     
 }
@@ -1164,6 +1198,57 @@ extract_subs_xml() {
 extract_cover_xml() {
 
     return 0
+}
+
+
+#
+# @brief removes the remaining xml file if present
+# @param movie filename
+#
+cleanup_xml() {
+    local movie_file="${1:-}"
+	local base=$(strip_ext "$movie_file")
+	local xmlfile="${base}.xml"
+
+	if [ -e "$xmlfile" ]; then
+		unlink "$xmlfile"
+		_debug $LINENO "usunieto plik xml dla [$movie_file]"
+	fi
+
+	return $RET_OK
+}
+
+
+download_subs_xml() {
+    local md5sum=${1:-0}
+    local movie_file="${2:-}"
+    local byte_size=${3:-0};
+    local lang="${4:-'PL'}"
+
+	local base=$(strip_ext "$movie_file")
+	local xmlfile="${base}.xml"
+
+	# assume failure
+	local rv=$RET_FAIL;
+
+	# get the go damn xml
+	get_xml $md5sum "$movie_file" $byte_size $lang
+	rv=$?
+
+	[ $rv -ne $RET_OK ] && 
+		_error "blad. nie mozna pobrac pliku xml" &&
+		return $RET_FAIL
+
+    # verify the contents
+	# check if the file was downloaded successfully by checking
+	# if it exists at all 
+	[ ! -e "$xml" ] &&
+		_error "sciagniety plik nie istnieje, nieznany blad" &&
+		return $RET_FAIL
+
+
+
+	return $rv
 }
 
 
@@ -1305,9 +1390,6 @@ get_subtitles() {
     local hash=$(f $sum)
 
     _info $LINENO "pobieram napisy dla pliku [$fn]"
-
-    download_data_xml $sum "$of" $lang ${g_system[2]} ${g_cred[@]}
-    exit
 
     download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
     return $?
@@ -1816,6 +1898,9 @@ process_file() {
         g_stats[1]=$(( ${g_stats[1]} + 1 ))
         rv=$RET_UNAV
     fi # if [ $status = $RET_OK ]
+
+	# cleanup the xml remnants
+	cleanup_xml "$media_file"
 
     # increment total processed counter
     g_stats[6]=$(( ${g_stats[6]} + 1 ))
