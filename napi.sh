@@ -63,7 +63,7 @@ declare g_orig_prefix='ORIG_'
 #
 # fork id
 #
-declare -a g_system=( 'linux' '1' 'pynapi' 1 )
+declare -a g_system=( 'linux' '1' 'NapiProjektPython' 1 )
 
 #
 # @brief minimum size of files to be processed
@@ -1389,10 +1389,25 @@ get_subtitles() {
     local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
     local hash=$(f $sum)
 
+	local media_file=$(basename "$fn")
+	local file_size=$($g_cmd_stat "$fn")
+	local status=$RET_FAIL
+
     _info $LINENO "pobieram napisy dla pliku [$fn]"
 
-    download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
-    return $?
+	# pick method depending on id
+	case ${g_system[2]} in
+		'NapiProjekt' | 'NapiProjektPython' )
+			download_subs_xml $sum "$media_file" $file_size $lang
+			status=$?
+			;;
+
+		'pynapi' | 'other' )
+			download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+			status=$?
+			;;
+	esac
+    return $status
 }
 
 
