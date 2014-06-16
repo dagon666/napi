@@ -1058,7 +1058,7 @@ download_url() {
         headers=$(${g_cmd_wget[0]} "$output" "$url" 2>&1)
         status=$?
     elif [ ${g_cmd_wget[1]} -eq 1 ]; then
-        headers=$(${g_cmd_wget[0]} "$output " --post-data="$post" "$url" 2>&1)
+        headers=$(${g_cmd_wget[0]} "$output" --post-data="$post" "$url" 2>&1)
         status=$?
     fi
 
@@ -1084,7 +1084,7 @@ download_url() {
 #
 extract_xml_tag() {
 
-    local file="$1"
+    local file_path="$1"
     local tag="$2"
 
     local awk_script=''
@@ -1095,14 +1095,35 @@ extract_xml_tag() {
 read -d "" awk_script << EOF
 BEGIN {
     RS=">"
-    ORS=">\\\n"
+    ORS=">"
 }
 /<$tag/,/<\\\/$tag/ { print }
 EOF
 
     # update the contents
-    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file"
-    awk "$awk_script" "$file"
+    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+    return $RET_OK
+}
+
+
+strip_xml_tag() {
+    local file_path="$1"
+    local tag="$2"
+
+    local awk_script=''
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+    awk_presence=$(( $awk_presence + 0 ))
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    FS="[><]"
+}
+/$tag/ { print \$3 }
+EOF
+
+    # update the contents
+    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
     return $RET_OK
 }
 
@@ -1162,24 +1183,27 @@ download_data_xml() {
 #
 # This is a wrapper for download_data_xml
 #
+# @param md5sum
+# @param movie file path
+# @param size of the file in bytes
+# @param language
+#
 get_xml() {
     local md5sum=${1:-0}
     local movie_file="${2:-}"
     local byte_size=${3:-0};
     local lang="${4:-'PL'}"
-
-	local base=$(strip_ext "$movie_file")
-	local xmlfile="${base}.xml"
+	local xml_path="${5:-}"
 
 	# assume failure
 	local rv=$RET_FAIL;
 
-	if [ -e "$xmlfile" ]; then
+	if [ -e "$xml_path" ]; then
 		# oh good, we already have it
 		rv=$RET_OK
 	else
 		# snap, it needs to be downloaded
-		download_data_xml $sum "$movie_file" $byte_size "$xmlfile" $lang ${g_system[2]} ${g_cred[@]}
+		download_data_xml $md5sum "$movie_file" $byte_size "$xml_path" $lang ${g_cred[@]}
 		rv=$?
 	fi
 
@@ -1187,7 +1211,10 @@ get_xml() {
 }
 
 
+
 extract_subs_xml() {
+	local xml_path=""
+
 
 
 	return 0
@@ -1210,6 +1237,14 @@ cleanup_xml() {
 	local base=$(strip_ext "$movie_file")
 	local xmlfile="${base}.xml"
 
+	if [ ${g_system[2]} != "NapiProjektPython" ] ||
+		[ ${g_system[2]} != "NapiProjekt" ]; then
+		# don't even bother if id is not configured
+		# to any compatible with napiprojekt3 api
+		return $RET_OK
+	fi
+
+	# check for file presence
 	if [ -e "$xmlfile" ]; then
 		unlink "$xmlfile"
 		_debug $LINENO "usunieto plik xml dla [$movie_file]"
@@ -1219,22 +1254,34 @@ cleanup_xml() {
 }
 
 
+#
+# @brief download subtitles using napiprojekt3 API
+# @param md5sum
+# @param movie file path
+# @param size of the file in bytes
+# @param language
+#
 download_subs_xml() {
     local md5sum=${1:-0}
-    local movie_file="${2:-}"
-    local byte_size=${3:-0};
+    local movie_path="${2:-}"
+	local subs_path="${3:-}"
     local lang="${4:-'PL'}"
 
-	local base=$(strip_ext "$movie_file")
-	local xmlfile="${base}.xml"
+	local path=$(dirname "$movie_path")
+	local movie_file=$(basename "$movie_path")
+	local noext=$(strip_ext "$movie_file")
+	local xml_path="$path/${noext}.xml"
+
+	local byte_size=$($g_cmd_stat "$movie_path")
 
 	# assume failure
 	local rv=$RET_FAIL;
 
-	# get the go damn xml
-	get_xml $md5sum "$movie_file" $byte_size $lang
+	# get the god damn xml
+	get_xml $md5sum "$movie_file" $byte_size $lang "$xml_path"
 	rv=$?
 
+	# check the status
 	[ $rv -ne $RET_OK ] && 
 		_error "blad. nie mozna pobrac pliku xml" &&
 		return $RET_FAIL
@@ -1242,10 +1289,20 @@ download_subs_xml() {
     # verify the contents
 	# check if the file was downloaded successfully by checking
 	# if it exists at all 
-	[ ! -e "$xml" ] &&
+	[ ! -e "$xml_path" ] &&
 		_error "sciagniety plik nie istnieje, nieznany blad" &&
 		return $RET_FAIL
 
+	# I've got the xml, extract interesting parts
+	local xml_status=$(extract_xml_tag "a.xml" 'status' | grep 'success' | wc -l)
+
+	if [ $xml_status -eq 0 ]; then
+		_error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
+		rv=$RET_UNAV
+	fi
+
+	# extract the subs data
+	local xml_subs=$(extract_xml_tag "a.xml" 'subtitles')
 
 
 	return $rv
@@ -1387,22 +1444,21 @@ get_subtitles() {
 
     # md5sum and hash calculation
     local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
-    local hash=$(f $sum)
-
-	local media_file=$(basename "$fn")
-	local file_size=$($g_cmd_stat "$fn")
+    local hash=0
 	local status=$RET_FAIL
 
-    _info $LINENO "pobieram napisy dla pliku [$fn]"
+	local media_file=$(basename "$fn")
+    _info $LINENO "pobieram napisy dla pliku [$media_file]"
 
 	# pick method depending on id
 	case ${g_system[2]} in
 		'NapiProjekt' | 'NapiProjektPython' )
-			download_subs_xml $sum "$media_file" $file_size $lang
+			download_subs_xml $sum "$fn" "$of" $lang
 			status=$?
 			;;
 
 		'pynapi' | 'other' )
+			hash=$(f $sum)
 			download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
 			status=$?
 			;;
