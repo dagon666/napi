@@ -175,7 +175,7 @@ g_stats_print=0
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'unlink=0' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
@@ -189,6 +189,7 @@ declare -a g_cmd_wget=( 'wget -q -O' '0' )
 g_cmd_stat='stat -c%s'
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
+g_cmd_unlink='unlink'
 
 ################################## RETVAL ######################################
 
@@ -546,6 +547,11 @@ configure_cmds() {
     [ -n "$p_test" ] && 
 		g_cmd_wget[1]=1 &&
         _info $LINENO "wget wspiera opcje -S"
+
+	# check unlink command
+	[ "$(lookup_value 'unlink' ${g_tools[@]})" = "0" ] &&
+		_info $LINENO 'brak unlink, g_cmd_unlink = rm' &&
+		g_cmd_unlink='rm -rf'
 
     return $RET_OK
 }
@@ -1345,7 +1351,7 @@ download_subs_classic() {
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
 
         # cleanup
-        [ "$id" = "other" ] && [ -e "$dof" ] && unlink "$dof"
+        [ "$id" = "other" ] && [ -e "$dof" ] && $g_cmd_unlink "$dof"
 
         # ... and exit
         return $RET_FAIL
@@ -1359,12 +1365,12 @@ download_subs_classic() {
 
         "other")
         7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
-        [ -e "$dof" ] && unlink "$dof"
+        [ -e "$dof" ] && $g_cmd_unlink "$dof"
 
         if ! [ -s "$of" ]; then
             _info $LINENO "plik docelowy ma zerowy rozmiar"
             rv=$RET_FAIL
-            [ -e "$of" ] && unlink "$of"
+            [ -e "$of" ] && $g_cmd_unlink "$of"
         fi
         ;;
 
@@ -1396,7 +1402,7 @@ download_subs_classic() {
             _debug $LINENO "$fdata"
 
             rv=$RET_FAIL
-            unlink "$of"
+            $g_cmd_unlink "$of"
         fi
     fi
 
@@ -1423,7 +1429,7 @@ download_cover_classic() {
         # if file doesn't exist or has zero size
         if ! [ -s "$2" ]; then
             rv=$RET_UNAV 
-            [ -e "$2" ] && unlink "$2"
+            [ -e "$2" ] && $g_cmd_unlink "$2"
         fi
     fi
 
@@ -1552,7 +1558,7 @@ convert_charset() {
         rv=$RET_OK
     fi
 
-    [ -e "$tmp" ] && unlink "$tmp"
+    [ -e "$tmp" ] && $g_cmd_unlink "$tmp"
     return $rv
 }
 
@@ -1716,7 +1722,7 @@ convert_format() {
         cp "$path/$input" "$path/$orig"
 	else
 		# get rid of it, if it already exists
-		[ -e "$path/$orig" ] && unlink "$path/$orig"
+		[ -e "$path/$orig" ] && $g_cmd_unlink "$path/$orig"
 	fi
 
     # detect video file framerate
@@ -1741,7 +1747,7 @@ convert_format() {
         _msg "pomyslnie przekonwertowano do $g_sub_format"
         [ "$input" != "$conv" ] &&
             _msg "usuwam oryginalny plik" &&
-            unlink "$path/$input"
+            $g_cmd_unlink "$path/$input"
     else
         _msg "konwersja do $g_sub_format niepomyslna"
 
@@ -1751,7 +1757,7 @@ convert_format() {
     fi
 
     # delete a backup
-    [ -e "$tmp" ] && unlink "$tmp"
+    [ -e "$tmp" ] && $g_cmd_unlink "$tmp"
     return $rv
 }
 
@@ -2067,7 +2073,7 @@ spawn_forks() {
 
     # close the fd
     exec 8>&-
-    [ -e "$stats_file" ] && unlink "$stats_file"
+    [ -e "$stats_file" ] && $g_cmd_unlink "$stats_file"
 
     # restore main fork id
     g_system[3]=1
