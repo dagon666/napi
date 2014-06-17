@@ -17,7 +17,7 @@ test_tool() {
 }
 
 test_local_array() {
-	declare -a local a=( 1 2 3 4 5 )
+	declare -a a=( 1 2 3 4 5 )
 	local i=0
 
 	for i in $(seq 0 4); do
