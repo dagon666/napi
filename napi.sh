@@ -1150,21 +1150,16 @@ EOF
 
 #
 # @brief extracts cdata contents
-# @param file name or a tag name (if used as a stream filter)
-# @param tag name (if used with file given)
+# @param file name or none (if used as a stream filter)
 #
 extract_cdata_tag() {
-    local file_path="$1"
-    local tag="$2"
-
 	# 0 - file
 	# 1 - stream
 	local input_type=0
 
 	[ $# -eq 1 ] && 
 		_debug $LINENO "wejsciem jest strumien" &&
-		input_type=1 &&
-		tag="$1"
+		input_type=1
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1174,9 +1169,11 @@ extract_cdata_tag() {
 read -d "" awk_script << EOF
 BEGIN {
     RS="CDATA";
-    FS="[\\[\\]]";
+    FS="[\\\[\\\]]";
 }
-/<$tag/,/<\\\/$tag/ { print }
+{ 
+	print \$2; 
+}
 EOF
 
 	if [ $input_type -eq 0 ]; then
@@ -1255,7 +1252,7 @@ download_data_xml() {
     local status=$RET_OK
     local rv=$RET_OK
     
-    local data="mode=1&\
+    local data="mode=31&\
         client=$client_id&\
         client_ver=$client_version&\
         user_nick=$user&\
@@ -1328,7 +1325,9 @@ extract_subs_xml() {
 	local xml_status=0
 	local rv=$RET_OK
 
-	# I've got the xml, extract interesting parts
+    local napi_pass="iBlm8NTigvru0Jr0"
+
+	# I've got the xml, extract Interesting parts
 	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
 
 	if [ $xml_status -eq 0 ]; then
@@ -1342,22 +1341,62 @@ extract_subs_xml() {
 	# extract content
 	local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
 
-	echo $subs_content
+	# create archive file
+    local tmp_7z_archive=$(mktemp -t napisy.7z.XXXXXXXX)
+	echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
 
+	7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
 
+	if ! [ -s "$subs_path" ]; then
+		_info $LINENO "plik docelowy ma zerowy rozmiar"
+		[ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
+		rv=$RET_FAIL
+	fi
 
+	# get rid of the archive
+	[ -e "$tmp_7z_archive" ] && $g_cmd_unlink "$tmp_7z_archive"
 	return $rv
 }
 
 
 extract_subs_nfo() {
+	# TODO to be implemented
 	return 0
 }
 
 
+#
+# @brief extract cover out of xml
+# @param xml file path
+# @param subs file path
+#
 extract_cover_xml() {
+	local xml_path="${1:-}"
+	local cover_path="${2:-}"
+	local xml_status=0
+	local rv=$RET_OK
 
-    return 0
+	# I've got the xml, extract Interesting parts
+	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
+
+	if [ $xml_status -eq 0 ]; then
+		_error "napiprojekt zglasza niepowodzenie - okladka niedostepna"
+		return $RET_UNAV
+	fi
+
+	# extract the cover data
+	local xml_cover=$(extract_xml_tag "$xml_path" 'cover')
+
+	# write archive data
+	echo "$xml_cover" | extract_cdata_tag | base64 -d > "$cover_path" 2> /dev/null
+
+	if ! [ -s "$cover_path" ]; then
+		_info $LINENO "okladka ma zerowy rozmiar, usuwam..."
+		[ -e "$cover_path" ] && $g_cmd_unlink "$cover_path"
+		rv=$RET_FAIL
+	fi
+
+	return $rv
 }
 
 
@@ -1366,20 +1405,22 @@ extract_cover_xml() {
 # @param movie filename
 #
 cleanup_xml() {
-    local movie_file="${1:-}"
+    local movie_path="${1:-}"
+	local movie_file=$(basename "$movie_path")
 	local base=$(strip_ext "$movie_file")
 	local xmlfile="${base}.xml"
+	local path=$(dirname "$movie_path")
 
-	if [ ${g_system[2]} != "NapiProjektPython" ] ||
-		[ ${g_system[2]} != "NapiProjekt" ]; then
+	if [ ${g_system[2]} != "NapiProjektPython" ] && [ ${g_system[2]} != "NapiProjekt" ]; then
 		# don't even bother if id is not configured
 		# to any compatible with napiprojekt3 api
+		_debug $LINENO "nie ma co sprzatac, plik xml jest tworzony tylko dla napiprojekt3 api"
 		return $RET_OK
 	fi
 
 	# check for file presence
-	if [ -e "$xmlfile" ]; then
-		$g_cmd_unlink "$xmlfile"
+	if [ -e "$path/$xmlfile" ]; then
+		$g_cmd_unlink "$path/$xmlfile"
 		_debug $LINENO "usunieto plik xml dla [$movie_file]"
 	fi
 
@@ -1428,7 +1469,6 @@ download_subs_xml() {
 
 	extract_subs_xml "$xml_path" "$subs_path"
 	rv=$?
-
 	return $rv
 }
 
@@ -1528,6 +1568,44 @@ download_subs_classic() {
 }
 
 
+download_cover_xml() {
+    local md5sum=${1:-0}
+    local movie_path="${2:-}"
+	local cover_path="${3:-}"
+    local lang="${4:-'PL'}"
+
+	local path=$(dirname "$movie_path")
+	local movie_file=$(basename "$movie_path")
+	local noext=$(strip_ext "$movie_file")
+	local xml_path="$path/${noext}.xml"
+
+	local byte_size=$($g_cmd_stat "$movie_path")
+
+	# assume failure
+	local rv=$RET_FAIL;
+
+	# get the god damn xml
+	get_xml $md5sum "$movie_file" $byte_size $lang "$xml_path"
+	rv=$?
+
+	# check the status
+	[ $rv -ne $RET_OK ] && 
+		_error "blad. nie mozna pobrac pliku xml" &&
+		return $RET_FAIL
+
+    # verify the contents
+	# check if the file was downloaded successfully by checking
+	# if it exists at all 
+	[ ! -e "$xml_path" ] &&
+		_error "sciagniety plik nie istnieje, nieznany blad" &&
+		return $RET_FAIL
+
+	extract_cover_xml "$xml_path" "$cover_path"
+	rv=$?
+	return $rv
+}
+
+
 #
 # @brief: retrieve cover (probably deprecated okladka_pobierz doesn't exist - 404)
 # @param: md5sum
@@ -1599,12 +1677,27 @@ get_cover() {
     local path=$(dirname "$1")
 	local media_file=$(basename "$1")
     local cover_fn=$(strip_ext "$media_file")
+	local status=$RET_FAIL
+
+    local lang="$3"
     
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
     
-    download_cover_classic $sum "$path/$cover_fn"
-    return $?
+	# pick method depending on id
+	case ${g_system[2]} in
+		'NapiProjekt' | 'NapiProjektPython' )
+			download_cover_xml $sum "$1" "$path/$cover_fn" $lang
+			status=$?
+			;;
+
+		'pynapi' | 'other' )
+			download_cover_classic $sum "$path/$cover_fn"
+			status=$?
+			;;
+	esac
+
+    return $status
 }
 
 
@@ -2080,7 +2173,7 @@ process_file() {
         # assumed here that cover is only available
         # if subtitles are
         if [ $g_cover -eq 1 ]; then
-            if get_cover "$media_path"; then
+            if get_cover "$media_path" $g_lang; then
                 _status "OK" "cover for $media_path"
                 g_stats[4]=$(( ${g_stats[4]} + 1 ))
             else
@@ -2095,7 +2188,7 @@ process_file() {
     fi # if [ $status = $RET_OK ]
 
 	# cleanup the xml remnants
-	cleanup_xml "$media_file"
+	cleanup_xml "$media_path"
 
     # increment total processed counter
     g_stats[6]=$(( ${g_stats[6]} + 1 ))
