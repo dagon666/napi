@@ -175,7 +175,7 @@ g_stats_print=0
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'unlink=0' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'base64=0' 'unlink=0' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
@@ -715,7 +715,7 @@ parse_argv() {
 
             # identification
             "-I" | "--id") varname="g_system[2]"
-            msg="okresl typ narzedzia jako pynapi albo other"
+			msg="okresl typ narzedzia jako pynapi/other (legacy API) albo NapiProjekt/NapiProjektPython (API-3)"
             ;;
 
             # logfile
@@ -848,6 +848,24 @@ verify_id() {
             rv=$RET_FAIL
         fi
     fi
+
+
+	# check for necessary tools for napiprojekt3 API
+    if [ "${g_system[2]}" = 'NapiProjektPython' ] ||
+		[ "${g_system[2]}" = 'NapiProjekt' ]; then
+        local p=$(lookup_value 'base64' ${g_tools[@]})
+        if [ $(( $p + 0 )) -eq 0 ]; then
+            _error "base64 nie jest dostepny. zmien id na pynapi/other albo zainstaluj base64"
+            rv=$RET_FAIL
+        fi
+
+        p=$(lookup_value 'awk' ${g_tools[@]})
+        if [ $(( $p + 0 )) -eq 0 ]; then
+            _error "awk nie jest dostepny. zmien id na pynapi/other albo zainstaluj awk"
+            rv=$RET_FAIL
+        fi
+    fi
+
     return $rv
 }
 
@@ -1086,12 +1104,25 @@ download_url() {
 
 
 #
-# extracts xml tag contents
+# @brief extracts xml tag contents
+# @param file name or a tag name (if used as a stream filter)
+# @param tag name (if used with file given)
 #
 extract_xml_tag() {
 
     local file_path="$1"
     local tag="$2"
+
+	#
+	# 0 - file
+	# 1 - stream
+	#
+	local input_type=0
+
+	[ $# -eq 1 ] && 
+		_debug $LINENO "wejsciem jest strumien" &&
+		input_type=1 &&
+		tag="$1"
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1106,15 +1137,76 @@ BEGIN {
 /<$tag/,/<\\\/$tag/ { print }
 EOF
 
-    # update the contents
-    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+	if [ $input_type -eq 0 ]; then
+		# update the contents
+		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+	else
+		[ $awk_presence -eq 1 ] && awk "$awk_script"
+	fi
+
     return $RET_OK
 }
 
 
+#
+# @brief extracts cdata contents
+# @param file name or a tag name (if used as a stream filter)
+# @param tag name (if used with file given)
+#
+extract_cdata_tag() {
+    local file_path="$1"
+    local tag="$2"
+
+	# 0 - file
+	# 1 - stream
+	local input_type=0
+
+	[ $# -eq 1 ] && 
+		_debug $LINENO "wejsciem jest strumien" &&
+		input_type=1 &&
+		tag="$1"
+
+    local awk_script=''
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+    awk_presence=$(( $awk_presence + 0 ))
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    RS="CDATA";
+    FS="[\\[\\]]";
+}
+/<$tag/,/<\\\/$tag/ { print }
+EOF
+
+	if [ $input_type -eq 0 ]; then
+		# update the contents
+		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+	else
+		[ $awk_presence -eq 1 ] && awk "$awk_script"
+	fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief strip xml tag 
+# @param file name or a tag name (if used as a stream filter)
+# @param tag name (if used with file given)
+#
 strip_xml_tag() {
     local file_path="$1"
     local tag="$2"
+
+	# 0 - file
+	# 1 - stream
+	local input_type=0
+
+	[ $# -eq 1 ] && 
+		_debug $LINENO "wejsciem jest strumien" &&
+		input_type=1 &&
+		tag="$1"
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1128,10 +1220,18 @@ BEGIN {
 /$tag/ { print \$3 }
 EOF
 
-    # update the contents
-    [ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+	if [ $input_type -eq 0 ]; then
+		# update the contents
+		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
+	else
+		[ $awk_presence -eq 1 ] && awk "$awk_script"
+	fi
+
     return $RET_OK
 }
+
+
+
 
 
 #
@@ -1217,14 +1317,41 @@ get_xml() {
 }
 
 
-
+#
+# @brief extract subtitles out of xml
+# @param xml file path
+# @param subs file path
+#
 extract_subs_xml() {
-	local xml_path=""
+	local xml_path="${1:-}"
+	local subs_path="${2:-}"
+	local xml_status=0
+	local rv=$RET_OK
+
+	# I've got the xml, extract interesting parts
+	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
+
+	if [ $xml_status -eq 0 ]; then
+		_error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
+		return $RET_UNAV
+	fi
+
+	# extract the subs data
+	local xml_subs=$(extract_xml_tag "$xml_path" 'subtitles')
+
+	# extract content
+	local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
+
+	echo $subs_content
 
 
 
+	return $rv
+}
+
+
+extract_subs_nfo() {
 	return 0
-    
 }
 
 
@@ -1252,7 +1379,7 @@ cleanup_xml() {
 
 	# check for file presence
 	if [ -e "$xmlfile" ]; then
-		unlink "$xmlfile"
+		$g_cmd_unlink "$xmlfile"
 		_debug $LINENO "usunieto plik xml dla [$movie_file]"
 	fi
 
@@ -1264,7 +1391,7 @@ cleanup_xml() {
 # @brief download subtitles using napiprojekt3 API
 # @param md5sum
 # @param movie file path
-# @param size of the file in bytes
+# @param output file path
 # @param language
 #
 download_subs_xml() {
@@ -1299,17 +1426,8 @@ download_subs_xml() {
 		_error "sciagniety plik nie istnieje, nieznany blad" &&
 		return $RET_FAIL
 
-	# I've got the xml, extract interesting parts
-	local xml_status=$(extract_xml_tag "a.xml" 'status' | grep 'success' | wc -l)
-
-	if [ $xml_status -eq 0 ]; then
-		_error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
-		rv=$RET_UNAV
-	fi
-
-	# extract the subs data
-	local xml_subs=$(extract_xml_tag "a.xml" 'subtitles')
-
+	extract_subs_xml "$xml_path" "$subs_path"
+	rv=$?
 
 	return $rv
 }
