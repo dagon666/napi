@@ -366,9 +366,9 @@ function f_read_tmplayer_format
     
     echo "hms" > $g_ProcTmpFile
     
-    if [ $multiline = "no" ]; then
+    if [ "$multiline" = "no" ]; then
     
-        if [ $delimiter = ":" ]; then
+        if [ "$delimiter" = ":" ]; then
             tail -n +"$2" "$1" | tr -d '\r' | 
                 awk "BEGIN { 
 						FS=\"$delimiter\";
@@ -401,7 +401,7 @@ function f_read_tmplayer_format
                 }" >> "$g_ProcTmpFile"                  
         fi  
     else
-        if [ $delimiter = ":" ]; then
+        if [ "$delimiter" = ":" ]; then
             tail -n +"$2" "$1" | tr -d '\r' | 
                 awk "BEGIN { FS=\"$delimiter\"; xprev=0; linecc=1; }; 
                 {                   
@@ -454,7 +454,7 @@ function f_read_tmplayer_format
 # microdvd -> uni format converter
 function f_read_microdvd_format
 {   
-    echo "secs" > $g_ProcTmpFile
+    echo "secs" > "$g_ProcTmpFile"
     tail -n +"$2" "$1" | tr -d '\r' | 
         awk "BEGIN { 
 				FS=\"[{}]+\";
@@ -488,7 +488,7 @@ function f_read_microdvd_format
 # mpl2 -> uni format converter
 function f_read_mpl2_format
 {
-    echo "secs" > $g_ProcTmpFile
+    echo "secs" > "$g_ProcTmpFile"
     tail -n +"$2" "$1" | tr -d '\r' | 
         awk "BEGIN { 
 				FS=\"[][]+\";
@@ -508,9 +508,9 @@ function f_read_mpl2_format
 # subrip -> uni format converter
 function f_read_subrip_format
 {
-    echo "hmsms" > $g_ProcTmpFile
+    echo "hmsms" > "$g_ProcTmpFile"
     
-    if [ "$3" == "inline" ]; then
+    if [ "$3" = "inline" ]; then
     
         tail -n +"$2" "$1" | tr -d '\r' | 
             awk "BEGIN { 
@@ -548,7 +548,7 @@ function f_read_subrip_format
 # fab -> uni format converter
 function f_read_fab_format
 {
-    echo "hmsms" > $g_ProcTmpFile
+    echo "hmsms" > "$g_ProcTmpFile"
     
     tail -n +"$2" "$1" | tr -d '\r' | 
         awk "BEGIN { FS=\"\n\"; RS=\"\"; };
@@ -1208,13 +1208,13 @@ while [ $# -gt 0 ]; do
 done
 
 # filenames validation
-if [ $g_InputFile == "none" ] || [ $g_OutputFile == "none" ]; then
+if [ "$g_InputFile" = "none" ] || [ "$g_OutputFile" = "none" ]; then
     f_print_error "Input/Output file not specified !!!"
     exit -1
 fi
 
 # handle the input file format
-if [ $g_InputFormat == "none" ]; then
+if [ "$g_InputFormat" = "none" ]; then
     g_DetectedFormat=$(f_guess_format "$g_InputFile")
     
     if [ "$g_DetectedFormat" = "not detected" ]; then
@@ -1222,7 +1222,7 @@ if [ $g_InputFormat == "none" ]; then
         exit -1
     fi
     
-    g_InputFormat=$g_DetectedFormat
+    g_InputFormat="$g_DetectedFormat"
     g_InputFormatData=( $(echo $g_InputFormat) )
     g_FormatDetected=1
 else
@@ -1269,13 +1269,13 @@ esac
 
 
 # check if conversion is really needed
-if [ ${g_InputFormatData[0]} == $g_OutputFormat ]; then
+if [ "${g_InputFormatData[0]}" = "$g_OutputFormat" ]; then
 
     # additional format specific checks
     case "${g_InputFormatData[0]}" in
     
         "microdvd")
-            if [ "${g_InputFrameRate:0:5}" == "${g_OutputFrameRate:0:5}" ]; then
+            if [ "${g_InputFrameRate:0:5}" = "${g_OutputFrameRate:0:5}" ]; then
                 f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
                 exit -1
             fi
