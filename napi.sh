@@ -1973,6 +1973,15 @@ convert_format() {
 
 	elif [ $status -eq $RET_NOACT ]; then
         _msg "subotage.sh - konwersja nie jest konieczna"
+		
+		#copy the backup to converted
+		cp "$tmp" "$path/$conv"
+
+		# get rid of the original file
+        [ "$input" != "$conv" ] &&
+            _msg "usuwam oryginalny plik" &&
+            $g_cmd_unlink "$path/$input"
+
 		rv=$RET_OK
 
     else

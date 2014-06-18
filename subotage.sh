@@ -1275,13 +1275,15 @@ if [ "${g_InputFormatData[0]}" = "$g_OutputFormat" ]; then
         "microdvd")
             if [ "${g_InputFrameRate:0:5}" = "${g_OutputFrameRate:0:5}" ]; then
                 f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
-                exit 0
+				# RET_NOACT
+                exit 251
             fi
         ;;
     
         *)
         f_print_warning "No convertion is needed input format == output format"
-        exit 0
+		# RET_NOACT
+		exit 251
         ;;
     esac
 fi
