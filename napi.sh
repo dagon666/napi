@@ -1107,30 +1107,47 @@ download_url() {
 
 
 #
-# @brief extracts xml tag contents
-# @param file name or a tag name (if used as a stream filter)
-# @param tag name (if used with file given)
+# @brief run awk code
+# @param awk code
+# @param (optional) file - if no file - process the stream
 #
-extract_xml_tag() {
+run_awk_script() {
+	local awk_script="${1:-}"
+	local file_path="${2:-}"
 
-    local file_path="$1"
-    local tag="$2"
-
-	#
 	# 0 - file
 	# 1 - stream
-	#
 	local input_type=0
 
-	if [ $# -eq 1 ]; then
-		input_type=1
-		tag="$1"
-		# don't print anything - we don't want to corrupt the output
-	fi
+	# detect number of arguments
+	[ $# -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
 
-    local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
     awk_presence=$(( $awk_presence + 0 ))
+
+	# bail out if awk is not available
+	[ $awk_presence -eq 0 ] && return $RET_FAIL
+
+	# process a stream or a file
+	if [ $input_type -eq 0 ]; then
+		awk "$awk_script" "$file_path"
+	else
+		awk "$awk_script"
+	fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief extracts xml tag contents
+# @param tag name 
+# @param file name (optional)
+#
+extract_xml_tag() {
+    local tag="$1"
+    local file_path="${2:-}"
+    local awk_script=''
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
@@ -1141,14 +1158,8 @@ BEGIN {
 /<$tag/,/<\\\/$tag/ { print }
 EOF
 
-	if [ $input_type -eq 0 ]; then
-		# update the contents
-		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
-	else
-		[ $awk_presence -eq 1 ] && awk "$awk_script"
-	fi
-
-    return $RET_OK
+	run_awk_script "$awk_script" "$file_path"
+    return $?
 }
 
 
@@ -1157,21 +1168,8 @@ EOF
 # @param file name or none (if used as a stream filter)
 #
 extract_cdata_tag() {
-
 	local file_path="${1:-}"
-
-	# 0 - file
-	# 1 - stream
-	local input_type=0
-
-	if [ $# -eq 0 ]; then
-		input_type=1
-		# don't print anything - we don't want to corrupt the output
-	fi
-
     local awk_script=''
-    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
-    awk_presence=$(( $awk_presence + 0 ))
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
@@ -1184,39 +1182,20 @@ BEGIN {
 }
 EOF
 
-	if [ $input_type -eq 0 ]; then
-		# update the contents
-		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
-	else
-		[ $awk_presence -eq 1 ] && awk "$awk_script"
-	fi
-
-    return $RET_OK
+	run_awk_script "$awk_script" "$file_path"
+    return $?
 }
 
 
 #
 # @brief strip xml tag 
-# @param file name or a tag name (if used as a stream filter)
 # @param tag name (if used with file given)
+# @param file name or a tag name (if used as a stream filter)
 #
 strip_xml_tag() {
-    local file_path="$1"
-    local tag="$2"
-
-	# 0 - file
-	# 1 - stream
-	local input_type=0
-
-	if [ $# -eq 1 ]; then
-		input_type=1
-		tag="$1"
-		# don't print anything - we don't want to corrupt the output
-	fi
-
+    local tag="$1"
+    local file_path="${2:-}"
     local awk_script=''
-    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
-    awk_presence=$(( $awk_presence + 0 ))
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
@@ -1226,18 +1205,9 @@ BEGIN {
 /$tag/ { print \$3 }
 EOF
 
-	if [ $input_type -eq 0 ]; then
-		# update the contents
-		[ $awk_presence -eq 1 ] && awk "$awk_script" "$file_path"
-	else
-		[ $awk_presence -eq 1 ] && awk "$awk_script"
-	fi
-
-    return $RET_OK
+	run_awk_script "$awk_script" "$file_path"
+    return $?
 }
-
-
-
 
 
 #
@@ -1337,7 +1307,7 @@ extract_subs_xml() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
 	# I've got the xml, extract Interesting parts
-	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
+	xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
 
 	_debug $LINENO "subs xml status [$xml_status]"
 	if [ $xml_status -eq 0 ]; then
@@ -1346,7 +1316,7 @@ extract_subs_xml() {
 	fi
 
 	# extract the subs data
-	local xml_subs=$(extract_xml_tag "$xml_path" 'subtitles')
+	local xml_subs=$(extract_xml_tag 'subtitles' "$xml_path")
 
 	# extract content
 	local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
@@ -1387,7 +1357,7 @@ extract_cover_xml() {
 	local rv=$RET_OK
 
 	# I've got the xml, extract Interesting parts
-	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
+	xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
 
 	_debug $LINENO "cover xml status [$xml_status]"
 	if [ $xml_status -eq 0 ]; then
@@ -1396,7 +1366,7 @@ extract_cover_xml() {
 	fi
 
 	# extract the cover data
-	local xml_cover=$(extract_xml_tag "$xml_path" 'cover')
+	local xml_cover=$(extract_xml_tag 'cover' "$xml_path")
 
 	# write archive data
 	echo "$xml_cover" | extract_cdata_tag | base64 -d > "$cover_path" 2> /dev/null
@@ -2254,9 +2224,6 @@ sum_stats() {
     local file="$1"
     local awk_script=''
     local fc=${#g_stats[@]}
-    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
-
-    awk_presence=$(( $awk_presence + 0 ))
 
 # embed small awk program to count the columns
 read -d "" awk_script << EOF
@@ -2278,7 +2245,7 @@ END {
 EOF
 
     # update the contents
-    [ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
+    g_stats=( $(run_awk_script "$awk_script" "$file") )
     return $RET_OK
 }
 
