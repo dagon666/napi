@@ -66,10 +66,10 @@ g_FormatDescription=( "Format based on frames. Uses given framerate\n\t\t(defaul
 # fab format detection routine
 function f_is_fab_format
 {
-    max_attempts=8
-    attempts=$max_attempts
-    match="not detected"
-    first_line=1
+    local max_attempts=8
+    local attempts=$max_attempts
+    local match="not detected"
+    local first_line=1
 	local cnti='empty'
     
     while read file_line; do
@@ -87,19 +87,19 @@ function f_is_fab_format
         
         attempts=$(( $attempts - 1 ))       
     done < "$1"
-        
-    echo $match         
+    echo $match
 }
 
 # subviewer format detection routine
 function f_is_subviewer_format
 {
-    max_attempts=16
-    attempts=$max_attempts
-    match="not detected"
-    first_line=0
+    local max_attempts=16
+    local attempts=$max_attempts
+    local match="not detected"
+    local first_line=0
     
-    header_found=0
+    local header_found=0
+	local header_line=''
 
     while read file_line; do
         if [ $attempts -eq 0 ]; then
@@ -117,8 +117,10 @@ function f_is_subviewer_format
                 break
             fi          
         fi
+
+		header_line=$(echo $file_line | grep "\[INFORMATION\]")
                 
-        if [ -n $(echo $file_line | grep "\[INFORMATION\]") ]; then
+        if [ -n "$header_line" ]; then
             header_found=1
             continue
         fi
@@ -133,27 +135,27 @@ function f_is_subviewer_format
 # tmplayer format detection routine
 function f_is_tmplayer_format
 {
-    max_attempts=3
-    attempts=$max_attempts
-    match="not detected"
-    first_line=1
+    local max_attempts=3
+    local attempts=$max_attempts
+    local match="not detected"
+    local first_line=1
     
-    multiline="no"
-    hour_digits=2
-    delimiter=":"
+    local multiline="no"
+    local hour_digits=2
+    local delimiter=":"
     
     while read file_line; do
         if [ $attempts -eq 0 ]; then
             break
         fi
         
-        first_line=$(( $max_attempts - $attempts + 1))
+        first_line=$(( $max_attempts - $attempts + 1 ))
         
         # the check itself
         match_value=$(echo "$file_line" | sed -r 's/^[0-9]+:[0-9]+:[0-9]+/success/')
         
         # tmplayer format detected. Get more details
-		det=$(echo "$match_value" | grep "success")
+		local det=$(echo "$match_value" | grep "success")
         if [ -n "$det" ]; then
                 
             hour_digits=$(echo "$file_line" | awk 'BEGIN { FS=":"; } { printf ("%d", length($1)); }')
@@ -181,17 +183,18 @@ function f_is_tmplayer_format
 # microdvd format detection routine
 function f_is_microdvd_format
 {
-    max_attempts=3
-    attempts=$max_attempts
-    match="not detected"
-    first_line=1
+    local max_attempts=3
+    local attempts=$max_attempts
+    local match="not detected"
+    local first_line=1
+	local fps=''
 
     while read file_line; do
         if [ $attempts -eq 0 ]; then
             break
         fi
 
-        first_line=$(( $max_attempts - $attempts + 1))
+        first_line=$(( $max_attempts - $attempts + 1 ))
         
         match_value=$(echo $file_line | cut -d '}' -f -2 | sed 's/^{[0-9]*}{[0-9]*$/success/')      
 
@@ -199,33 +202,32 @@ function f_is_microdvd_format
         if [ "$match_value" = "success" ]; then
             match="microdvd $first_line"
             fps_info=$(head -n 1 "$1" | cut -d '}' -f 3-)
-            fps=0
-            
-            if [ -n $(echo $fps_info | awk '/^[0-9]+[\.0-9]*[\r\n]*$/') ] 
-            then
+			fps=0
+
+			local fps_value=$(echo "$fps_info" | awk '/^[0-9]+[\.0-9]*[\r\n]*$/')
+            if [ -n "$fps_value" ]; then
                 fps=$(echo $fps_info | tr -d '\r\n')
             fi
-
             break   
         fi
         
         attempts=$(( $attempts - 1 ))       
     done < "$1"
 
-    if [ -z "$fps" ]; then
-        echo "$match"
-    else
-        echo "$match $fps"
-    fi
+	if [ "$match" != "not detected"  ]; then
+		echo "$match $fps"
+	else
+		echo "$match"
+	fi
 }
 
 # mpl2 format detection routine
 function f_is_mpl2_format
 {
-    max_attempts=3
-    attempts=$max_attempts
-    match="not detected"
-    first_line=1    
+    local max_attempts=3
+    local attempts=$max_attempts
+    local match="not detected"
+    local first_line=1    
 
     while read file_line; do
         if [ $attempts -eq 0 ]; then
@@ -233,7 +235,6 @@ function f_is_mpl2_format
         fi
         
         first_line=$(( $max_attempts - $attempts + 1))
-
         match_value=$(echo $file_line | cut -d ']' -f -2 | sed 's/^\[[0-9]*\]\[[0-9]*$/success/')       
 
         # mpl2 format detected
@@ -245,18 +246,18 @@ function f_is_mpl2_format
         attempts=$(( $attempts - 1 ))       
     done < "$1"
 
-    echo "$match"
+    echo $match
 }
 
 
 # subrip format detection routine
 function f_is_subrip_format
 {
-    match="not detected"
-    max_attempts=8
-    attempts=$max_attempts
-    counter_type="not found"
-    first_line=1
+    local match="not detected"
+    local max_attempts=8
+    local attempts=$max_attempts
+    local counter_type="not found"
+    local first_line=1
 
     while read file_line; do
         if [ $attempts -eq 0 ]; then
@@ -264,37 +265,37 @@ function f_is_subrip_format
         fi
 
         if [ "$counter_type" = "not found" ]; then      
-            cntn=$(echo $file_line | awk '/^[0-9]+[\r\n]*$/')
-            first_line=$(( $max_attempts - $attempts + 1))
+            cntn=$(echo "$file_line" | awk '/^[0-9]+[\r\n]*$/')
+            first_line=$(( $max_attempts - $attempts + 1 ))
 
-            if [ -n $cntn ]; then
+            if [ -n "$cntn" ]; then
                 counter_type="newline"              
                 continue
             fi
             
-            cnti=$(echo $file_line | sed -r 's/^[0-9]+ [0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
+            cnti=$(echo "$file_line" | sed -r 's/^[0-9]+ [0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
 
             if [ "$cnti" = "success" ]; then
                 counter_type="inline"
                 match="subrip $first_line inline"
                 break
-            fi          
+            fi
         elif [ "$counter_type" = "newline" ]; then
             
-            time_check=$(echo $file_line | sed -r 's/^[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
+            time_check=$(echo "$file_line" | sed -r 's/^[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
 
             if [ "$time_check" = "success" ]; then
                 match="subrip $first_line newline"
                 break
             else
                 counter_type="not found"
-            fi                          
+            fi
         fi
                     
         attempts=$(( $attempts - 1 ))       
     done < "$1" 
     
-    echo $match 
+    echo "$match" 
 }
 
 ###############################################################################
@@ -951,21 +952,18 @@ function f_echo
 # @brief try to determine the input file format
 function f_guess_format
 {
-    lines=$(cat "$1" 2> /dev/null | wc -l)
+    local lines=$(cat "$1" 2> /dev/null | wc -l)
     if [ $lines -eq 0 ]; then
         f_print_error "Input file has zero lines inside"
         exit -1
     fi
     
-    detected_format="not detected"
+    local detected_format="not detected"
     
     for a in "${g_FileFormats[@]}"; do
         function_name="f_is_${a}_format"
         detected_format=$($function_name "$1")
-            
-        if [ "$detected_format" != "not detected" ]; then
-            break
-        fi
+        [ "$detected_format" != "not detected" ] && break
     done
 
     echo $detected_format
@@ -1216,7 +1214,7 @@ fi
 # handle the input file format
 if [ "$g_InputFormat" = "none" ]; then
     g_DetectedFormat=$(f_guess_format "$g_InputFile")
-    
+
     if [ "$g_DetectedFormat" = "not detected" ]; then
         f_print_error "Invalid Input File Format!\nSpecify input format manually to override autodetection."
         exit -1
@@ -1244,7 +1242,7 @@ if [ $g_FormatDetected -eq 1 ]; then
         if [ $g_InFpsGiven -eq 0 ]; then
 
             tmpFps=${g_InputFormatData[$(( ${#g_InputFormatData[@]} - 1 ))]}                        
-            if [ $tmpFps != "0" ]; then
+            if [ -n "$tmpFps" ] && [ $tmpFps != "0" ]; then
                 g_InputFrameRate=$tmpFps
             fi
         fi
