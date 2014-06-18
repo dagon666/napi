@@ -208,6 +208,9 @@ declare -r RET_BREAK=253
 # resource unavailable
 declare -r RET_UNAV=252
 
+# no action taken
+declare -r RET_NOACT=251
+
 ################################## STDOUT ######################################
 
 #
@@ -845,7 +848,7 @@ verify_id() {
         local p=$(lookup_value '7z' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
-            rv=$RET_FAIL
+            rv=$RET_BREAK
         fi
     fi
 
@@ -969,9 +972,9 @@ verify_argv() {
     if [ $status = $RET_PARAM ]; then
         _warning "nieznany id [${g_system[2]}], przywracam domyslny"
 
-    elif [ $status = $RET_FAIL ]; then
+    elif [ $status = $RET_BREAK ]; then
         _error "brak wymaganych narzedzi"
-        return $RET_PARAM
+        return $RET_BREAK
     fi
     
     # logfile verification  
@@ -1967,12 +1970,17 @@ convert_format() {
         [ "$input" != "$conv" ] &&
             _msg "usuwam oryginalny plik" &&
             $g_cmd_unlink "$path/$input"
+
+	elif [ $status -eq $RET_NOACT ]; then
+        _msg "subotage.sh - konwersja nie jest konieczna"
+		rv=$RET_OK
+
     else
         _msg "konwersja do $g_sub_format niepomyslna"
-
         # restore the backup (the original file may be corrupted due to failed conversion)
         cp "$tmp" "$path/$input"
         rv=$RET_FAIL
+
     fi
 
     # delete a backup
