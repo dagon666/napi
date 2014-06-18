@@ -1311,7 +1311,7 @@ if [ $status -ne 0 ]; then
     f_print_error "Reading error. Error code: [$status]"
     exit -1
 else
-	f_correct_overlaps;
+	f_correct_overlaps
     status=$($g_Writer "$g_OutputFile")
     
     if [ $status -ne 0 ]; then

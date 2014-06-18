@@ -1119,10 +1119,11 @@ extract_xml_tag() {
 	#
 	local input_type=0
 
-	[ $# -eq 1 ] && 
-		_debug $LINENO "wejsciem jest strumien" &&
-		input_type=1 &&
+	if [ $# -eq 1 ]; then
+		input_type=1
 		tag="$1"
+		# don't print anything - we don't want to corrupt the output
+	fi
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1153,13 +1154,17 @@ EOF
 # @param file name or none (if used as a stream filter)
 #
 extract_cdata_tag() {
+
+	local file_path="${1:-}"
+
 	# 0 - file
 	# 1 - stream
 	local input_type=0
 
-	[ $# -eq 1 ] && 
-		_debug $LINENO "wejsciem jest strumien" &&
+	if [ $# -eq 0 ]; then
 		input_type=1
+		# don't print anything - we don't want to corrupt the output
+	fi
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1169,7 +1174,7 @@ extract_cdata_tag() {
 read -d "" awk_script << EOF
 BEGIN {
     RS="CDATA";
-    FS="[\\\[\\\]]";
+    FS="[\\]\\[]";
 }
 { 
 	print \$2; 
@@ -1200,10 +1205,11 @@ strip_xml_tag() {
 	# 1 - stream
 	local input_type=0
 
-	[ $# -eq 1 ] && 
-		_debug $LINENO "wejsciem jest strumien" &&
-		input_type=1 &&
+	if [ $# -eq 1 ]; then
+		input_type=1
 		tag="$1"
+		# don't print anything - we don't want to corrupt the output
+	fi
 
     local awk_script=''
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
@@ -1330,6 +1336,7 @@ extract_subs_xml() {
 	# I've got the xml, extract Interesting parts
 	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
 
+	_debug $LINENO "subs xml status [$xml_status]"
 	if [ $xml_status -eq 0 ]; then
 		_error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
 		return $RET_UNAV
@@ -1379,6 +1386,7 @@ extract_cover_xml() {
 	# I've got the xml, extract Interesting parts
 	xml_status=$(extract_xml_tag "$xml_path" 'status' | grep 'success' | wc -l)
 
+	_debug $LINENO "cover xml status [$xml_status]"
 	if [ $xml_status -eq 0 ]; then
 		_error "napiprojekt zglasza niepowodzenie - okladka niedostepna"
 		return $RET_UNAV
