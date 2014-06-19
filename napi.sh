@@ -446,7 +446,7 @@ list_languages() {
 # @brief verify that the given language code is supported
 #
 verify_language() {
-    local lang="${1:-''}"
+    local lang="${1:-}"
     local i=0
     declare -a l_arr=( )
     
@@ -1223,7 +1223,7 @@ download_data_xml() {
     local movie_file="${2:-}"
     local byte_size=${3:-0};
     local of="$4"
-    local lang="${5:-'PL'}"
+    local lang="${5:-PL}"
     local user="${6:-''}"
     local passwd="${7:-''}"
     
@@ -1274,7 +1274,7 @@ get_xml() {
     local md5sum=${1:-0}
     local movie_file="${2:-}"
     local byte_size=${3:-0};
-    local lang="${4:-'PL'}"
+    local lang="${4:-PL}"
 	local xml_path="${5:-}"
 
 	# assume failure
@@ -1410,27 +1410,45 @@ cleanup_xml() {
 
 
 #
-# @brief download subtitles using napiprojekt3 API
+# @brief download item (subs or cover) using napiprojekt3 API
 # @param md5sum
 # @param movie file path
 # @param output file path
 # @param language
+# @param item type subs/cover
 #
-download_subs_xml() {
+download_item_xml() {
     local md5sum=${1:-0}
     local movie_path="${2:-}"
-	local subs_path="${3:-}"
-    local lang="${4:-'PL'}"
+	local item_path="${3:-}"
+    local lang="${4:-PL}"
+
+	local item="${5:-subs}"
 
 	local path=$(dirname "$movie_path")
 	local movie_file=$(basename "$movie_path")
 	local noext=$(strip_ext "$movie_file")
 	local xml_path="$path/${noext}.xml"
-
 	local byte_size=$($g_cmd_stat "$movie_path")
+
+	# xml extract function name
+	local func_name="extract_${item}_xml"
 
 	# assume failure
 	local rv=$RET_FAIL;
+
+	# item verification
+	case "$item" in
+		'subs' | 'cover')
+			;;
+		*)
+			_error "obslugiwane bloki to cover/subs [$item]"
+			rv=$RET_BREAK
+			return $rv
+			;;
+	esac
+
+	_info $LINENO "pobieram $item metoda xml"
 
 	# get the god damn xml
 	get_xml $md5sum "$movie_file" $byte_size $lang "$xml_path"
@@ -1448,7 +1466,7 @@ download_subs_xml() {
 		_error "sciagniety plik nie istnieje, nieznany blad" &&
 		return $RET_FAIL
 
-	extract_subs_xml "$xml_path" "$subs_path"
+	$func_name "$xml_path" "$item_path"
 	rv=$?
 	return $rv
 }
@@ -1465,10 +1483,10 @@ download_subs_classic() {
     local md5sum=${1:-0}
     local h=${2:-0}
     local of="$3"
-    local lang="${4:-'PL'}"
-    local id="${5:-'pynapi'}"
-    local user="${6:-''}"
-    local passwd="${7:-''}"
+    local lang="${4:-PL}"
+    local id="${5:-pynapi}"
+    local user="${6:-}"
+    local passwd="${7:-}"
     local status=$RET_FAIL
 
     local rv=$RET_OK
@@ -1549,44 +1567,6 @@ download_subs_classic() {
 }
 
 
-download_cover_xml() {
-    local md5sum=${1:-0}
-    local movie_path="${2:-}"
-	local cover_path="${3:-}"
-    local lang="${4:-'PL'}"
-
-	local path=$(dirname "$movie_path")
-	local movie_file=$(basename "$movie_path")
-	local noext=$(strip_ext "$movie_file")
-	local xml_path="$path/${noext}.xml"
-
-	local byte_size=$($g_cmd_stat "$movie_path")
-
-	# assume failure
-	local rv=$RET_FAIL;
-
-	# get the god damn xml
-	get_xml $md5sum "$movie_file" $byte_size $lang "$xml_path"
-	rv=$?
-
-	# check the status
-	[ $rv -ne $RET_OK ] && 
-		_error "blad. nie mozna pobrac pliku xml" &&
-		return $RET_FAIL
-
-    # verify the contents
-	# check if the file was downloaded successfully by checking
-	# if it exists at all 
-	[ ! -e "$xml_path" ] &&
-		_error "sciagniety plik nie istnieje, nieznany blad" &&
-		return $RET_FAIL
-
-	extract_cover_xml "$xml_path" "$cover_path"
-	rv=$?
-	return $rv
-}
-
-
 #
 # @brief: retrieve cover (probably deprecated okladka_pobierz doesn't exist - 404)
 # @param: md5sum
@@ -1636,7 +1616,7 @@ get_subtitles() {
 	# pick method depending on id
 	case ${g_system[2]} in
 		'NapiProjekt' | 'NapiProjektPython' )
-			download_subs_xml $sum "$fn" "$of" $lang
+			download_item_xml $sum "$fn" "$of" $lang "subs"
 			status=$?
 			;;
 
@@ -1660,7 +1640,7 @@ get_cover() {
     local cover_fn=$(strip_ext "$media_file")
 	local status=$RET_FAIL
 
-    local lang="$3"
+    local lang="$2"
     
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
@@ -1668,7 +1648,7 @@ get_cover() {
 	# pick method depending on id
 	case ${g_system[2]} in
 		'NapiProjekt' | 'NapiProjektPython' )
-			download_cover_xml $sum "$1" "$path/$cover_fn" $lang
+			download_item_xml $sum "$1" "$path/$cover_fn" $lang "cover"
 			status=$?
 			;;
 
@@ -1734,7 +1714,7 @@ get_charset() {
 #
 convert_charset() {
     local file="$1"
-    local d="${2:-'utf8'}"
+    local d="${2:-utf8}"
     local s="${3}"
     local rv=$RET_FAIL
 
@@ -1828,7 +1808,7 @@ prepare_file_list() {
 prepare_filenames() {
     
     # media filename (with path)
-    local fn="${1:-''}"
+    local fn="${1:-}"
 
     # media filename without extension
     local noext=$(strip_ext "$fn")
@@ -2405,7 +2385,7 @@ usage() {
 # 
 main() {
     # first positional
-    local arg1="${1:-''}"
+    local arg1="${1:-}"
 
     # debug
     _debug $LINENO "$0: ($g_revision) uruchamianie ..." 
