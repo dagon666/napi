@@ -664,7 +664,8 @@ get_fps() {
         esac
     fi
 
-    echo $fps
+	# just a precaution
+    echo "$fps" | cut -d ' ' -f 1
     return $RET_OK
 }
 
@@ -1465,7 +1466,9 @@ convert_format() {
 	fi
 
     # detect video file framerate
-    [ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
+    [ "$g_fps_tool" != 'default' ] && 
+		_info $LINENO "wkyrywam fps w uzywajac: $g_fps_tool"
+		fps=$(get_fps "$g_fps_tool" "$media_path")
 
     if [ "$fps" != "0" ]; then
         _msg "wykryty fps: $fps"
