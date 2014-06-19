@@ -378,7 +378,7 @@ function f_read_tmplayer_format
 					/^ *$/ {
 						next;
 					};
-					length { 
+					NF { 
 						x=(\$1*3600+\$2*60+\$3 + ($g_LastingTime/1000));
 						printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", line_processed++, 
 							\$1,\$2,\$3,
@@ -498,7 +498,7 @@ function f_read_mpl2_format
 			/^ *$/ {
 				next;
 			}
-			length { 
+			NF { 
 				printf \"%s %s %s \", line_processed++, (\$2/10), (\$3/10);
 				for (i=4; i<=NF; i++) printf(\"%s\", \$i);
 				printf \"\n\"; 
@@ -518,7 +518,7 @@ function f_read_subrip_format
 					FS=\"\n\"; 
 					RS=\"\"; 
 				};
-                length {  
+                NF {  
 					gsub(\",\", \".\", \$1);
                     printf(\"%s \", \$1);
                     for (i=2; i<=NF; i++) {
