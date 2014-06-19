@@ -60,8 +60,9 @@ declare g_orig_prefix='ORIG_'
 # - other - identifies itself as other
 #
 # fork id
+# msg counter
 #
-declare -a g_system=( 'linux' '1' 'pynapi' 1 )
+declare -a g_system=( 'linux' '1' 'pynapi' 0 1 )
 
 #
 # @brief minimum size of files to be processed
@@ -206,12 +207,15 @@ declare -r RET_NOACT=251
 
 ################################## STDOUT ######################################
 
+
 #
 # @brief print a debug verbose information
 #
 _debug() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 3 ] && echo -e "#${g_system[3]} --- $line: $*"
+    [ $g_verbosity -ge 3 ] && 
+		echo -e "#${g_system[3]}.${g_system[4]} --- $line: $*" &&
+		g_system[4]=$(( ${g_system[4]} + 1 ))
     return $RET_OK
 }
 
@@ -221,7 +225,9 @@ _debug() {
 #
 _info() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 2 ] && echo -e "#${g_system[3]} -- $line: $*"
+    [ $g_verbosity -ge 2 ] && 
+		echo -e "#${g_system[3]}.${g_system[4]} -- $line: $*" &&
+		g_system[4]=$(( ${g_system[4]} + 1 ))
     return $RET_OK
 }
 
@@ -251,7 +257,9 @@ _error() {
 # @brief print standard message
 #
 _msg() {
-    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} - $*"
+    [ $g_verbosity -ge 1 ] && 
+		echo -e "#${g_system[3]}.${g_system[4]} - $*" &&
+		g_system[4]=$(( ${g_system[4]} + 1 ))
     return $RET_OK
 }
 
@@ -260,7 +268,9 @@ _msg() {
 # @brief print status type message
 #
 _status() {
-    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} $1 -> $2"
+    [ $g_verbosity -ge 1 ] && 
+		echo -e "#${g_system[3]}.${g_system[4]} $1 -> $2" &&
+		g_system[4]=$(( ${g_system[4]} + 1 ))
     return $RET_OK
 }
 
@@ -1793,15 +1803,22 @@ EOF
 spawn_forks() {
     local c=0
     local stats_file="$(mktemp -t stats.XXXXXXXX)"
+	local old_cnt=0
 
     # open fd #8 for statistics collection
     exec 8<> "$stats_file"
 
     # spawn parallel processing
     while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
+
+		_debug $LINENO "tworze fork #$(( ${g_system[3]} + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
+
+		old_cnt=${g_system[4]}
         g_system[3]=$(( $c + 1 ))
-        _debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
+		g_system[4]=1 # reset message counter
         process_files $c ${g_system[1]} &
+
+		g_system[4]=$old_cnt
         c=${g_system[3]}
     done
     
@@ -1816,7 +1833,8 @@ spawn_forks() {
     [ -e "$stats_file" ] && $g_cmd_unlink "$stats_file"
 
     # restore main fork id
-    g_system[3]=1
+    g_system[3]=0
+
     return $RET_OK
 }
 
