@@ -1,8 +1,0 @@
-bashnapi is an open project I accept pull requests gladly. Please feel free to contact me if you would like to collaborate or post a patch for this project.
-
-Rules of thumb:
-===============
-
-- always fork the dev branch (your changes before merged to master will be merged there). dev represents current development state of the project and contains the newest code.
-- before posting a patch TEST it. Perform some manual verification first and use bashnapi test environment to verify if your delivery didn't brake anything else.
-- write tests for your code (refer to test suite readme under tests/ subdirectory for more details)
