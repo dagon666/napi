@@ -51,9 +51,14 @@ declare -r g_ut_root='unit_test_env'
 # tests env setup
 #
 oneTimeSetUp() {
+
     # create env
+	origPATH="$PATH"
     mkdir -p "$g_assets_path/$g_ut_root"
+    mkdir -p "$g_assets_path/$g_ut_root/bin"
     mkdir -p "$g_assets_path/$g_ut_root/sub dir"
+
+	export PATH="$g_assets_path/$g_ut_root/bin:$PATH"
     
     # the space in the file name is deliberate
     cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/av1 file.avi"
@@ -68,6 +73,9 @@ oneTimeSetUp() {
 oneTimeTearDown() {
     # clear the env
     rm -rfv "$g_assets_path/$g_ut_root"
+
+	# restore original PATH
+	export PATH="$origPATH"
 }
 
 ################################################################################
@@ -397,7 +405,6 @@ test_system_tools() {
     assertEquals 'check the system core counting routine' $cores $dc
 }
 
-# TODO VERIFIED UP TO HERE =================================================
 
 #
 # verify the configure_cmds routine
@@ -419,6 +426,33 @@ test_configure_cmds() {
     assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
 
     g_system[0]="linux"
+
+	# let's prepare wget mock
+    ln -sf "/vagrant/tests/mocks/wget_help" "$g_assets_path/$g_ut_root/bin/wget"
+
+	export SUPPORT_S=0
+	export SUPPORT_POST=0
+	configure_cmds
+	assertEquals "0 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
+	assertEquals "0 wget no post support" 0 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=0
+	export SUPPORT_POST=1
+	configure_cmds
+	assertEquals "1 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
+	assertEquals "1 wget post support" 1 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=1
+	export SUPPORT_POST=0
+	configure_cmds
+	assertEquals "2 wget check for -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
+	assertEquals "2 wget no post support" 0 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=1
+	export SUPPORT_POST=1
+	configure_cmds
+	assertEquals "3 wget check for lack of -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
+	assertEquals "3 wget no post support" 1 ${g_cmd_wget[1]}
 }
 
 
@@ -554,6 +588,7 @@ test_parse_argv() {
 
     # save original settings
     cp_g_cover=$g_cover
+    cp_g_nfo=$g_nfo
     cp_g_delete_orig=$g_delete_orig
     cp_g_skip=$g_skip
     cp_g_stats_print=$g_stats_print
@@ -574,6 +609,7 @@ test_parse_argv() {
 
     # test complex command
     parse_argv -c \
+        -n \
         -d \
         -s \
         --stats \
@@ -595,6 +631,7 @@ test_parse_argv() {
         file1.avi file2.avi 2>&1 > /dev/null
 
     assertEquals 'checking cover flag' 1 $g_cover
+    assertEquals 'checking cover flag' 1 $g_nfo
     assertEquals 'checking delete_orig flag' 1 $g_delete_orig
     assertEquals 'checking skip flag' 1 $g_skip
     assertEquals 'checking stats flag' 1 $g_stats_print
@@ -619,6 +656,7 @@ test_parse_argv() {
 
     # restore default settings
     g_cover=$cp_g_cover
+    g_nfo=$cp_g_nfo
     g_delete_orig=$cp_g_delete_orig
     g_skip=$cp_g_skip
     g_stats_print=$cp_g_stats_print
@@ -690,6 +728,7 @@ test_verify_encoding() {
     assertNotEquals 'simulating tools absence' $RET_OK $status
 }
 
+# TODO VERIFIED UP TO HERE =================================================
 
 #
 # test the id verification routine
@@ -712,7 +751,7 @@ test_verify_id() {
     g_tools=( 7z=1 )
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'other - failure 7z marked as absent' $RET_OK $status
+    assertEquals 'other - failure 7z marked as present' $RET_OK $status
 
     g_system[2]='unknown_system'
     verify_id 2>&1 > /dev/null

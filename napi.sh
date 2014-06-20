@@ -565,6 +565,7 @@ configure_cmds() {
     _debug $LINENO "sprawdzam czy wget wspiera zadania POST"
     local p_test=$(wget --help 2>&1 | grep "\-\-post\-")
 
+    g_cmd_wget[1]=0
     [ -n "$p_test" ] && 
         g_cmd_wget[1]=1 &&
         _info $LINENO "wget wspiera opcje zadania POST"
