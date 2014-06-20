@@ -117,6 +117,23 @@ test_info() {
 
 
 #
+# test the generic blit function
+#
+test_blit() {
+	g_system[3]=0
+	g_system[4]=8
+	local output=''
+	output=$(_blit "some message" | grep "00:0008 some message" | wc -l)
+	assertEquals "testing blit function and output format" 1 "$output"
+
+	_blit "abc" > /dev/null
+
+	assertEquals "checking the fork id status" 0 ${g_system[3]}
+	assertEquals "checking the msg cnt" 9 ${g_system[4]}
+}
+
+
+#
 # test warning printing routine
 #
 test_warning() {
@@ -380,6 +397,7 @@ test_system_tools() {
     assertEquals 'check the system core counting routine' $cores $dc
 }
 
+# TODO VERIFIED UP TO HERE =================================================
 
 #
 # verify the configure_cmds routine
@@ -477,31 +495,31 @@ test_get_fps() {
     if [ -n "$(builtin type -P mediainfo)" ]; then
         g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mediainfo' 'doesnt_matter.avi')
-        assertNotEquals 'get fps with mediainfo' 0 $fps
+        assertNotEquals 'get fps with mediainfo - bogus file' 0 "$fps"
     fi
 
     if [ -n "$(builtin type -P mediainfo)" ]; then
         g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mediainfo' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals "get fps with mediainfo" 0 ${fps:-0}
+        assertNotEquals "get fps with mediainfo" 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P mplayer)" ]; then
         g_tools=( $(modify_value 'mplayer' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mplayer' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals 'get fps with mplayer' 0 ${fps:-0}
+        assertNotEquals 'get fps with mplayer' 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P mplayer2)" ]; then
         g_tools=( $(modify_value 'mplayer2' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mplayer2' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals "get fps with mplayer2" 0 ${fps:-0}
+        assertNotEquals "get fps with mplayer2" 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P ffmpeg)" ]; then
         g_tools=( $(modify_value 'ffmpeg' 1 ${g_tools[@]}) )
         fps=$(get_fps 'ffmpeg' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals 'get fps with ffmpeg' 0 ${fps:-0}
+        assertNotEquals 'get fps with ffmpeg' 0 "${fps:-0}"
     fi
 
 
