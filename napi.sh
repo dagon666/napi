@@ -49,18 +49,18 @@ declare -a g_abbrev=( "" "" )
 declare g_orig_prefix='ORIG_'
 
 #
-# system - detected system type
+# 0 - system - detected system type
 # - linux
 # - darwin - mac osx
 #
-# numer of forks
+# 1 - numer of forks
 #
-# id
+# 2 - id
 # - pynapi - identifies itself as pynapi
 # - other - identifies itself as other
 #
-# fork id
-# msg counter
+# 3 - fork id
+# 4 - msg counter
 #
 declare -a g_system=( 'linux' '1' 'pynapi' 0 1 )
 
@@ -177,7 +177,7 @@ g_stats_print=0
 declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'unlink=0' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
-declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
+declare -a g_tools_fps=( 'ffmpeg' 'mediainfo' 'mplayer' 'mplayer2' )
 
 g_cmd_stat='stat -c%s'
 g_cmd_wget='wget -q -O'
@@ -207,15 +207,21 @@ declare -r RET_NOACT=251
 
 ################################## STDOUT ######################################
 
+#
+# @brief produce output
+#
+_blit() {
+	printf "#%02d:%04d %s\n" ${g_system[3]} ${g_system[4]} "$*"
+	g_system[4]=$(( ${g_system[4]} + 1 ))
+}
+
 
 #
 # @brief print a debug verbose information
 #
 _debug() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 3 ] && 
-		echo -e "#${g_system[3]}.${g_system[4]} --- $line: $*" &&
-		g_system[4]=$(( ${g_system[4]} + 1 ))
+    [ $g_verbosity -ge 3 ] && _blit "--- $line: $*"
     return $RET_OK
 }
 
@@ -225,9 +231,7 @@ _debug() {
 #
 _info() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 2 ] && 
-		echo -e "#${g_system[3]}.${g_system[4]} -- $line: $*" &&
-		g_system[4]=$(( ${g_system[4]} + 1 ))
+    [ $g_verbosity -ge 2 ] && _blit "-- $line: $*"
     return $RET_OK
 }
 
@@ -257,9 +261,7 @@ _error() {
 # @brief print standard message
 #
 _msg() {
-    [ $g_verbosity -ge 1 ] && 
-		echo -e "#${g_system[3]}.${g_system[4]} - $*" &&
-		g_system[4]=$(( ${g_system[4]} + 1 ))
+    [ $g_verbosity -ge 1 ] && _blit "- $*"
     return $RET_OK
 }
 
@@ -268,9 +270,7 @@ _msg() {
 # @brief print status type message
 #
 _status() {
-    [ $g_verbosity -ge 1 ] && 
-		echo -e "#${g_system[3]}.${g_system[4]} $1 -> $2" &&
-		g_system[4]=$(( ${g_system[4]} + 1 ))
+    [ $g_verbosity -ge 1 ] && _blit "$1 -> $2"
     return $RET_OK
 }
 
@@ -652,7 +652,7 @@ get_fps() {
             ;;
 
             'mediainfo' )
-            fps=$($1 "$2" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]')
+            fps=$($1 --Output='Video;%FrameRate%' "$2")
             ;;
 
             'ffmpeg' )
@@ -1467,10 +1467,10 @@ convert_format() {
 
     # detect video file framerate
     [ "$g_fps_tool" != 'default' ] && 
-		_info $LINENO "wkyrywam fps w uzywajac: $g_fps_tool"
+		_info $LINENO "wykrywam fps uzywajac: $g_fps_tool"
 		fps=$(get_fps "$g_fps_tool" "$media_path")
 
-    if [ "$fps" != "0" ]; then
+    if [ -n "$fps" ] && [ "$fps" != "0" ]; then
         _msg "wykryty fps: $fps"
         fps_opt="-fi $fps"
     else
@@ -1806,7 +1806,7 @@ EOF
 spawn_forks() {
     local c=0
     local stats_file="$(mktemp -t stats.XXXXXXXX)"
-	local old_cnt=0
+	local old_msg_cnt=0
 
     # open fd #8 for statistics collection
     exec 8<> "$stats_file"
@@ -1814,15 +1814,18 @@ spawn_forks() {
     # spawn parallel processing
     while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
 
-		_debug $LINENO "tworze fork #$(( ${g_system[3]} + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
+		_debug $LINENO "tworze fork #$(( $c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
 
-		old_cnt=${g_system[4]}
         g_system[3]=$(( $c + 1 ))
+		old_msg_cnt=${g_system[4]}
 		g_system[4]=1 # reset message counter
         process_files $c ${g_system[1]} &
 
-		g_system[4]=$old_cnt
+		# restore original values
+		g_system[4]=$old_msg_cnt
         c=${g_system[3]}
+		g_system[3]=0
+
     done
     
     # wait for all forks
