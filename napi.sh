@@ -870,7 +870,7 @@ verify_id() {
         local p=$(lookup_value '7z' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
-            rv=$RET_BREAK
+            return $RET_BREAK
         fi
     fi
 
@@ -881,13 +881,13 @@ verify_id() {
         local p=$(lookup_value 'base64' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "base64 nie jest dostepny. zmien id na pynapi/other albo zainstaluj base64"
-            rv=$RET_FAIL
+            return $RET_BREAK
         fi
 
         p=$(lookup_value 'awk' ${g_tools[@]})
         if [ $(( $p + 0 )) -eq 0 ]; then
             _error "awk nie jest dostepny. zmien id na pynapi/other albo zainstaluj awk"
-            rv=$RET_FAIL
+            return $RET_BREAK
         fi
     fi
 

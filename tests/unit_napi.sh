@@ -410,6 +410,12 @@ test_system_tools() {
 # verify the configure_cmds routine
 #
 test_configure_cmds() {
+
+	# let's prepare wget mock
+    ln -sf "/vagrant/tests/mocks/wget_help" "$g_assets_path/$g_ut_root/bin/wget"
+	export SUPPORT_S=0
+	export SUPPORT_POST=0
+
     # linux 
     configure_cmds
     assertEquals 'check md5 for linux' 'md5sum' "$g_cmd_md5"
@@ -425,13 +431,8 @@ test_configure_cmds() {
     assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
     assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
 
+	# checking wget capabilities detection
     g_system[0]="linux"
-
-	# let's prepare wget mock
-    ln -sf "/vagrant/tests/mocks/wget_help" "$g_assets_path/$g_ut_root/bin/wget"
-
-	export SUPPORT_S=0
-	export SUPPORT_POST=0
 	configure_cmds
 	assertEquals "0 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
 	assertEquals "0 wget no post support" 0 ${g_cmd_wget[1]}
@@ -728,7 +729,6 @@ test_verify_encoding() {
     assertNotEquals 'simulating tools absence' $RET_OK $status
 }
 
-# TODO VERIFIED UP TO HERE =================================================
 
 #
 # test the id verification routine
@@ -736,16 +736,27 @@ test_verify_encoding() {
 test_verify_id() {
     local status=0
     declare -a cp_g_tools=( ${g_tools[@]} )
+	declare -a cp_g_system=( ${g_system[@]} )
 
     g_system[2]='pynapi'
     verify_id 2>&1 > /dev/null
     status=$?
     assertEquals 'success for pynapi' $RET_OK $status
 
+    g_system[2]='NapiProjekt'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjekt - no 7z' $RET_BREAK $status
+
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no 7z' $RET_BREAK $status
+
     g_system[2]='other'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'other - failure 7z marked as absent' $RET_FAIL $status
+    assertEquals 'other - failure 7z marked as absent' $RET_BREAK $status
 
     # faking 7z presence
     g_tools=( 7z=1 )
@@ -753,12 +764,23 @@ test_verify_id() {
     status=$?
     assertEquals 'other - failure 7z marked as present' $RET_OK $status
 
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_BREAK $status
+
+    g_tools=( 7z=1 base64=1 awk=1 )
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'success for NapiProjektPython - 7z & base64 & awk' $RET_OK $status
+
     g_system[2]='unknown_system'
     verify_id 2>&1 > /dev/null
     status=$?
     assertEquals 'unknown_system - failure' $RET_PARAM $status
 
     g_tools=( ${cp_g_tools[@]} )
+	g_system=( ${cp_g_system[@]} )
 }
 
 
@@ -868,7 +890,7 @@ test_verify_argv() {
     g_system[2]='other'
     verify_argv 2>&1 > /dev/null
     status=$?
-    assertEquals 'checking failure due to lack of 7z' $RET_PARAM $status
+    assertEquals 'checking failure due to lack of 7z' $RET_BREAK $status
     g_system[2]='pynapi'
 
     local logfile=$(mktemp -t logfile.XXXX)
@@ -935,36 +957,53 @@ test_get_http_status() {
 #
 test_download_url() {
     local status=0
-    local cp_g_cmd_wget="$g_cmd_wget"
+	declare -a cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
 
-    g_cmd_wget="mocks/wget_log 127 none"
+    g_cmd_wget[0]="mocks/wget_log 127 none"
     download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
     status=$?
     assertEquals 'check failure status' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 none"
+    g_cmd_wget[0]="mocks/wget_log 0 none"
     local output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check unknown http code' "unknown" $output
 
-    g_cmd_wget="mocks/wget_log 0 301_200"
-    local output=0
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+    output=0
     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check 200 http code' "301 200" "$output"
 
-    g_cmd_wget="mocks/wget_log 0 404"
-    local output=0
+    g_cmd_wget[0]="mocks/wget_log 0 404"
+    output=0
     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_FAIL $status
     assertEquals 'check 404 http code' "404" "$output"
 
-    g_cmd_wget="$cp_g_cmd_wget"
+	# test post request
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=0
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post failure status' $RET_FAIL $status
+
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=1
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post success status' $RET_OK $status
+    assertEquals 'check 200 http code' "301 200" "$output"
+
+	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
 }
 
+# TODO VERIFIED UP TO HERE =================================================
 
 #
 # test download subs routine
