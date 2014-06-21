@@ -184,7 +184,13 @@ g_stats_print=0
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'base64=0' 'unlink=0' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
+    'dd=1' 'grep=1' 'seq=1' 'sed=1' \
+    'cut=1' 'base64=0' 'unlink=0' 'stat=1' \
+    'basename=1' 'dirname=1' 'cat=1' 'cp=1' \
+    'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' \
+    '7z=0' '7za=0' '7zr=0' 'iconv=0' 'mediainfo=0' \
+    'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
 declare -a g_tools_fps=( 'ffmpeg' 'mediainfo' 'mplayer' 'mplayer2' )
@@ -199,6 +205,7 @@ g_cmd_stat='stat -c%s'
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
 g_cmd_unlink='unlink'
+g_cmd_7z=''
 
 ################################## RETVAL ######################################
 
@@ -541,6 +548,7 @@ get_system() {
 # @brief configure external commands
 #
 configure_cmds() {
+    local k=''
     _debug $LINENO "konfiguruje stat i md5"
 
     # verify stat & md5 tool
@@ -568,9 +576,10 @@ configure_cmds() {
     g_cmd_wget[1]=0
     [ -n "$p_test" ] && 
         g_cmd_wget[1]=1 &&
-        _info $LINENO "wget wspiera opcje zadania POST"
+        _info $LINENO "wget wspiera zadania POST"
 
     # check unlink command
+    _debug $LINENO "sprawdzam obecnosc unlink"
     [ "$(lookup_value 'unlink' ${g_tools[@]})" = "0" ] &&
         _info $LINENO 'brak unlink, g_cmd_unlink = rm' &&
         g_cmd_unlink='rm -rf'
@@ -864,13 +873,16 @@ verify_id() {
         ;;
     esac
 
+
+    # 7z check
     if [ "${g_system[2]}" = 'other' ] || 
         [ "${g_system[2]}" = 'NapiProjektPython' ] ||
         [ "${g_system[2]}" = 'NapiProjekt' ]; then
-        local p=$(lookup_value '7z' ${g_tools[@]})
-        if [ $(( $p + 0 )) -eq 0 ]; then
-            _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
-            return $RET_BREAK
+
+        if [ -z "$g_cmd_7z" ]; then
+            _error "7z nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
+            g_system[2]='pynapi'
+            return $RET_UNAV
         fi
     fi
 
@@ -878,17 +890,19 @@ verify_id() {
     # check for necessary tools for napiprojekt3 API
     if [ "${g_system[2]}" = 'NapiProjektPython' ] ||
         [ "${g_system[2]}" = 'NapiProjekt' ]; then
-        local p=$(lookup_value 'base64' ${g_tools[@]})
-        if [ $(( $p + 0 )) -eq 0 ]; then
-            _error "base64 nie jest dostepny. zmien id na pynapi/other albo zainstaluj base64"
-            return $RET_BREAK
-        fi
 
-        p=$(lookup_value 'awk' ${g_tools[@]})
-        if [ $(( $p + 0 )) -eq 0 ]; then
-            _error "awk nie jest dostepny. zmien id na pynapi/other albo zainstaluj awk"
-            return $RET_BREAK
-        fi
+        declare -a t=( 'base64' 'awk' )
+        local p=''
+        local k=''
+
+        for k in "${t[@]}"; do
+            p=$(lookup_value "$k" ${g_tools[@]})
+            if [ $(( $p + 0 )) -eq 0 ]; then
+                _error "$k nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
+                g_system[2]='pynapi'
+                return $RET_UNAV
+            fi
+        done
     fi
 
     return $rv
@@ -962,6 +976,32 @@ verify_fps_tool() {
 
 
 #
+# @brief verify presence of any of the 7z tools
+# 
+verify_7z() {
+    local rv=$RET_OK
+
+    # check 7z command
+    _debug $LINENO "sprawdzam narzedzie 7z"
+    declare -a t7zs=( '7z' '7za' '7zr' )
+    g_cmd_7z=''
+
+    for k in "${t7zs[@]}"; do
+        [ "$(lookup_value "$k" ${g_tools[@]})" = "1" ] &&
+            _info $LINENO "7z wykryty jako [$k]" &&
+            g_cmd_7z="$k" &&
+            break
+    done
+
+    [ -z "$g_cmd_7z" ] &&
+        rv=$RET_FAIL &&
+        _info $LINENO 'brak 7z/7za albo 7zr'
+
+    return $rv
+}
+
+
+#
 # @brief verify correctness of the argv settings provided
 #
 verify_argv() {
@@ -973,11 +1013,13 @@ verify_argv() {
         g_cred[0]='' && g_cred[1]=''
     fi
 
+
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
     g_min_size=$(( $g_min_size + 0 ))
     g_verbosity=$(( $g_verbosity + 0 ))
     g_system[1]=$(( ${g_system[1]} + 0 ))
+
 
     # verify encoding request
     _debug $LINENO 'sprawdzam wybrane kodowanie'
@@ -986,23 +1028,40 @@ verify_argv() {
         g_charset='default'
     fi
 
+    # check the 7z tool presence
+    verify_7z
+
     # verify the id setting
     _debug $LINENO 'sprawdzam id'
     verify_id
     status=$?
 
-    if [ $status = $RET_PARAM ]; then
-        _warning "nieznany id [${g_system[2]}], przywracam domyslny"
+    case $status in
+        $RET_OK )
+            _debug $LINENO "id zweryfikowane pomyslnie [${g_system[2]}]"
+            ;;
 
-    elif [ $status = $RET_BREAK ]; then
-        _error "brak wymaganych narzedzi"
-        return $RET_BREAK
-    fi
+        $RET_PARAM )
+            _warning "nieznany id, przywrocono TRYB LEGACY (id = pynapi lub other)"
+            ;;
+
+        $RET_UNAV )
+            _warning "nie wszystkie narzedzia sa dostepne. Zainstaluj brakujace narzedzia by korzystac z nowego API napiprojekt"
+            ;;
+
+        *)
+            _error "nieznany blad, podczas weryfikacji id..."
+            return $RET_BREAK
+            ;;
+    esac
+
     
     # logfile verification  
     _debug $LINENO 'sprawdzam logfile'
     [ -e "$g_logfile" ] && 
-        _warning "plik loga istnieje - bedzie nadpisany"
+        _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych" &&
+        return $RET_BREAK
+
     
     # language verification
     _debug $LINENO 'sprawdzam wybrany jezyk'
@@ -1023,13 +1082,16 @@ verify_argv() {
     fi
     unset idx
 
+
     # format verification
     _debug $LINENO 'sprawdzam format'
     ! verify_format && return $RET_PARAM
 
+
     # fps tool verification
     _debug $LINENO 'sprawdzam wybrane narzedzie fps'
     ! verify_fps_tool && return $RET_PARAM
+
 
     # verify external script
     _debug $LINENO 'sprawdzam zewnetrzny skrypt'
@@ -1347,7 +1409,7 @@ extract_subs_xml() {
     local tmp_7z_archive=$(mktemp -t napisy.7z.XXXXXXXX)
     echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
 
-    7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
+    $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
 
     if ! [ -s "$subs_path" ]; then
         _info $LINENO "plik docelowy ma zerowy rozmiar"
@@ -1608,7 +1670,7 @@ download_subs_classic() {
         ;;
 
         "other")
-        7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
+        $g_cmd_7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
         [ -e "$dof" ] && $g_cmd_unlink "$dof"
 
         if ! [ -s "$of" ]; then
