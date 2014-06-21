@@ -80,6 +80,9 @@ oneTimeTearDown() {
 
 ################################################################################
 
+test_verify_7z() {
+	return 0
+}
 
 test_download_data_xml() {
 
@@ -785,28 +788,34 @@ test_verify_id() {
     g_system[2]='NapiProjekt'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'failure for NapiProjekt - no 7z' $RET_BREAK $status
+    assertEquals 'failure for NapiProjekt - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     g_system[2]='NapiProjektPython'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'failure for NapiProjektPython - no 7z' $RET_BREAK $status
+    assertEquals 'failure for NapiProjektPython - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     g_system[2]='other'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'other - failure 7z marked as absent' $RET_BREAK $status
+    assertEquals 'other - failure 7z marked as absent' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     # faking 7z presence
     g_tools=( 7z=1 )
+	g_cmd_7z='7z'
+    g_system[2]='other'
     verify_id 2>&1 > /dev/null
     status=$?
     assertEquals 'other - failure 7z marked as present' $RET_OK $status
+	assertEquals 'checking for id' 'other' ${g_system[2]}
 
     g_system[2]='NapiProjektPython'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_BREAK $status
+    assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_UNAV $status
 
     g_tools=( 7z=1 base64=1 awk=1 )
     verify_id 2>&1 > /dev/null
