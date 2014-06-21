@@ -1204,7 +1204,7 @@ BEGIN {
 }
 EOF
 
-    run_awk_script "$awk_script" "$file_path"
+    run_awk_script "$awk_script" "$file_path" | tr -d '\n'
     return $?
 }
 
@@ -1384,7 +1384,7 @@ extract_nfo_xml() {
     # I've got the xml, extract Interesting parts
     xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
 
-    _debug $LINENO "subs xml status [$xml_status]"
+    _debug $LINENO "xml status [$xml_status]"
     if [ $xml_status -eq 0 ]; then
         _error "napiprojekt zglasza niepowodzenie - informacje niedostepne"
         return $RET_UNAV
@@ -2291,7 +2291,7 @@ process_file() {
     fi # if [ $status = $RET_OK ]
 
     # cleanup the xml remnants
-    # cleanup_xml "$media_path"
+    cleanup_xml "$media_path"
 
     # increment total processed counter
     g_stats[6]=$(( ${g_stats[6]} + 1 ))

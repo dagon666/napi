@@ -80,6 +80,45 @@ oneTimeTearDown() {
 
 ################################################################################
 
+
+test_download_data_xml() {
+
+	return 0
+}
+
+test_get_xml() {
+
+	return 0
+}
+
+test_extract_subs_xml() {
+	
+	return 0
+}
+
+test_extract_nfo_xml() {
+
+	return 0
+}
+
+test_extract_cover_xml() {
+	
+	return 0
+}
+
+test_cleanup_xml() {
+
+	return 0
+}
+
+test_download_item_xml() {
+	
+	return 0
+}
+
+
+
+
 #
 # general function to test printing routines
 #
@@ -1001,6 +1040,108 @@ test_download_url() {
     assertEquals 'check 200 http code' "301 200" "$output"
 
 	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
+}
+
+
+#
+# test the awk code execution wrapper
+#
+test_run_awk_script() {
+
+	local code='{ print $2 }'
+	local status=0
+	local output=''
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	echo "col1 col2 col3" | run_awk_script "$code"
+	status=$?
+	assertEquals "awk failure - awk marked as absent" $RET_FAIL $status
+	
+	g_tools=( awk=1 )
+	output=$(echo "col1 col2 col3" | run_awk_script "$code")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the stream processing" "col2" "$output"
+	
+	local tmpf=$(mktemp -t tmp.awk.XXXXXXXX)
+
+	echo "col1 col2 col3" > "$tmpf"
+	output=$(run_awk_script "$code" "$tmpf")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the file processing" "col2" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml single tag extraction check
+#
+test_extract_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><nested><x>data</x></nested></taga>'
+	output=$(echo "$data" | extract_xml_tag 'x')
+	assertEquals "checking for extracted tag" "<x>data</x>" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_xml_tag 'x' "$tmpf")
+	assertEquals "checking for extracted tag from file" "<x>data</x>" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml cdata tag extraction check
+#
+test_extract_cdata_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><![CDATA[some_data]]></taga>'
+	output=$(echo "$data" | extract_cdata_tag)
+	assertEquals "checking for extracted data" "some_data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_cdata_tag "$tmpf")
+	assertEquals "checking for extracted data from file" "some_data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml tag strip check
+#
+test_strip_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga>data</taga>'
+	output=$(echo "$data" | strip_xml_tag 'taga')
+	assertEquals "checking for bare data" "data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(strip_xml_tag 'taga' "$tmpf")
+	assertEquals "checking for bare data from file" "data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
 }
 
 # TODO VERIFIED UP TO HERE =================================================
