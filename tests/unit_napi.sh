@@ -80,46 +80,61 @@ oneTimeTearDown() {
 
 ################################################################################
 
-test_verify_7z() {
-	return 0
-}
-
+#
+# test xml download data function
+#
 test_download_data_xml() {
 
 	return 0
 }
 
+#
+# test get_xml wrapper
+#
 test_get_xml() {
 
 	return 0
 }
 
+#
+# test subtitles tag extraction routine
+#
 test_extract_subs_xml() {
 	
 	return 0
 }
 
+#
+# test nfo extraction routine
+#
 test_extract_nfo_xml() {
 
 	return 0
 }
 
+#
+# test cover extraction routine
+#
 test_extract_cover_xml() {
 	
 	return 0
 }
 
+#
+# test xml cleanup routine
+#
 test_cleanup_xml() {
 
 	return 0
 }
 
+#
+# test xml download item routine
+#
 test_download_item_xml() {
 	
 	return 0
 }
-
-
 
 
 #
@@ -1153,6 +1168,34 @@ test_strip_xml_tag() {
 	g_tools=( ${cp_g_tools[@]} )
 }
 
+
+#
+# test 7z verification function
+#
+test_verify_7z() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local status=0
+
+	g_tools=(  )
+	verify_7z
+	status=$?
+	assertEquals 'No 7z found' $RET_FAIL $status
+	assertTrue 'empty g_cmd_7z' "[ -z \"$g_cmd_7z\" ]"
+
+	g_tools=( 7za=1 )
+	verify_7z
+	status=$?
+	assertEquals '7za found' $RET_OK $status
+	assertEquals 'g_cmd_7z = 7za' '7za' "$g_cmd_7z"
+
+	g_tools=( 7z=1 7za=1 )
+	verify_7z
+	status=$?
+	assertEquals '7z found' $RET_OK $status
+	assertEquals 'g_cmd_7z = 7z' '7z' "$g_cmd_7z"
+
+	g_tools=( ${cp_g_tools[@]} )
+}
 # TODO VERIFIED UP TO HERE =================================================
 
 #
