@@ -1296,6 +1296,13 @@ EOF
 
 #
 # @brief download xml data using new napiprojekt API
+# @param md5sum of the media file
+# @param file name of the media file
+# @param size of the media file in bytes
+# @param path of the xml file (including filename)
+# @param language (PL if not provided)
+# @param napi user
+# @param napi passwd
 #
 download_data_xml() {
     local url="http://napiprojekt.pl/api/api-napiprojekt3.php"
@@ -1536,10 +1543,6 @@ extract_cover_xml() {
 #
 cleanup_xml() {
     local movie_path="${1:-}"
-    local movie_file=$(basename "$movie_path")
-    local base=$(strip_ext "$movie_file")
-    local xmlfile="${base}.xml"
-    local path=$(dirname "$movie_path")
 
     if [ ${g_system[2]} != "NapiProjektPython" ] && [ ${g_system[2]} != "NapiProjekt" ]; then
         # don't even bother if id is not configured
@@ -1547,6 +1550,11 @@ cleanup_xml() {
         _debug $LINENO "nie ma co sprzatac, plik xml jest tworzony tylko dla napiprojekt3 api"
         return $RET_OK
     fi
+
+    local movie_file=$(basename "$movie_path")
+    local base=$(strip_ext "$movie_file")
+    local xmlfile="${base}.xml"
+    local path=$(dirname "$movie_path")
 
     # check for file presence
     if [ -e "$path/$xmlfile" ]; then

@@ -81,22 +81,6 @@ oneTimeTearDown() {
 ################################################################################
 
 #
-# test xml download data function
-#
-test_download_data_xml() {
-
-	return 0
-}
-
-#
-# test get_xml wrapper
-#
-test_get_xml() {
-
-	return 0
-}
-
-#
 # test subtitles tag extraction routine
 #
 test_extract_subs_xml() {
@@ -1196,6 +1180,71 @@ test_verify_7z() {
 
 	g_tools=( ${cp_g_tools[@]} )
 }
+
+
+#
+# test xml download data function
+#
+test_download_data_xml() {
+	local status=0
+
+	(
+		retval=$RET_OK
+
+		download_url() {
+			return $retval
+		}
+		export -f download_url
+
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass'
+		status=$?
+		assertEquals 'checking success download status' $RET_OK $status
+
+		retval=$RET_FAIL
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' 2>&1 > /dev/null
+		status=$?
+		assertEquals 'checking failure download status' $RET_FAIL $status
+	)
+
+	return 0
+}
+
+
+#
+# test get_xml wrapper
+#
+test_get_xml() {
+
+	local xmltmp=$(mktemp tmp.xml.XXXXXXXX)
+	local status=0
+
+	(
+
+	retval=$RET_FAIL
+	download_data_xml() {
+
+		return $retval
+	}
+
+	get_xml 0 'movie.avi' 123 PL 'not_existing.xml'
+	status=$?
+	assertEquals 'checking failure status' $RET_FAIL $status
+
+	get_xml 0 'movie.avi' 123 PL "$xmltmp"
+	status=$?
+	assertEquals 'checking success status xml already exists' $RET_OK $status
+
+	retval=$RET_OK
+	get_xml 0 'movie.avi' 123 PL "not_existing.xml"
+	status=$?
+	assertEquals 'checking success status download_data_xml is successful' $RET_OK $status
+
+	)
+
+	unlink "$xmltmp"
+	return 0
+}
+
 # TODO VERIFIED UP TO HERE =================================================
 
 #
