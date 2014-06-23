@@ -104,13 +104,6 @@ test_extract_cover_xml() {
 	return 0
 }
 
-#
-# test xml cleanup routine
-#
-test_cleanup_xml() {
-
-	return 0
-}
 
 #
 # test xml download item routine
@@ -1242,6 +1235,31 @@ test_get_xml() {
 	)
 
 	unlink "$xmltmp"
+	return 0
+}
+
+
+#
+# test xml cleanup routine
+#
+test_cleanup_xml() {
+	local media_path="$g_assets_path/$g_ut_root/av1 file.avi"
+	local xml_path="$g_assets_path/$g_ut_root/av1 file.xml"
+	declare -a cp_g_system=( ${g_system[@]} )
+
+	touch "$xml_path"
+	echo "bogus data" > "$xml_path"
+
+	g_system[2]='pynapi'
+	cleanup_xml "$media_path"
+	assertTrue 'checking file existence' "[ -e \"$xml_path\" ]"
+
+	g_system[2]='NapiProjektPython'
+	cleanup_xml "$media_path"
+	assertFalse 'checking file absence' "[ -e \"$xml_path\" ]"
+
+	g_system=( ${cp_g_system[@]} )
+	[ -e "$xml_path" ] && unlink "$xml_path"
 	return 0
 }
 
