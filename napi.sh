@@ -1189,7 +1189,7 @@ download_url() {
         # check the headers
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
-            code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
+            code=$(echo "$headers" | get_http_status | cut -d ' ' -f 2)
             [ -n "$(echo $code | grep 200)" ] && rv=$RET_OK
         fi
     else
@@ -1679,7 +1679,7 @@ download_subs_classic() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ "$id" = "other" ] && dof=$(mktemp napisy.7z.XXXXXXXX)
+    [ "$id" = "other" ] && dof="$(mktemp napisy.7z.XXXXXXXX)"
 
     http_codes=$(download_url "$url" "$dof")
     status=$?
