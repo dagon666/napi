@@ -1380,6 +1380,9 @@ get_xml() {
     local lang="${4:-PL}"
     local xml_path="${5:-}"
 
+    local size=0
+    local min_size=32
+
     # assume failure
     local rv=$RET_FAIL;
 
@@ -1390,6 +1393,15 @@ get_xml() {
         # snap, it needs to be downloaded
         download_data_xml $md5sum "$movie_file" $byte_size "$xml_path" $lang ${g_cred[@]}
         rv=$?
+    fi
+
+    size=$($g_cmd_stat "$xml_path")
+
+    # verify the size
+    if [ "$size" -lt "$min_size" ]; then
+        _error "downloaded xml file's size is less than $min_size"
+        $g_cmd_unlink "$xml_path"
+        rv=$RET_FAIL
     fi
 
     return $rv
@@ -1720,6 +1732,9 @@ download_subs_classic() {
         
         # adjust that if needed
         local min_lines=3
+
+        _debug $LINENO "min_lines: [$min_lines]"
+        _debug $LINENO "lines: [$lines]"
 
         if [ "$lines" -lt "$min_lines" ]; then
             _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
