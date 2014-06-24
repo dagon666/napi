@@ -185,7 +185,7 @@ g_stats_print=0
 # =0 - optional tool
 #
 declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
-    'dd=1' 'grep=1' 'seq=1' 'sed=1' \
+    'wc=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' \
     'cut=1' 'base64=0' 'unlink=0' 'stat=1' \
     'basename=1' 'dirname=1' 'cat=1' 'cp=1' \
     'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' \
@@ -372,9 +372,11 @@ lookup_value() {
     local i=''
     local rv=$RET_FAIL
     local key="$1" && shift
+    local tk=''
 
     for i in $*; do
-        if [ $(get_key "$i") = "$key" ]; then
+        tk=$(get_key "$i")
+        if [ "$tk"  = "$key" ]; then
             get_value $i
             rv=$RET_OK
             break
@@ -460,7 +462,7 @@ declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' \
 #
 list_languages() {
     local i=0
-    while [ $i -lt ${#g_Language[@]} ]; do
+    while [ "$i" -lt ${#g_Language[@]} ]; do
         echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
         i=$(( $i + 1 ))
     done
@@ -484,7 +486,7 @@ verify_language() {
     local found=$?
 
     echo $i 
-    [ $found -eq $RET_OK ] && return $RET_OK
+    [ "$found" -eq $RET_OK ] && return $RET_OK
     return $RET_FAIL
 }
 
@@ -621,7 +623,7 @@ verify_tools() {
         ret=( "${ret[@]}" "$tool=$p" )
         
         # break if mandatory tool is missing
-        [ $m -eq 1 ] && [ $p -eq 0 ] && rv=$RET_FAIL && break
+        [ "$m" -eq 1 ] && [ "$p" -eq 0 ] && rv=$RET_FAIL && break
     done
 
     echo ${ret[*]}
@@ -633,9 +635,11 @@ verify_tools() {
 # @brief get extension for given subtitle format
 #
 get_sub_ext() {
+    local status=0
     declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
     lookup_value "$1" ${fmte[@]}
-    [ $? -ne $RET_OK ] && echo $g_default_ext
+    status=$?
+    [ "$status" -ne $RET_OK ] && echo $g_default_ext
     return $RET_OK
 }
 
@@ -677,7 +681,7 @@ get_fps() {
     # prevent empty output
     tool=$(( $tool + 0 ))
 
-    if [ $tool -ne 0 ]; then
+    if [ "$tool" -ne 0 ]; then
         case "$1" in
             'mplayer' | 'mplayer2' )
             fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
@@ -897,7 +901,8 @@ verify_id() {
 
         for k in "${t[@]}"; do
             p=$(lookup_value "$k" ${g_tools[@]})
-            if [ $(( $p + 0 )) -eq 0 ]; then
+            p=$(( $p + 0 ))
+            if [ "$p" -eq 0 ]; then
                 _error "$k nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
                 g_system[2]='pynapi'
                 return $RET_UNAV
@@ -920,7 +925,7 @@ verify_format() {
         # make sure it's a number
         sp=$(( $sp + 0 ))
 
-        if [ $sp -eq 0 ]; then
+        if [ "$sp" -eq 0 ]; then
             _error "subotage.sh nie jest dostepny. konwersja nie jest mozliwa"
             return $RET_PARAM
         fi
@@ -943,6 +948,7 @@ verify_format() {
 verify_fps_tool() {
     local t=''
     local sp=0
+    local n=0
 
     # verify selected fps tool
     if [ "$g_fps_tool" != 'default' ]; then
@@ -956,15 +962,19 @@ verify_fps_tool() {
         # make sure it's a number
         sp=$(( $sp + 0 ))
 
-        if [ $sp -eq 0 ]; then
+        if [ "$sp" -eq 0 ]; then
             _error "$g_fps_tool nie jest dostepny"
             return $RET_PARAM
         fi
     else
+        local v=''
+
         # choose first available as the default tool
-        if [ $(count_fps_detectors) -gt 0 ]; then 
+        n=$(count_fps_detectors)
+        if [ "$n" -gt 0 ]; then 
             for t in ${g_tools_fps[@]}; do
-                [ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && 
+                v=$(lookup_value $t ${g_tools[@]})
+                [ "$v" -eq 1 ] && 
                     g_fps_tool=$t && 
                     break
             done
@@ -1067,8 +1077,9 @@ verify_argv() {
     _debug $LINENO 'sprawdzam wybrany jezyk'
     local idx=0
     idx=$(verify_language "$g_lang")
+    status=$?
 
-    if [ $? -ne $RET_OK ]; then
+    if [ "$status" -ne "$RET_OK" ]; then
         if [ "$g_lang" = "list" ]; then 
             list_languages
             return $RET_BREAK
@@ -1174,7 +1185,7 @@ download_url() {
     fi
 
     # check the status of the command
-    if [ $status -eq $RET_OK ]; then
+    if [ "$status" -eq "$RET_OK" ]; then
         # check the headers
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
@@ -1198,22 +1209,23 @@ download_url() {
 run_awk_script() {
     local awk_script="${1:-}"
     local file_path="${2:-}"
+    local num_arg=$#
 
     # 0 - file
     # 1 - stream
     local input_type=0
 
     # detect number of arguments
-    [ $# -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
+    [ "$num_arg" -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
 
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
     awk_presence=$(( $awk_presence + 0 ))
 
     # bail out if awk is not available
-    [ $awk_presence -eq 0 ] && return $RET_FAIL
+    [ "$awk_presence" -eq 0 ] && return $RET_FAIL
 
     # process a stream or a file
-    if [ $input_type -eq 0 ]; then
+    if [ "$input_type" -eq 0 ]; then
         awk "$awk_script" "$file_path"
     else
         awk "$awk_script"
@@ -1341,7 +1353,7 @@ download_data_xml() {
     status=$?
     _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
-    if [ $status -ne $RET_OK ]; then
+    if [ "$status" -ne "$RET_OK" ]; then
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
         # ... and exit
         rv=$RET_FAIL
@@ -1401,7 +1413,7 @@ extract_subs_xml() {
     xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
 
     _debug $LINENO "subs xml status [$xml_status]"
-    if [ $xml_status -eq 0 ]; then
+    if [ "$xml_status" -eq 0 ]; then
         _error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
         return $RET_UNAV
     fi
@@ -1454,7 +1466,7 @@ extract_nfo_xml() {
     xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
 
     _debug $LINENO "xml status [$xml_status]"
-    if [ $xml_status -eq 0 ]; then
+    if [ "$xml_status" -eq 0 ]; then
         _error "napiprojekt zglasza niepowodzenie - informacje niedostepne"
         return $RET_UNAV
     fi
@@ -1709,7 +1721,7 @@ download_subs_classic() {
         # adjust that if needed
         local min_lines=3
 
-        if [ $lines -lt $min_lines ]; then
+        if [ "$lines" -lt "$min_lines" ]; then
             _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
 
             local fdata=$(cat "$of")
