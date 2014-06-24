@@ -2647,6 +2647,14 @@ main() {
     _msg "wywolano o $(date)"
     _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
 
+    _msg "================================================="
+    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
+    _msg "API (napiprojekt-3)"
+    _msg "Jezeli zauwazysz jakies problemy z nowym API"
+    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
+    _msg "starego API korzystajac z opcji --id pynapi"
+    _msg "================================================="
+
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
