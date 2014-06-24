@@ -1413,7 +1413,7 @@ extract_subs_xml() {
     local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
 
     # create archive file
-    local tmp_7z_archive=$(mktemp -t napisy.7z.XXXXXXXX)
+    local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
     echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
 
     $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
@@ -1655,7 +1655,7 @@ download_subs_classic() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ "$id" = "other" ] && dof=$(mktemp -t napisy.7z.XXXXXXXX)
+    [ "$id" = "other" ] && dof=$(mktemp napisy.7z.XXXXXXXX)
 
     http_codes=$(download_url "$url" "$dof")
     status=$?
@@ -1907,7 +1907,7 @@ convert_charset() {
     # detect charset
     [ -z "$s" ] && s=$(get_charset "$file")
     
-    local tmp=$(mktemp -t napi.XXXXXXXX)
+    local tmp=$(mktemp napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
     if [ $? -eq $RET_OK ]; then
@@ -2063,7 +2063,7 @@ convert_format() {
     local sb_data=''
 
     # for the backup
-    local tmp="$(mktemp -t napi.XXXXXXXX)"
+    local tmp="$(mktemp napi.XXXXXXXX)"
 
     # verify original file existence before proceeding further
     ! [ -e "$path/$input" ] &&
@@ -2433,7 +2433,7 @@ EOF
 #
 spawn_forks() {
     local c=0
-    local stats_file="$(mktemp -t stats.XXXXXXXX)"
+    local stats_file="$(mktemp stats.XXXXXXXX)"
     local old_msg_cnt=0
 
     # open fd #8 for statistics collection
