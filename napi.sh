@@ -712,6 +712,9 @@ get_fps() {
 # @brief parse the cli arguments
 #
 parse_argv() {
+
+    _debug $LINENO "parsowanie argumentow"
+
     # command line arguments parsing
     while [ $# -gt 0 ]; do
         unset varname
@@ -1017,12 +1020,23 @@ verify_7z() {
 verify_argv() {
     local status=0
 
+    # make sure first that the printing functions will work
+    case "$g_verbosity" in
+        0 | 1 | 2 | 3 ) 
+            ;;
+        *)
+            _error "poziom gadatliwosci moze miec jedynie wartosci z zakresu (0-3)"
+            return $RET_BREAK
+            ;;
+    esac
+
+    _debug $LINENO "weryfikacja argumentow"
+
     # verify credentials correctness
     _debug $LINENO 'sprawdzam dane uwierzytelniania'
     if ! verify_credentials "${g_cred[0]}" "${g_cred[1]}"; then
         g_cred[0]='' && g_cred[1]=''
     fi
-
 
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
@@ -2656,13 +2670,13 @@ main() {
         usage &&
         return $RET_BREAK
 
-    _info $LINENO "parsowanie argumentow"
+    # get argv
     if ! parse_argv "$@"; then
         _error "niepoprawne argumenty..."
         return $RET_FAIL
     fi
 
-    _info $LINENO "weryfikacja argumentow"
+    # verify argv
     if ! verify_argv; then 
         _error "niepoprawne argumenty..."
         return $RET_FAIL
