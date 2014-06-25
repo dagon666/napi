@@ -160,8 +160,10 @@ function f_is_tmplayer_format
                 
             hour_digits=$(echo "$file_line" | awk 'BEGIN { FS=":"; } { printf ("%d", length($1)); }')
             mline=$(echo "$file_line" | sed -r 's/^[0-9]+:[0-9]+:[0-9]+,[0-9]+/success/')
+
+			local mline_test=$(echo "$mline" | grep "success")
             
-            if [ -n $(echo "$mline" | grep "success") ]; then
+            if [ -n "$mline_test" ]; then
                 multiline="yes"
                 
                 # determine the time, text delimiter type           
