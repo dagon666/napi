@@ -1747,6 +1747,10 @@ download_subs_classic() {
         fi
 
         _debug $LINENO "licze linie w pliku [$of]"
+        global_lines=$(wc -l "$of" | cut -d ' ' -f 1)
+        _msg "global lines: [$global_lines]"
+        test_wc=$(wc -l "$of")
+        _msg "wc: [$test_wc]"
 
         # count lines in the file
         local lines=$(wc -l "$of" | cut -d ' ' -f 1)
