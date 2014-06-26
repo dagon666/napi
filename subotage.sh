@@ -27,7 +27,7 @@ declare -r g_revision="v1.1.0"
 
 # verify presence of the napi_common library
 declare -r NAPI_COMMON_PATH=
-if [ -z "$NAPI_COMMON_PATH" ]; then
+if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
 	echo "uzyj skryptu install.sh (install.sh --help - pomoc)"
 	echo "aby zainstalowac napi.sh w wybranym katalogu"
