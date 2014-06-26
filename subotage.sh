@@ -93,11 +93,11 @@ function f_is_fab_format
 	local cnti='empty'
     
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
         
-        first_line=$(( $max_attempts - $attempts + 1))  
+        first_line=$(( max_attempts - attempts + 1))  
         cnti=$(echo $file_line | sed -r 's/^[0-9]+ : [0-9]+:[0-9]+:[0-9]+:[0-9]+[ ]+[0-9]+:[0-9]+:[0-9]+:[0-9]+[\r\n]*$/success/')
         
         if [ "$cnti" = "success" ]; then
@@ -105,7 +105,7 @@ function f_is_fab_format
             break
         fi  
         
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1"
     echo $match
 }
@@ -122,17 +122,17 @@ function f_is_subviewer_format
 	local header_line=''
 
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
         
-        first_line=$(( $first_line + 1 ))
+        first_line=$(( first_line + 1 ))
         
-        if [ $header_found -eq 1 ]; then
+        if [ "$header_found" -eq 1 ]; then
             match_line=$(echo $file_line | sed -r 's/^[0-9]+:[0-9]+:[0-9]+:[0-9]+,[0-9]+:[0-9]+:[0-9]+:[0-9]+[ \r]*$/success/')
             
             if [ "$match_line" = "success" ]; then
-                first_line=$(( $first_line - 1 ))
+                first_line=$(( first_line - 1 ))
                 match="subviewer $first_line"
                 break
             fi          
@@ -145,7 +145,7 @@ function f_is_subviewer_format
             continue
         fi
                 
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1"
         
     echo $match 
@@ -165,11 +165,11 @@ function f_is_tmplayer_format
     local delimiter=":"
     
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
         
-        first_line=$(( $max_attempts - $attempts + 1 ))
+        first_line=$(( max_attempts - attempts + 1 ))
         
         # the check itself
         match_value=$(echo "$file_line" | sed -r 's/^[0-9]+:[0-9]+:[0-9]+/success/')
@@ -196,7 +196,7 @@ function f_is_tmplayer_format
             break
         fi 
 
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1"
         
     echo $match
@@ -212,11 +212,11 @@ function f_is_microdvd_format
 	local fps=''
 
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
 
-        first_line=$(( $max_attempts - $attempts + 1 ))
+        first_line=$(( max_attempts - attempts + 1 ))
         
         match_value=$(echo $file_line | cut -d '}' -f -2 | sed 's/^{[0-9]*}{[0-9]*$/success/')      
 
@@ -233,7 +233,7 @@ function f_is_microdvd_format
             break   
         fi
         
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1"
 
 	if [ "$match" != "not detected"  ]; then
@@ -252,11 +252,11 @@ function f_is_mpl2_format
     local first_line=1    
 
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
         
-        first_line=$(( $max_attempts - $attempts + 1))
+        first_line=$(( max_attempts - attempts + 1))
         match_value=$(echo $file_line | cut -d ']' -f -2 | sed 's/^\[[0-9]*\]\[[0-9]*$/success/')       
 
         # mpl2 format detected
@@ -265,7 +265,7 @@ function f_is_mpl2_format
             break   
         fi
         
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1"
 
     echo $match
@@ -282,13 +282,13 @@ function f_is_subrip_format
     local first_line=1
 
     while read file_line; do
-        if [ $attempts -eq 0 ]; then
+        if [ "$attempts" -eq 0 ]; then
             break
         fi
 
         if [ "$counter_type" = "not found" ]; then      
             cntn=$(echo "$file_line" | awk '/^[0-9]+[\r\n]*$/')
-            first_line=$(( $max_attempts - $attempts + 1 ))
+            first_line=$(( max_attempts - attempts + 1 ))
 
             if [ -n "$cntn" ]; then
                 counter_type="newline"              
@@ -314,7 +314,7 @@ function f_is_subrip_format
             fi
         fi
                     
-        attempts=$(( $attempts - 1 ))       
+        attempts=$(( attempts - 1 ))       
     done < "$1" 
     
     echo "$match" 
@@ -380,7 +380,7 @@ function f_read_tmplayer_format
     delimiter=":"
     
     # format information based on autodetection
-    if [ ${#g_InputFormatData[*]} -gt 3 ]; then
+    if [ "${#g_InputFormatData[*]}" -gt 3 ]; then
         
         hour_digits="${g_InputFormatData[2]}"
         multiline="${g_InputFormatData[3]}"
@@ -936,7 +936,7 @@ function f_print_help
     counter=0
     for fmt in ${g_FileFormats[@]}; do
         echo -e "\t$fmt - ${g_FormatDescription[$counter]}"
-        counter=$(( $counter + 1 ))
+        counter=$(( counter + 1 ))
     done
 }
 
@@ -944,7 +944,7 @@ function f_print_help
 # @brief error wrapper
 function f_print_error
 {
-    if [ $g_Quiet -eq 1 ]; then
+    if [ "$g_Quiet" -eq 1 ]; then
         echo "Error" > /dev/stderr
     else
         echo "An error occured. Execution aborted !!!" > /dev/stderr
@@ -956,7 +956,7 @@ function f_print_error
 # @brief warning wrapper
 function f_print_warning
 {
-    if [ $g_Quiet -eq 1 ]; then
+    if [ "$g_Quiet" -eq 1 ]; then
         echo "Warning" > /dev/stderr
     else
         echo -e "Warning: $@" > /dev/stderr
@@ -966,7 +966,7 @@ function f_print_warning
 # @brief printing wrapper
 function f_echo
 {
-    if [ $g_Quiet -ne 1 ]; then
+    if [ "$g_Quiet" -ne 1 ]; then
         echo -e "$@"
     fi
 }
@@ -975,7 +975,7 @@ function f_echo
 function f_guess_format
 {
     local lines=$(cat "$1" 2> /dev/null | count_lines)
-    if [ $lines -eq 0 ]; then
+    if [ "$lines" -eq 0 ]; then
         f_print_error "Input file has zero lines inside"
         exit -1
     fi
@@ -1104,7 +1104,7 @@ while [ $# -gt 0 ]; do
             fi      
         done
         
-        if [ if_valid -eq 0 ]; then
+        if [ "$if_valid" -eq 0 ]; then
             f_print_error "Specified input format is not valid: [$1]"
             exit -1
         fi      
@@ -1127,7 +1127,7 @@ while [ $# -gt 0 ]; do
             fi      
         done
         
-        if [ $of_valid -eq 0 ]; then
+        if [ "$of_valid" -eq 0 ]; then
             f_print_error "Specified output format is not valid: [$1]"
             exit -1
         fi      
@@ -1188,7 +1188,7 @@ while [ $# -gt 0 ]; do
         counter=0
 		for fmt in ${g_FileFormats[@]}; do
 			echo -e "\t$fmt - ${g_FormatDescription[$counter]}"
-			counter=$(( $counter + 1 ))
+			counter=$(( counter + 1 ))
 		done
         exit
         ;;
@@ -1201,9 +1201,10 @@ while [ $# -gt 0 ]; do
             f_print_error "No framerate specified"
             exit -1
         fi
+		local param=$(echo "$1" | tr -d '[\n\.0-9]')
         
         # check if fps is integer or float      
-        if [ -n $(echo "$1" | tr -d '[\n\.0-9]') ]; then
+        if [ -n "$param"  ]; then
             f_print_error "Framerate is not in an acceptable number format [$1]"
             exit -1
         else
@@ -1257,14 +1258,14 @@ f_echo "Output Format Selected: [$g_OutputFormat]"
 
 # format specific data manipulation operations
 # executed only if format detection was performed
-if [ $g_FormatDetected -eq 1 ]; then  
+if [ "$g_FormatDetected" -eq 1 ]; then  
     case "${g_InputFormatData[0]}" in
         
         "microdvd")
-        if [ $g_InFpsGiven -eq 0 ]; then
+        if [ "$g_InFpsGiven" -eq 0 ]; then
 
             tmpFps=${g_InputFormatData[$(( ${#g_InputFormatData[@]} - 1 ))]}                        
-            if [ -n "$tmpFps" ] && [ $tmpFps != "0" ]; then
+            if [ -n "$tmpFps" ] && [ "$tmpFps" != "0" ]; then
                 g_InputFrameRate=$tmpFps
             fi
         fi
@@ -1329,14 +1330,14 @@ echo > "$g_ProcTmpFile"
 # input file, first valid line, format specific data
 status=$($g_Reader "$g_InputFile" "${g_InputFormatData[1]}" "${g_InputFormatData[2]}")
 
-if [ $status -ne 0 ]; then
+if [ "$status" -ne 0 ]; then
     f_print_error "Reading error. Error code: [$status]"
     exit -1
 else
 	f_correct_overlaps
     status=$($g_Writer "$g_OutputFile")
     
-    if [ $status -ne 0 ]; then
+    if [ "$status" -ne 0 ]; then
         f_print_error "Writing error. Error code: [$status]"
         exit -1
     fi
