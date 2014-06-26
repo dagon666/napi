@@ -1,24 +1,22 @@
 #!/bin/bash
 
 BIN_dir='/usr/bin'
-SHARED_dir='/usr/share/napi'
+SHARED_dir='/usr/share'
+
+declare -ar bin_files=( 'subotage.sh' 'napi.sh' )
+declare -ar shared_files=( 'napi_common.sh' )
 
 #
 # replace the common path in given file
 #
 replace_path() {
-	declare -a files=( 'napi.sh' 'subotage.sh' )
-	declare -a files=( 'napi.sh' )
-	local token='NAPI_COMMON_PATH'
-
 	local file="$1"
 	local path="$2"
-	local f=''
+
+	local token='NAPI_COMMON_PATH'
 	local replacement="${token}=\"$path\""
 
-	for f in "${files[@]}"; do
-		sed -i~ "s|${token}=|${replacement}|" "$file"
-	done
+	sed -i~ "s|${token}=|${replacement}|" "$file"
 }
 
 
@@ -30,6 +28,22 @@ is_writable() {
 	local path="$1"
 	[ -d "$path" ] && [ -w "$path" ] && rv=0
 	return $rv
+}
+
+
+#
+# verify destination dir
+#
+check_dirs() {
+	declare -a dirs=( "$BIN_dir" "$SHARED_dir" )
+	local d=''
+
+	for d in "${dirs[@]}"; do
+		if ! is_writable "$d"; then
+			echo "katalog [$d] niedostepny do zapisu - okresl inny"
+			exit -1
+		fi
+	done
 }
 
 
@@ -48,10 +62,56 @@ usage() {
 }
 
 
-# print help if no args or when requested explicitly 
-[ $# -lt 1 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ] && 
+# print help if when requested explicitly 
+[ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ] && 
         usage &&
         exit -1
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		"-h" | "--help" )
+			usage
+			exit -1
+			;;
+
+		"--bindir" )
+			shift
+			[ -z "$1" ] && 
+				echo "BLAD: Podaj katalog do ktorego zainstalowac pliki wykonywalne" &&
+				exit -1
+			BIN_dir="$1"
+			;;
+
+		"--shareddir" )
+			shift
+			[ -z "$1" ] && 
+				echo "BLAD: Podaj katalog do ktorego zainstalowac biblioteki" &&
+				exit -1
+			SHARED_dir="$1"
+			;;
+	esac
+
+	shift
+done
+
+echo "BIN_dir : [$BIN_dir]"
+echo "SHARED_dir : [$SHARED_dir]"
+
+# check dirs
+check_dirs
+
+# install shared first
+mkdir -p "$SHARED_dir/napi"
+for f in "${shared_files[@]}"; do
+	cp -v "$f" "$SHARED_dir/napi"
+done
+
+# install executables now
+for f in "${bin_files[@]}"; do
+	replace_path "$f" "$SHARED_dir/napi"
+	cp -v "$f" "$BIN_dir"
+done
+
 
 
 
