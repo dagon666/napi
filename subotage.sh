@@ -54,6 +54,26 @@ g_FormatDescription=( "Format based on frames. Uses given framerate\n\t\t(defaul
 
 
 ################################################################################
+
+################################################################################
+
+
+#
+# @brief count the number of lines in a file
+#
+count_lines() {
+
+    # it is being executed in a subshell to strip any leading white spaces
+    # which some of the wc versions produce
+
+    # shellcheck disable=SC2046
+    # shellcheck disable=SC2005
+    echo $(wc -l)
+}
+
+
+
+################################################################################
 ########################## format detection routines ###########################
 ################################################################################
 # each detection function should return a string delimited by spaces containing:
@@ -954,7 +974,7 @@ function f_echo
 # @brief try to determine the input file format
 function f_guess_format
 {
-    local lines=$(cat "$1" 2> /dev/null | wc -l)
+    local lines=$(cat "$1" 2> /dev/null | count_lines)
     if [ $lines -eq 0 ]; then
         f_print_error "Input file has zero lines inside"
         exit -1
@@ -974,7 +994,7 @@ function f_guess_format
 function f_correct_overlaps
 {
     time_type=$(head -n 1 "$g_ProcTmpFile")
-	num_lines=$(($(wc -l "$g_ProcTmpFile" | cut -d ' ' -f 1) - 1))
+	num_lines=$(( $(cat "$g_ProcTmpFile" | count_lines) - 1))
     
 	# now I need to rewrite the univeral file once again
     case $time_type in
