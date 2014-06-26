@@ -1812,12 +1812,9 @@ download_subs_classic() {
             return $RET_FAIL
         fi
 
-        _debug $LINENO "licze linie w pliku [$of]"
-        test_wc=$(wc -l "$of")
-        _msg "wc: [$test_wc]"
-
         # count lines in the file
-        local lines=$(wc -l "$of" | cut -d ' ' -f 1)
+        _debug $LINENO "licze linie w pliku [$of]"
+        local lines=$(cat "$of" | count_lines)
         
         # adjust that if needed
         local min_lines=3
