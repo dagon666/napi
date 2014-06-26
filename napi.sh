@@ -1052,7 +1052,7 @@ verify_7z() {
 
     # check 7z command
     _debug $LINENO "sprawdzam narzedzie 7z"
-    declare -a t7zs=( '7z' '7za' '7zr' )
+    declare -a t7zs=( '7zr' '7za' '7z' )
     g_cmd_7z=''
 
     for k in "${t7zs[@]}"; do
@@ -1215,7 +1215,7 @@ f() {
         
         local x=$(( (v*m) % 0x10 ))
         local z=$(printf "%X" $x)
-        b="$b$(echo "$z" | lcase)"
+        b="$b$(echo $z | lcase)"
     done
 
     echo "$b"
@@ -1526,6 +1526,14 @@ extract_subs_xml() {
 
     $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
 
+    # check 7z status
+    if [ $? -ne $RET_OK ]; then
+        _error "7z zwraca blad. nie mozna rozpakowac napisow"
+        [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
+        rv=$RET_FAIL
+    fi
+
+    # check for size
     if ! [ -s "$subs_path" ]; then
         _info $LINENO "plik docelowy ma zerowy rozmiar"
         [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
@@ -1760,11 +1768,14 @@ download_subs_classic() {
 
     # downloaded filename
     local dof="$of"
-    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$lang&f=$md5sum&t=$h&v=$id&kolejka=false&nick=$user&pass=$passwd&napios=posix"
+    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=${lang}&f=${md5sum}&t=${h}&v=${id}&kolejka=false&nick=${user}&pass=${passwd}&napios=posix"
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
     [ "$id" = "other" ] && dof="$(mktemp napisy.7z.XXXXXXXX)"
+
+    # log the url with all the variables
+    _debug $LINENO "url: [$url]"
 
     http_codes=$(download_url "$url" "$dof")
     status=$?
@@ -1788,8 +1799,18 @@ download_subs_classic() {
 
         "other")
         $g_cmd_7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
+        status=$?
+
         [ -e "$dof" ] && $g_cmd_unlink "$dof"
 
+        # check 7z status
+        if [ "$status" -ne $RET_OK ]; then
+            _error "7z zwraca blad. nie mozna rozpakowac napisow"
+            rv=$RET_FAIL
+            [ -e "$of" ] && $g_cmd_unlink "$of"
+        fi
+
+        # check file existence
         if ! [ -s "$of" ]; then
             _info $LINENO "plik docelowy ma zerowy rozmiar"
             rv=$RET_FAIL
@@ -1876,7 +1897,7 @@ get_subtitles() {
 
     # md5sum and hash calculation
     local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
-    local hash=0
+    local h=0
     local status=$RET_FAIL
 
     local media_file=$(basename "$fn")
@@ -1890,11 +1911,11 @@ get_subtitles() {
             ;;
 
         'pynapi' | 'other' )
-            hash=$(f "$sum")
+            h=$(f "$sum")
 
             # g_cred expansion is deliberate
             # shellcheck disable=SC2068
-            download_subs_classic "$sum" "$hash" "$of" "$lang" "${g_system[2]}" ${g_cred[@]}
+            download_subs_classic "$sum" "$h" "$of" "$lang" "${g_system[2]}" ${g_cred[@]}
             status=$?
             ;;
     esac
