@@ -234,7 +234,7 @@ declare -r RET_NOACT=251
 #
 _blit() {
     printf "#%02d:%04d %s\n" ${g_system[3]} ${g_system[4]} "$*"
-    g_system[4]=$(( ${g_system[4]} + 1 ))
+    g_system[4]=$(( g_system[4] + 1 ))
 }
 
 
@@ -327,11 +327,26 @@ redirect_to_stdout() {
 ################################### misc #######################################
 
 #
+# @brief count the number of lines in a file
+#
+count_lines() {
+
+    # it is being executed in a subshell to strip any leading white spaces
+    # which some of the wc versions produce
+
+    # shellcheck disable=SC2046
+    # shellcheck disable=SC2005
+    echo $(wc -l)
+}
+
+
+#
 # @brief lowercase the input
 #
 lcase() {
     tr '[:upper:]' '[:lower:]'
 }
+
 
 #
 # @brief get the extension of the input
@@ -339,6 +354,7 @@ lcase() {
 get_ext() {
     echo "${1##*.}"
 }
+
 
 #
 # @brief strip the extension of the input
@@ -374,10 +390,13 @@ lookup_value() {
     local key="$1" && shift
     local tk=''
 
+    # using $* is deliberate to allow parsing either array or space delimited strings
+
+    # shellcheck disable=SC2048
     for i in $*; do
         tk=$(get_key "$i")
         if [ "$tk"  = "$key" ]; then
-            get_value $i
+            get_value "$i"
             rv=$RET_OK
             break
         fi
@@ -400,7 +419,7 @@ lookup_key() {
 
     for i in "$@"; do
         [ "$i" = "$key" ] && rv=$RET_OK && break
-        idx=$(( $idx + 1 ))
+        idx=$(( idx + 1 ))
     done
 
     echo $idx
@@ -417,13 +436,16 @@ lookup_key() {
 modify_value() {
     local key=$1 && shift
     local value=$1 && shift
-
+    
     local i=0
+    local k=''
     declare -a rv=()
 
+    # shellcheck disable=SC2048
     for i in $*; do
+        k=$(get_key "$i")
         # unfortunately old shells don't support rv+=( "$i" )
-        [ "$(get_key $i)" != "$key" ] && rv=( "${rv[@]}" "$i" )
+        [ "$i" != "$key" ] && rv=( "${rv[@]}" "$i" )
     done
 
     rv=( "${rv[@]}" "$key=$value" )
@@ -464,7 +486,7 @@ list_languages() {
     local i=0
     while [ "$i" -lt "${#g_Language[@]}" ]; do
         echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
-        i=$(( $i + 1 ))
+        i=$(( i + 1 ))
     done
 }
 
@@ -482,10 +504,12 @@ verify_language() {
     local l_arr_name="g_LanguageCodes${#lang}L";
     eval l_arr=\( \${${l_arr_name}[@]} \)
 
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     i=$(lookup_key "$lang" ${l_arr[@]})
     local found=$?
 
-    echo $i 
+    echo "$i" 
     [ "$found" -eq $RET_OK ] && return $RET_OK
     return $RET_FAIL
 }
@@ -497,7 +521,7 @@ verify_language() {
 #
 normalize_language() {
     local i=${1:-0}
-    i=$(( $i + 0 ))
+    i=$(( i + 0 ))
 
     local lang=${g_LanguageCodes2L[$1]}
     
@@ -515,7 +539,6 @@ normalize_language() {
 #
 verify_tool_presence() {
     local tool=$(builtin type -p "$1")
-    local tool2=''
     local rv=$RET_UNAV
 
     # make sure it's really there
@@ -534,7 +557,7 @@ verify_tool_presence() {
 # determines number of available cpu's in the system
 #
 get_cores() {
-    grep -i processor /proc/cpuinfo | wc -l
+    grep -i processor /proc/cpuinfo | count_lines
 }
 
 
@@ -582,6 +605,9 @@ configure_cmds() {
 
     # check unlink command
     _debug $LINENO "sprawdzam obecnosc unlink"
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     [ "$(lookup_value 'unlink' ${g_tools[@]})" = "0" ] &&
         _info $LINENO 'brak unlink, g_cmd_unlink = rm' &&
         g_cmd_unlink='rm -rf'
@@ -615,8 +641,8 @@ verify_tools() {
 
     for t in "$@"; do
         p=1
-        tool="$(get_key $t)"
-        m="$(get_value $t)"
+        tool=$(get_key "$t")
+        m=$(get_value "$t")
 
         ! verify_tool_presence "$tool" && p=0
         # ret+=( "$tool=$p" )
@@ -637,8 +663,12 @@ verify_tools() {
 get_sub_ext() {
     local status=0
     declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     lookup_value "$1" ${fmte[@]}
     status=$?
+
     [ "$status" -ne $RET_OK ] && echo $g_default_ext
     return $RET_OK
 }
@@ -651,9 +681,15 @@ get_sub_ext() {
 count_fps_detectors() {
     local c=0
     local t=""
+    local v=''
 
-    for t in ${g_tools_fps[@]}; do      
-        [ "$(lookup_value $t ${g_tools[@]})" = "1" ] && c=$(( $c + 1 ))
+    for t in "${g_tools_fps[@]}"; do
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
+        v=$(lookup_value "$t" ${g_tools[@]})
+        [ "$v" = "1" ] && c=$(( c + 1 ))
+
     done
 
     echo $c
@@ -676,10 +712,12 @@ get_fps() {
         return $RET_PARAM
     fi
     
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local tool=$(lookup_value "$1" ${g_tools[@]})
 
     # prevent empty output
-    tool=$(( $tool + 0 ))
+    tool=$(( tool + 0 ))
 
     if [ "$tool" -ne 0 ]; then
         case "$1" in
@@ -823,7 +861,7 @@ parse_argv() {
         # not requiring any further verification
         if [ -n "$varname" ]; then
             shift
-            [ -z "$1" ] && _error $msg && return $RET_FAIL
+            [ -z "$1" ] && _error "$msg" && return $RET_FAIL
             eval "${varname}=\$1"
         fi
         shift
@@ -860,7 +898,7 @@ verify_credentials() {
 #
 verify_encoding() {
     [ "$1" = 'default' ] && return $RET_OK
-    echo test | iconv -t $1 > /dev/null 2>&1
+    echo test | iconv -t "$1" > /dev/null 2>&1
     return $?
 }
 
@@ -903,8 +941,12 @@ verify_id() {
         local k=''
 
         for k in "${t[@]}"; do
+
+            # this function can cope with that kind of input
+            # shellcheck disable=SC2068
             p=$(lookup_value "$k" ${g_tools[@]})
-            p=$(( $p + 0 ))
+            p=$(( p + 0 ))
+
             if [ "$p" -eq 0 ]; then
                 _error "$k nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
                 g_system[2]='pynapi'
@@ -923,10 +965,13 @@ verify_id() {
 verify_format() {
     # format verification if conversion requested
     if [ "$g_sub_format" != 'default' ]; then
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         local sp=$(lookup_value 'subotage.sh' ${g_tools[@]})
 
         # make sure it's a number
-        sp=$(( $sp + 0 ))
+        sp=$(( sp + 0 ))
 
         if [ "$sp" -eq 0 ]; then
             _error "subotage.sh nie jest dostepny. konwersja nie jest mozliwa"
@@ -935,6 +980,8 @@ verify_format() {
 
         declare -a formats=( $(subotage.sh -gf) )
 
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         if ! lookup_key $g_sub_format ${formats[@]} > /dev/null; then
             _error "podany format docelowy jest niepoprawny [$g_sub_format]"
             return $RET_PARAM
@@ -955,15 +1002,20 @@ verify_fps_tool() {
 
     # verify selected fps tool
     if [ "$g_fps_tool" != 'default' ]; then
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         if ! lookup_key "$g_fps_tool" ${g_tools_fps[@]} > /dev/null; then
             _error "podane narzedzie jest niewspierane [$g_fps_tool]"
             return $RET_PARAM
         fi
         
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         sp=$(lookup_value "$g_fps_tool" ${g_tools[@]})
 
         # make sure it's a number
-        sp=$(( $sp + 0 ))
+        sp=$(( sp + 0 ))
 
         if [ "$sp" -eq 0 ]; then
             _error "$g_fps_tool nie jest dostepny"
@@ -975,7 +1027,10 @@ verify_fps_tool() {
         # choose first available as the default tool
         n=$(count_fps_detectors)
         if [ "$n" -gt 0 ]; then 
-            for t in ${g_tools_fps[@]}; do
+            for t in "${g_tools_fps[@]}"; do
+
+                # this function can cope with that kind of input
+                # shellcheck disable=SC2068
                 v=$(lookup_value $t ${g_tools[@]})
                 [ "$v" -eq 1 ] && 
                     g_fps_tool=$t && 
@@ -1001,6 +1056,9 @@ verify_7z() {
     g_cmd_7z=''
 
     for k in "${t7zs[@]}"; do
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         lv=$(lookup_value "$k" ${g_tools[@]})
         [ "$lv" = "1" ] &&
             _info $LINENO "7z wykryty jako [$k]" &&
@@ -1042,9 +1100,9 @@ verify_argv() {
 
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
-    g_min_size=$(( $g_min_size + 0 ))
-    g_verbosity=$(( $g_verbosity + 0 ))
-    g_system[1]=$(( ${g_system[1]} + 0 ))
+    g_min_size=$(( g_min_size + 0 ))
+    g_verbosity=$(( g_verbosity + 0 ))
+    g_system[1]=$(( g_system[1] + 0 ))
 
 
     # verify encoding request
@@ -1105,7 +1163,7 @@ verify_argv() {
         fi
     else
         _debug $LINENO "jezyk znaleziony, index = $idx"
-        g_lang=$(normalize_language $idx)
+        g_lang=$(normalize_language "$idx")
     fi
     unset idx
 
@@ -1157,7 +1215,7 @@ f() {
         
         local x=$(( (v*m) % 0x10 ))
         local z=$(printf "%X" $x)
-        b="$b$(echo $z | lcase)"
+        b="$b$(echo "$z" | lcase)"
     done
 
     echo "$b"
@@ -1206,13 +1264,16 @@ download_url() {
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
             code=$(echo "$headers" | get_http_status | cut -d ' ' -f 2)
+
+            # shellcheck disable=SC2143
+            # shellcheck disable=SC2086
             [ -n "$(echo $code | grep 200)" ] && rv=$RET_OK
         fi
     else
         rv=$RET_FAIL
     fi
     
-    echo $code
+    echo "$code"
     return $rv
 }
 
@@ -1234,8 +1295,10 @@ run_awk_script() {
     # detect number of arguments
     [ "$num_arg" -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
 
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
-    awk_presence=$(( $awk_presence + 0 ))
+    awk_presence=$(( awk_presence + 0 ))
 
     # bail out if awk is not available
     [ "$awk_presence" -eq 0 ] && return $RET_FAIL
@@ -1407,7 +1470,10 @@ get_xml() {
         rv=$RET_OK
     else
         # snap, it needs to be downloaded
-        download_data_xml $md5sum "$movie_file" $byte_size "$xml_path" $lang ${g_cred[@]}
+
+        # g_cred expansion is deliberate
+        # shellcheck disable=SC2068
+        download_data_xml "$md5sum" "$movie_file" "$byte_size" "$xml_path" "$lang" ${g_cred[@]}
         rv=$?
     fi
 
@@ -1440,7 +1506,7 @@ extract_subs_xml() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # I've got the xml, extract Interesting parts
-    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
 
     _debug $LINENO "subs xml status [$xml_status]"
     if [ "$xml_status" -eq 0 ]; then
@@ -1493,7 +1559,7 @@ extract_nfo_xml() {
        'filmweb_pl' 'fdb_pl' 'stopklatka_pl' )
 
     # I've got the xml, extract Interesting parts
-    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
 
     _debug $LINENO "xml status [$xml_status]"
     if [ "$xml_status" -eq 0 ]; then
@@ -1524,7 +1590,7 @@ extract_nfo_xml() {
     for k in "${movie_tags[@]}"; do
         v=$(echo "$xml_movie" | extract_xml_tag "$k")
 
-        cdata=$(echo "$v" | grep 'CDATA' | wc -l)
+        cdata=$(echo "$v" | grep 'CDATA' | count_lines)
         en=$(echo "$v" | extract_xml_tag "en" | strip_xml_tag "en")
         pl=$(echo "$v" | extract_xml_tag "pl" | strip_xml_tag "pl")
 
@@ -1555,7 +1621,7 @@ extract_cover_xml() {
     local rv=$RET_OK
 
     # I've got the xml, extract Interesting parts
-    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | wc -l)
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
 
     _debug $LINENO "cover xml status [$xml_status]"
     if [ "$xml_status" -eq 0 ]; then
@@ -1651,7 +1717,7 @@ download_item_xml() {
     _info $LINENO "pobieram $item metoda xml"
 
     # get the god damn xml
-    get_xml $md5sum "$movie_file" $byte_size $lang "$xml_path"
+    get_xml "$md5sum" "$movie_file" "$byte_size" "$lang" "$xml_path"
     rv=$?
 
     # check the status
@@ -1747,8 +1813,6 @@ download_subs_classic() {
         fi
 
         _debug $LINENO "licze linie w pliku [$of]"
-        global_lines=$(wc -l "$of" | cut -d ' ' -f 1)
-        _msg "global lines: [$global_lines]"
         test_wc=$(wc -l "$of")
         _msg "wc: [$test_wc]"
 
@@ -1824,13 +1888,16 @@ get_subtitles() {
     # pick method depending on id
     case ${g_system[2]} in
         'NapiProjekt' | 'NapiProjektPython' )
-            download_item_xml "subs" $sum "$fn" "$of" $lang
+            download_item_xml "subs" "$sum" "$fn" "$of" "$lang"
             status=$?
             ;;
 
         'pynapi' | 'other' )
-            hash=$(f $sum)
-            download_subs_classic $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
+            hash=$(f "$sum")
+
+            # g_cred expansion is deliberate
+            # shellcheck disable=SC2068
+            download_subs_classic "$sum" "$hash" "$of" "$lang" "${g_system[2]}" ${g_cred[@]}
             status=$?
             ;;
     esac
@@ -1885,12 +1952,12 @@ get_cover() {
     # pick method depending on id
     case ${g_system[2]} in
         'NapiProjekt' | 'NapiProjektPython' )
-            download_item_xml "cover" $sum "$1" "$path/$cover_fn" $lang 
+            download_item_xml "cover" "$sum" "$1" "$path/$cover_fn" "$lang" 
             status=$?
             ;;
 
         'pynapi' | 'other' )
-            download_cover_classic $sum "$path/$cover_fn"
+            download_cover_classic "$sum" "$path/$cover_fn"
             status=$?
             ;;
     esac
@@ -1905,12 +1972,15 @@ get_cover() {
 #
 get_charset() {
     local file="$1"
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local ft_presence=$(lookup_value 'file' ${g_tools[@]})
     local charset='WINDOWS-1250'
     local et=''
 
     # sanitizing the value
-    ft_presence=$(( $ft_presence + 0 ))
+    ft_presence=$(( ft_presence + 0 ))
 
     if [ "$ft_presence" -eq 1 ]; then
 
@@ -1987,6 +2057,8 @@ verify_extension() {
         'mpeg' 'wmv' '3gp' 'asf' 'divx' \
         'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
 
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     lookup_key "$extension" ${formats[@]} > /dev/null && is_video=1
 
     echo $is_video
@@ -2020,7 +2092,7 @@ prepare_file_list() {
         # if so, then recursively search the dir
         elif [ -d "$file" ]; then
             local tmp="$file"
-            prepare_file_list $min_size "$tmp"/*
+            prepare_file_list "$min_size" "$tmp"/*
 
         else
             # check if the respective file is a video file (by extention)       
@@ -2028,7 +2100,7 @@ prepare_file_list() {
             fs=$($g_cmd_stat "$file")
 
             if [ "$ve" -eq 1 ] &&
-               [ "$fs" -ge $(( $min_size*1024*1024 )) ]; then
+               [ "$fs" -ge $(( min_size*1024*1024 )) ]; then
                 # g_files+=( "$file" )
                 g_files=( "${g_files[@]}" "$file" )
             fi
@@ -2152,6 +2224,9 @@ convert_format() {
     fi
 
     _msg "wolam subotage.sh"
+
+    # fps_opt must be expanded for the subotage call
+    # shellcheck disable=SC2086
     sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
     status=$?
 
@@ -2211,7 +2286,7 @@ check_subs_presence() {
     if [ "$g_sub_format" != 'default' ]; then
 
         # unconverted unavailable, converted available
-        rv=$(( $rv | 1 ))
+        rv=$(( rv | 1 ))
 
         if [ -e "$path/${g_pf[7]}" ]; then
             _status "SKIP" "$media_file"
@@ -2230,15 +2305,15 @@ check_subs_presence() {
 
         else
             _info $LINENO "skonwertowany plik niedostepny"
-            rv=$(( $rv & ~1 ))
+            rv=$(( rv & ~1 ))
         fi
 
         # we already have what we need - bail out
-        [ $(( $rv & 1 )) -eq 1 ] && return $rv
+        [ $(( rv & 1 )) -eq 1 ] && return $rv
     fi
 
     # assume unconverted available & verify that
-    rv=$(( $rv | 2 ))
+    rv=$(( rv | 2 ))
 
     # when the conversion is not required
     if [ -e "$path/${g_pf[1]}" ]; then
@@ -2254,7 +2329,7 @@ check_subs_presence() {
 
     else
         _info $LINENO "oryginalny plik niedostepny"
-        rv=$(( $rv & ~2 ))
+        rv=$(( rv & ~2 ))
     fi
 
     # exceptionally in this function return value caries the 
@@ -2279,8 +2354,8 @@ obtain_file() {
 
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
-    _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
-    _debug $LINE "katalog docelowy [$path]"
+    _debug $LINENO "potencjalne nazwy plikow: ${g_pf[*]}"
+    _debug $LINENO "katalog docelowy [$path]"
 
     if [ "$g_skip" -eq 1 ]; then
         _debug $LINENO "sprawdzam dostepnosc pliku"
@@ -2289,18 +2364,18 @@ obtain_file() {
     fi
 
     _info $LINENO "dostepnosc pliku $av"
-    _debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
-    _debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
+    _debug $LINENO "przekonwertowany dostepny = $(( av & 1 ))"
+    _debug $LINENO "oryginalny dostepny = $(( (av & 2) >> 1 ))"
 
     # if conversion is requested
     if [ "$g_sub_format" != 'default' ]; then
 
         case $av in
             0) # download & convert
-                if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
+                if get_subtitles "$media_path" "$path/${g_pf[1]}" "$g_lang"; then
                     _debug $LINENO "napisy pobrano, nastapi konwersja"
                     should_convert=1
-                    g_stats[0]=$(( ${g_stats[0]} + 1 ))
+                    g_stats[0]=$(( g_stats[0] + 1 ))
                 else
                     # unable to get the file
                     _debug $LINENO "napisy niedostepne"
@@ -2312,7 +2387,7 @@ obtain_file() {
                 _debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
 
                 # increment skipped counter
-                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                g_stats[2]=$(( g_stats[2] + 1 ))
                 rv=$RET_OK
             ;;
 
@@ -2320,7 +2395,7 @@ obtain_file() {
                 _debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
 
                 # increment skipped counter
-                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                g_stats[2]=$(( g_stats[2] + 1 ))
                 should_convert=1
             ;;
         esac
@@ -2332,7 +2407,7 @@ obtain_file() {
             rv=$?
 
             # increment converted counter
-            g_stats[3]=$(( ${g_stats[3]} + 1 ))
+            g_stats[3]=$(( g_stats[3] + 1 ))
         fi
 
     else
@@ -2340,13 +2415,13 @@ obtain_file() {
 
         # file is not available - download
         if [ ${av[0]} -eq 0 ]; then
-            get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
+            get_subtitles "$media_path" "$path/${g_pf[1]}" "$g_lang"
             rv=$?
-            [ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
+            [ $rv -eq $RET_OK ] && g_stats[0]=$(( g_stats[0] + 1 ))
         else
 
             # increment skipped counter
-            g_stats[2]=$(( ${g_stats[2]} + 1 ))
+            g_stats[2]=$(( g_stats[2] + 1 ))
             rv=$RET_OK
         fi
     fi
@@ -2402,17 +2477,17 @@ process_file() {
         # assumed here that cover is only available
         # if subtitles are
         if [ "$g_cover" -eq 1 ]; then
-            if get_cover "$media_path" $g_lang; then
+            if get_cover "$media_path" "$g_lang"; then
                 _status "OK" "cover for $media_file"
-                g_stats[4]=$(( ${g_stats[4]} + 1 ))
+                g_stats[4]=$(( g_stats[4] + 1 ))
             else
                 _status "UNAV" "cover for $media_file"
-                g_stats[5]=$(( ${g_stats[5]} + 1 ))
+                g_stats[5]=$(( g_stats[5] + 1 ))
             fi 
         fi # if [ $g_cover -eq 1 ]
     else
         _status "UNAV" "$media_file"
-        g_stats[1]=$(( ${g_stats[1]} + 1 ))
+        g_stats[1]=$(( g_stats[1] + 1 ))
         rv=$RET_UNAV
     fi # if [ $status = $RET_OK ]
 
@@ -2420,7 +2495,7 @@ process_file() {
     cleanup_xml "$media_path"
 
     # increment total processed counter
-    g_stats[6]=$(( ${g_stats[6]} + 1 ))
+    g_stats[6]=$(( g_stats[6] + 1 ))
     return $rv
 }
 
@@ -2438,10 +2513,10 @@ process_files() {
     # current
     local c=$s
 
-    while [ $c -lt ${#g_files[@]} ]; do
+    while [ "$c" -lt ${#g_files[@]} ]; do
         _info $LINENO "#$s - index poczatkowy $c"
         process_file "${g_files[$c]}"
-        c=$(( $c + $i ))
+        c=$(( c + i ))
     done
 
     # dump statistics to fd #8 (if it has been opened before)
@@ -2498,9 +2573,9 @@ spawn_forks() {
     # spawn parallel processing
     while [ $c -lt "${g_system[1]}" ] && [ $c -lt ${#g_files[@]} ]; do
 
-        _debug $LINENO "tworze fork #$(( $c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
+        _debug $LINENO "tworze fork #$(( c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
 
-        g_system[3]=$(( $c + 1 ))
+        g_system[3]=$(( c + 1 ))
         old_msg_cnt=${g_system[4]}
         g_system[4]=1 # reset message counter
         process_files $c ${g_system[1]} &
@@ -2542,7 +2617,7 @@ print_stats() {
 
     while [ $i -lt ${#g_stats[@]} ]; do
         _status "${labels[$i]}" "${g_stats[$i]}"
-        i=$(( $i + 1 ))
+        i=$(( i + 1 ))
     done
 
     return $RET_OK
@@ -2554,12 +2629,18 @@ print_stats() {
 # @brief prints the help & options overview
 #
 usage() {
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local subotage_presence=$(lookup_value 'subotage.sh' ${g_tools[@]})
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local iconv_presence=$(lookup_value 'iconv' ${g_tools[@]})
 
     # precaution to prevent variables from being empty
-    subotage_presence=$(( $subotage_presence + 0 ))
-    iconv_presence=$(( $iconv_presence + 0 ))
+    subotage_presence=$(( subotage_presence + 0 ))
+    iconv_presence=$(( iconv_presence + 0 ))
 
     echo "=============================================================="
     echo "napi.sh version $g_revision (identifies as ${g_system[2]})"
@@ -2630,7 +2711,10 @@ usage() {
             echo "Wykryte narzedzia detekcji FPS"
 
             local t=0
-            for t in ${g_tools_fps[@]}; do
+            for t in "${g_tools_fps[@]}"; do
+
+                # this function can cope with that kind of input
+                # shellcheck disable=SC2068
                 [ "$(lookup_value $t ${g_tools[@]})" -eq 1 ] && echo $t
             done
             echo
@@ -2674,7 +2758,11 @@ main() {
 
     # verify tools presence
     _debug $LINENO "sprawdzam narzedzia ..." 
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     g_tools=( $(verify_tools ${g_tools[@]}) )
+
     if [ $? -ne $RET_OK ]; then
         _error "nie wszystkie wymagane narzedzia sa dostepne"
         _debug $LINENO "${g_tools[*]}"
@@ -2731,7 +2819,7 @@ main() {
 }
 
 # call the main
-[ ${SHUNIT_TESTS:-0} -eq 0 ] && main "$@"
+[ "${SHUNIT_TESTS:-0}" -eq 0 ] && main "$@"
 
 # EOF
 ######################################################################## 
