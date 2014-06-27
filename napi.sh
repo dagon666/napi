@@ -1052,7 +1052,8 @@ verify_7z() {
 
     # check 7z command
     _debug $LINENO "sprawdzam narzedzie 7z"
-    declare -a t7zs=( '7zr' '7za' '7z' )
+    # use 7z or 7za only, 7zr doesn't support passwords
+    declare -a t7zs=( '7za' '7z' )
     g_cmd_7z=''
 
     for k in "${t7zs[@]}"; do
@@ -1214,8 +1215,8 @@ f() {
         local v=$(( 16#${sum:$t:2} ))
         
         local x=$(( (v*m) % 0x10 ))
-        local z=$(printf "%X" $x)
-        b="$b$(echo $z | lcase)"
+        local z=$(printf "%x" $x)
+        b="$b$z"
     done
 
     echo "$b"
@@ -1754,8 +1755,8 @@ download_item_xml() {
 # @param requested subtitles language
 #
 download_subs_classic() {
-    local md5sum=${1:-0}
-    local h=${2:-0}
+    local md5sum="${1:-0}"
+    local h="${2:-0}"
     local of="$3"
     local lang="${4:-PL}"
     local id="${5:-pynapi}"
@@ -1911,7 +1912,7 @@ get_subtitles() {
             ;;
 
         'pynapi' | 'other' )
-            h=$(f "$sum")
+            h=$(f "$sum" | lcase)
 
             # g_cred expansion is deliberate
             # shellcheck disable=SC2068
