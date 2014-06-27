@@ -1,16 +1,8 @@
 #!/bin/bash
 
 g_InFpsGiven=0
-
-g_InputFormat="none"
-g_OutputFormat="subrip"
 g_FormatDetected=0
-
-g_InputFile="none"
-g_OutputFile="none"
-
 g_ProcTmpFile="/tmp/subotage_$$.tmp"
-g_LineCounter=0
 
 ################################################################################
 ########################## format detection routines ###########################
@@ -916,39 +908,7 @@ function f_correct_overlaps
 ############################## parameter parsing ##############################
 ###############################################################################
 
-# command line arguments parsing
-while [ $# -gt 0 ]; do
-    
-    case "$1" in
-    
-        # input file
-        "-i" | "--input")
-        shift       
-        if [ -z "$1" ] || ! [ -e "$1" ]; then
-            f_print_error "No input file specified or file doesnt exist !!! [$1]"
-            exit -1
-        fi
-        g_InputFile="$1"
-        ;;
-        
-        # output file
-        "-o" | "--output")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No output file specified !!!"
-            exit -1
-        fi
-        g_OutputFile="$1"       
-        ;;
-        
-        # input format
-        "-if" | "--input-format")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No input format specified"
-            exit -1
-        fi
-
+format verification
         if_valid=0
         for i in "${g_FileFormats[@]}"; do      
             if [ "$i" == "$1" ]; then
@@ -961,53 +921,8 @@ while [ $# -gt 0 ]; do
             f_print_error "Specified input format is not valid: [$1]"
             exit -1
         fi      
-        g_InputFormat=$1        
-        ;;
-        
-        # output format
-        "-of" | "--output-format")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No output format specified"
-            exit -1
-        fi
-        
-        of_valid=0
-        for i in "${g_FileFormats[@]}"; do      
-            if [ "$i" = "$1" ]; then
-                of_valid=1
-                break
-            fi      
-        done
-        
-        if [ "$of_valid" -eq 0 ]; then
-            f_print_error "Specified output format is not valid: [$1]"
-            exit -1
-        fi      
-        g_OutputFormat=$1
-        ;;
-        
-        # lasting time
-        "-l" | "--lasting-time")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No time specified specified"
-            exit -1
-        fi
-        
-        dot_removed=$(echo "$1" | tr -d '.,')
-        g_LastingTime="$1"              
-        ;;
-        
-        # fps for input file
-        "-fi" | "--fps-input")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No framerate specified"
-            exit -1
-        fi
-        g_InFpsGiven=1
-        
+
+fps verification
         # check if fps is integer or float
         if [ -n "$(echo "$1" | tr -d '[\n\.0-9]')" ]; then
             f_print_error "Framerate is not in an acceptable number format [$1]"
@@ -1015,43 +930,7 @@ while [ $# -gt 0 ]; do
         else
             g_InputFrameRate="$1"
         fi      
-        ;;
-        
-        # get input info
-        "-gi" | "--get-info")
-        shift       
-        if [ -z "$1" ] || ! [ -e "$1" ]; then
-            f_print_error "No input file specified or file doesnt exist !!!"
-            exit -1
-        fi
-        
-		detectedFormat=$(f_guess_format "$1")
-        echo $detectedFormat
-        exit
-        ;;
 
-        # fps for output file
-        "-fo" | "--fps-output")
-        shift       
-        if [ -z "$1" ]; then
-            f_print_error "No framerate specified"
-            exit -1
-        fi
-		local param=$(echo "$1" | tr -d '[\n\.0-9]')
-        
-        # check if fps is integer or float      
-        if [ -n "$param"  ]; then
-            f_print_error "Framerate is not in an acceptable number format [$1]"
-            exit -1
-        else
-            g_OutputFrameRate="$1"
-        fi      
-        ;;
-        
-    esac
-    
-    shift
-done
 
 # filenames validation
 if [ "$g_InputFile" = "none" ] || [ "$g_OutputFile" = "none" ]; then
