@@ -1824,7 +1824,7 @@ download_subs_classic() {
         fi
 
         # check file existence
-        if ! [ -s "$of" ]; then
+        if [ ! -s "$of" ]; then
             _info $LINENO "plik docelowy ma zerowy rozmiar"
             rv=$RET_FAIL
             [ -e "$of" ] && $g_cmd_unlink "$of"
