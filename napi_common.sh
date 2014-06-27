@@ -3,6 +3,11 @@
 # force indendation settings
 # vim: ts=4 shiftwidth=4 expandtab
 
+#
+# version for the whole bundle (napi.sh & subotage.sh)
+#
+declare -r g_revision="v1.3.1"
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -326,4 +331,38 @@ redirect_to_stdout() {
     [ -n "${g_output[1]}" ] && [ "${g_output[1]}" != "none" ] && exec 1>&3 3>&-
 }
 
-################################################################################
+# EOF
+
+
+
+
+############################## DB ######################################
+
+# that was an experiment which I decided to drop after all. 
+# those functions provide a mechanism to generate consistently named global vars
+# i.e. _db_set "abc" 1 will create glob. var ___g_db___abc=1
+# left as a reference - do not use it
+
+## #
+## # @global prefix for the global variables generation
+## #
+## g_GlobalPrefix="___g_db___"
+## 
+## 
+## #
+## # @brief get variable from the db
+## #
+## _db_get() {
+##  eval "echo \$${g_GlobalPrefix}_$1"  
+## }
+## 
+## 
+## #
+## # @brief set variable in the db
+## #
+## _db_set() {
+##  eval "${g_GlobalPrefix}_${1/./_}=\$2"
+## }
+
+######################################################################## 
+

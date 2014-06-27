@@ -3,11 +3,6 @@
 # force indendation settings
 # vim: ts=4 shiftwidth=4 expandtab
 
-#
-# script version
-#
-declare -r g_revision="v1.3.1"
-
 ########################################################################
 ########################################################################
 ########################################################################
@@ -2575,37 +2570,3 @@ main() {
 [ "${SHUNIT_TESTS:-0}" -eq 0 ] && main "$@"
 
 # EOF
-######################################################################## 
-######################################################################## 
-
-
-############################## DB ######################################
-
-# that was an experiment which I decided to drop after all. 
-# those functions provide a mechanism to generate consistently names global vars
-# i.e. _db_set "abc" 1 will create glob. var ___g_db___abc=1
-# left as a reference - do not use it
-
-## #
-## # @global prefix for the global variables generation
-## #
-## g_GlobalPrefix="___g_db___"
-## 
-## 
-## #
-## # @brief get variable from the db
-## #
-## _db_get() {
-##  eval "echo \$${g_GlobalPrefix}_$1"  
-## }
-## 
-## 
-## #
-## # @brief set variable in the db
-## #
-## _db_set() {
-##  eval "${g_GlobalPrefix}_${1/./_}=\$2"
-## }
-
-######################################################################## 
-

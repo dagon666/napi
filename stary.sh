@@ -1,7 +1,5 @@
 #!/bin/bash
 
-g_InputFrameRate="23.98"
-g_OutputFrameRate="23.98"
 g_InFpsGiven=0
 
 g_InputFormat="none"
@@ -10,45 +8,9 @@ g_FormatDetected=0
 
 g_InputFile="none"
 g_OutputFile="none"
-g_LastingTime="3000"
 
-g_ProcessId=$$
-g_ProcTmpFile="/tmp/subotage_${g_ProcessId}.tmp"
+g_ProcTmpFile="/tmp/subotage_$$.tmp"
 g_LineCounter=0
-g_Quiet=0
-
-# supported subtitle file formats
-g_FileFormats=( "microdvd" "mpl2" "subrip" "subviewer" "tmplayer" "fab" )
-
-# description for every supported file format
-g_FormatDescription=( "Format based on frames. Uses given framerate\n\t\t(default is [$g_InputFrameRate] fps)" \
-                      "[start][stop] format. The unit is time based == 0.1 sec" \
-                      "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
-                      "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
-                      "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
-                      "similar to subviewer, subrip.\n\t\t0022 : 00:05:22:01  00:05:23:50. No header" \
-                    ) 
-
-
-################################################################################
-
-################################################################################
-
-
-#
-# @brief count the number of lines in a file
-#
-count_lines() {
-
-    # it is being executed in a subshell to strip any leading white spaces
-    # which some of the wc versions produce
-
-    # shellcheck disable=SC2046
-    # shellcheck disable=SC2005
-    echo $(wc -l)
-}
-
-
 
 ################################################################################
 ########################## format detection routines ###########################
@@ -864,89 +826,9 @@ function f_write_fab_format
 ############################ format write routines ############################
 ###############################################################################
 
-
-
-
 ###############################################################################
 ############################### common routines ###############################
 ###############################################################################
-
-# @brief provide help information
-function f_print_help
-{
-    echo    "subotage.sh -i <input_file> -o <output_file> [optional switches]"
-    echo    "version [$g_Version]" 
-    echo    "   "
-    echo    "All switches:"
-    echo    "============="
-    echo    "   -i  | --input <input_file>  - input file (mandatory)"
-    echo    " "
-    echo    "   -o  | --output <output_file> - output file (mandatory)"
-    echo    " "
-    echo    "   -if | --input-format <format> - forces input format,"
-    echo    "                                   normally autodetection is done"
-    echo    " "
-    echo    "   -of | --output-format <format> - output format (default is srt)"
-    echo    " "
-    echo    "   -fi | --fps-input <fps> - framerate for reading in microdvd"
-    echo    "                               (default is: $g_InputFrameRate fps)"
-    echo    " "
-    echo    "   -fo | --fps-output <fps> - framerate for writing in microdvd "
-    echo    "                               (default is: $g_InputFrameRate fps)"
-    echo    " "
-    echo    "   -l  | --lasting-time <time in ms> - declare how long each subtitle"
-    echo    "                               line should last in miliseconds"
-    echo    "                               (default is: $g_LastingTime ms)"
-    echo    " "
-    echo    "   -gi | --get-info <input_file> - retrieve information about input, "
-    echo    "                                   print them and exit"
-    echo    " "
-    echo	"   -gf | --get-formats - display supported subtitle formats only and exit"
-    echo    " "
-    echo	"   -gl | --get-formats-long - display supported subtitle formats "
-    echo	"								(with description) and exit"
-    echo    " "
-    echo    "   -q  | --quiet - be quiet. Dont print any unneccesarry output"
-    echo    " "
-    echo    "Supported formats:"
-    
-    counter=0
-    for fmt in ${g_FileFormats[@]}; do
-        echo -e "\t$fmt - ${g_FormatDescription[$counter]}"
-        counter=$(( counter + 1 ))
-    done
-}
-
-
-# @brief error wrapper
-function f_print_error
-{
-    if [ "$g_Quiet" -eq 1 ]; then
-        echo "Error" > /dev/stderr
-    else
-        echo "An error occured. Execution aborted !!!" > /dev/stderr
-        echo -e "$@" > /dev/stderr
-        echo > /dev/stderr
-    fi
-}
-
-# @brief warning wrapper
-function f_print_warning
-{
-    if [ "$g_Quiet" -eq 1 ]; then
-        echo "Warning" > /dev/stderr
-    else
-        echo -e "Warning: $@" > /dev/stderr
-    fi
-}
-
-# @brief printing wrapper
-function f_echo
-{
-    if [ "$g_Quiet" -ne 1 ]; then
-        echo -e "$@"
-    fi
-}
 
 # @brief try to determine the input file format
 function f_guess_format
@@ -1033,12 +915,6 @@ function f_correct_overlaps
 ###############################################################################
 ############################## parameter parsing ##############################
 ###############################################################################
-
-# if no arguments are given, then print help and exit
-if [ $# -eq 0 ] || [ $1 == "--help" ] || [ $1 == "-h" ]; then
-    f_print_help
-    exit
-fi
 
 # command line arguments parsing
 while [ $# -gt 0 ]; do
@@ -1154,23 +1030,6 @@ while [ $# -gt 0 ]; do
         exit
         ;;
 
-        # get formats
-        "-gf" | "--get-formats")        
-        echo ${g_FileFormats[@]}
-        exit
-        ;;
-
-        # get formats
-        "-gl" | "--get-formats-long")        
-        counter=0
-		for fmt in ${g_FileFormats[@]}; do
-			echo -e "\t$fmt - ${g_FormatDescription[$counter]}"
-			counter=$(( counter + 1 ))
-		done
-        exit
-        ;;
-
-            
         # fps for output file
         "-fo" | "--fps-output")
         shift       
@@ -1189,18 +1048,7 @@ while [ $# -gt 0 ]; do
         fi      
         ;;
         
-        # be quiet flag
-        "-q" | "--quiet")
-        g_Quiet=1
-        ;;
-
-        # sanity check for unknown parameters
-        *)
-        f_print_error "Unknown parameter: [$1]"
-        exit -1
-        ;;
     esac
-    
     
     shift
 done
@@ -1302,7 +1150,6 @@ g_Reader="f_read_${g_InputFormatData[0]}_format"
 g_Writer="f_write_${g_OutputFormat}_format"
 
 echo > "$g_ProcTmpFile"
-
 
 # input file, first valid line, format specific data
 status=$($g_Reader "$g_InputFile" "${g_InputFormatData[1]}" "${g_InputFormatData[2]}")
