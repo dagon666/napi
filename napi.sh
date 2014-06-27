@@ -1509,6 +1509,7 @@ extract_subs_xml() {
     local subs_path="${2:-}"
     local xml_status=0
     local rv=$RET_OK
+    local status=$RET_FAIL
 
     local napi_pass="iBlm8NTigvru0Jr0"
 
@@ -1531,21 +1532,26 @@ extract_subs_xml() {
     local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
     echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
 
-    $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
+    if [ -s "$tmp_7z_archive" ]; then
+        _debug $LINENO "rozpakowuje archiwum ..."
+        $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
+        status=$?
+    fi
 
     # check 7z status
-    if [ $? -ne $RET_OK ]; then
+    if [ "$status" -ne $RET_OK ]; then
         _error "7z zwraca blad. nie mozna rozpakowac napisow"
-        [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
         rv=$RET_FAIL
     fi
 
     # check for size
     if ! [ -s "$subs_path" ]; then
         _info $LINENO "plik docelowy ma zerowy rozmiar"
-        [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
         rv=$RET_FAIL
     fi
+
+    # get rid of the subs
+    [ "$rv" != $RET_OK ] && [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
 
     # get rid of the archive
     [ -e "$tmp_7z_archive" ] && $g_cmd_unlink "$tmp_7z_archive"
