@@ -901,42 +901,9 @@ function f_correct_overlaps
 ###############################################################################
 ############################### common routines ###############################
 ###############################################################################
-
-
-
 ###############################################################################
 ############################## parameter parsing ##############################
 ###############################################################################
-
-format verification
-        if_valid=0
-        for i in "${g_FileFormats[@]}"; do      
-            if [ "$i" == "$1" ]; then
-                if_valid=1
-                break
-            fi      
-        done
-        
-        if [ "$if_valid" -eq 0 ]; then
-            f_print_error "Specified input format is not valid: [$1]"
-            exit -1
-        fi      
-
-fps verification
-        # check if fps is integer or float
-        if [ -n "$(echo "$1" | tr -d '[\n\.0-9]')" ]; then
-            f_print_error "Framerate is not in an acceptable number format [$1]"
-            exit -1
-        else
-            g_InputFrameRate="$1"
-        fi      
-
-
-# filenames validation
-if [ "$g_InputFile" = "none" ] || [ "$g_OutputFile" = "none" ]; then
-    f_print_error "Input/Output file not specified !!!"
-    exit -1
-fi
 
 # handle the input file format
 if [ "$g_InputFormat" = "none" ]; then
@@ -1018,8 +985,6 @@ fi
 ###############################################################################
 ############################## parameter parsing ##############################
 ###############################################################################
-
-
 
 ###############################################################################
 ############################## actual convertion ##############################

@@ -39,6 +39,11 @@ declare -r g_revision="v1.3.1"
 
 ################################## GLOBALS #####################################
 
+declare -r ___VERBOSITY=0
+declare -r ___LOG=1
+declare -r ___FORK=2
+declare -r ___CNT=3
+
 #
 # 0 - verbosity
 # - 0 - be quiet (prints only errors)
@@ -240,8 +245,8 @@ get_http_status() {
 # @brief produce output
 #
 _blit() {
-    printf "#%02d:%04d %s\n" ${g_output[2]} ${g_output[3]} "$*"
-    g_output[3]=$(( g_output[3] + 1 ))
+    printf "#%02d:%04d %s\n" ${g_output[$___FORK]} ${g_output[$___CNT]} "$*"
+    g_output[$___CNT]=$(( g_output[$___CNT] + 1 ))
 }
 
 
@@ -250,7 +255,7 @@ _blit() {
 #
 _debug() {
     local line=${1:-0} && shift
-    [ "${g_output[0]}" -ge 3 ] && _blit "--- $line: $*"
+    [ "${g_output[$___VERBOSITY]}" -ge 3 ] && _blit "--- $line: $*"
     return $RET_OK
 }
 
@@ -260,7 +265,7 @@ _debug() {
 #
 _info() {
     local line=${1:-0} && shift
-    [ "${g_output[0]}" -ge 2 ] && _blit "-- $line: $*"
+    [ "${g_output[$___VERBOSITY]}" -ge 2 ] && _blit "-- $line: $*"
     return $RET_OK
 }
 
@@ -278,10 +283,10 @@ _warning() {
 # @brief print error message
 #
 _error() {
-    local tmp="${g_output[0]}"
-    g_output[0]=1
+    local tmp="${g_output[$___VERBOSITY]}"
+    g_output[$___VERBOSITY]=1
     _status "ERROR" "$*" | to_stderr
-    g_output[0]="$tmp"
+    g_output[$___VERBOSITY]="$tmp"
     return $RET_OK
 }
 
@@ -290,7 +295,7 @@ _error() {
 # @brief print standard message
 #
 _msg() {
-    [ "${g_output[0]}" -ge 1 ] && _blit "- $*"
+    [ "${g_output[$___VERBOSITY]}" -ge 1 ] && _blit "- $*"
     return $RET_OK
 }
 
@@ -299,7 +304,7 @@ _msg() {
 # @brief print status type message
 #
 _status() {
-    [ "${g_output[0]}" -ge 1 ] && _blit "$1 -> $2"
+    [ "${g_output[$___VERBOSITY]}" -ge 1 ] && _blit "$1 -> $2"
     return $RET_OK
 }
 
@@ -308,7 +313,7 @@ _status() {
 # @brief redirect errors to standard error output
 #
 to_stderr() {
-    if [ -n "${g_output[1]}" ] && [ "${g_output[1]}" != "none" ]; then
+    if [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ]; then
         cat > /dev/stderr
     else
         cat
@@ -320,7 +325,7 @@ to_stderr() {
 # @brief redirect stdout to logfile
 #
 redirect_to_logfile() {
-    [ -n "${g_output[1]}" ] && [ "${g_output[1]}" != "none" ] && exec 3>&1 1> "${g_output[1]}"
+    [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ] && exec 3>&1 1> "${g_output[$___LOG]}"
 }
 
 
@@ -328,7 +333,7 @@ redirect_to_logfile() {
 # @brief redirect output to stdout
 #
 redirect_to_stdout() {
-    [ -n "${g_output[1]}" ] && [ "${g_output[1]}" != "none" ] && exec 1>&3 3>&-
+    [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ] && exec 1>&3 3>&-
 }
 
 # EOF

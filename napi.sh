@@ -529,7 +529,7 @@ parse_argv() {
             ;;
 
             # logfile
-            "-l" | "--log") varname="g_output[1]"
+            "-l" | "--log") varname="g_output[$___LOG]"
             msg="nie podano nazwy pliku loga"
             ;;
 
@@ -554,7 +554,7 @@ parse_argv() {
             ;;
 
             # verbosity
-            "-v" | "--verbosity") varname="g_output[0]"
+            "-v" | "--verbosity") varname="g_output[$___VERBOSITY]"
             msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy)"
             ;;
             
@@ -813,7 +813,7 @@ verify_argv() {
     local status=0
 
     # make sure first that the printing functions will work
-    case "${g_output[0]}" in
+    case "${g_output[$___VERBOSITY]}" in
         0 | 1 | 2 | 3 ) 
             ;;
         *)
@@ -833,7 +833,7 @@ verify_argv() {
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
     g_min_size=$(( g_min_size + 0 ))
-    g_output[0]=$(( g_output[0] + 0 ))
+    g_output[$___VERBOSITY]=$(( g_output[$___VERBOSITY] + 0 ))
     g_system[1]=$(( g_system[1] + 0 ))
 
 
@@ -874,7 +874,7 @@ verify_argv() {
     
     # logfile verification  
     _debug $LINENO 'sprawdzam logfile'
-    [ -e "${g_output[1]}" ] && [ "${g_output[1]}" != "none" ] &&
+    [ -e "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ] &&
         _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych" &&
         return $RET_BREAK
 
@@ -2323,15 +2323,15 @@ spawn_forks() {
 
         _debug $LINENO "tworze fork #$(( c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
 
-        g_output[2]=$(( c + 1 ))
-        old_msg_cnt=${g_output[3]}
-        g_output[3]=1 # reset message counter
+        g_output[$___FORK]=$(( c + 1 ))
+        old_msg_cnt=${g_output[$___CNT]}
+        g_output[$___CNT]=1 # reset message counter
         process_files $c ${g_system[1]} &
 
         # restore original values
-        g_output[3]=$old_msg_cnt
-        c=${g_output[2]}
-        g_output[2]=0
+        g_output[$___CNT]=$old_msg_cnt
+        c=${g_output[$___FORK]}
+        g_output[$___FORK]=0
 
     done
     
@@ -2347,7 +2347,7 @@ spawn_forks() {
     fi
 
     # restore main fork id
-    g_output[2]=0
+    g_output[$___FORK]=0
 
     return $RET_OK
 }
