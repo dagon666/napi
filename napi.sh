@@ -344,7 +344,13 @@ count_lines() {
 # @brief lowercase the input
 #
 lcase() {
-    tr '[:upper:]' '[:lower:]'
+    # some old busybox implementations have problems with locales
+    # which renders that syntax unusable
+    # tr '[:upper:]' '[:lower:]'
+
+    # deliberately reverted to old syntax
+    # shellcheck disable=SC2021
+    tr '[A-Z]' '[a-z]'
 }
 
 
