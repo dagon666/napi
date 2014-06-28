@@ -45,24 +45,29 @@ fi
 declare -r ___PATH=0
 declare -r ___FORMAT=1
 declare -r ___FPS=2
+declare -r ___DETAILS=3
 
 ################################################################################
 
-#
-# input details
-# 0 - file path
-# 1 - format
-# 2 - fps
-#
-declare -a g_inf=( 'none' 'none' '23.98' )
+declare -r g_default_fps='23.98'
 
 #
 # input details
 # 0 - file path
 # 1 - format
 # 2 - fps
+# 3 - format specific details
 #
-declare -a g_outf=( 'none' 'subrip' '23.98' )
+declare -a g_inf=( 'none' 'none' '0' '' )
+
+#
+# input details
+# 0 - file path
+# 1 - format
+# 2 - fps
+# 3 - format specific details
+#
+declare -a g_outf=( 'none' 'subrip' '0' '1 0' )
 
 #
 # @brief if set then getinfo only and exit
@@ -314,6 +319,95 @@ verify_argv() {
     return 0
 }
 
+
+correct_fps() {
+    local tmp=0
+    local i=0
+    declare -a det=()
+ 
+    if [ "${g_inf[$___FPS]}" -eq 0 ]; then
+
+        # set default setting
+        g_inf[$___FPS]="$g_default_fps"
+        _info $LINENO "przyjmuje wartosc domyslna fps dla plik we. ${g_inf[$___FPS]}"
+
+        case "${g_inf[$___FORMAT]}" in
+            'microdvd' )
+                # in case of microdvd the format, the
+                # detection routine, should place fps as the last
+                # element
+                det=( ${g_inf[$___DETAILS]} )
+                i=${#det[@]}
+                i=$(( i - 1 ))
+                [ -n "${det[$i]}" ] && [ "${det[$i]}" -ne 0 ] && 
+                    _info $LINENO "ustawiam wykryty fps jako: ${det[$i]}" &&
+                    g_inf[$___FPS]="${det[$i]}"
+                ;;
+            *) 
+                # do nothin'
+                ;;
+        esac
+    fi
+
+    [ "${g_outf[$___FPS]}" -eq 0 ] &&
+        _info $LINENO "nie podano fps pliku wyjsciowego, zakladam taki sam jak wejscie" &&
+        g_outf[$___FPS]="${g_inf[$___FPS]}"
+
+    return $RET_OK
+}
+
+
+print_format_summary() {
+    local prefix="$1"
+    local file_name=$(basename "$2")
+    _status "${prefix}FILE" "$file_name"
+    _status "${prefix}FORMAT" "$3"
+    _status "${prefix}IN_FPS" "$4"
+    _status "${prefix}IN_DETAILS" "$5"
+    return $RET_OK
+}
+
+
+#
+# process the file
+#
+process_file() {
+    local status=$RET_OK
+    declare -a fmt=()
+
+    # detect the format if requested
+    if [ "$g_getinfo" -eq 1 ] || [ "${g_inf[$___FORMAT]}" = "none" ]; then
+        _debug $LINENO "wykrywam format pliku wejsciowego"
+
+        g_inf[$___DETAILS]=$(guess_format "${g_inf[$___PATH]}")
+        status=$?
+
+        fmt=( ${g_inf[$___DETAILS]} )
+        g_inf[$___FORMAT]=${fmt[0]}
+    fi
+
+    # format detection failure
+    [ "$status" -ne $RET_OK ] &&
+        _error "nie mozna wykryc formatu pliku wejsciowego" &&
+        return $RET_FAIL
+
+    # detect fps if not given
+    correct_fps
+
+    # display input details
+    print_format_summary "IN_" "${g_inf[@]}"
+
+    # display output details
+    print_format_summary "OUT_" "${g_outf[@]}"
+
+    # we've got the data, quit
+    [ "$g_get_info" -eq 1 ] && return $RET_BREAK
+
+
+    return $RET_OK
+}
+
+
 ################################################################################
 
 #
@@ -339,6 +433,10 @@ main() {
         _error "niepoprawne argumenty..."
         return $RET_FAIL
     fi
+
+    # process the file
+    _debug $LINENO "argumenty poprawne, przetwarzam plik"
+    process_file
 
     return $RET_OK
 }

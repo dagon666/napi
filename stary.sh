@@ -905,60 +905,6 @@ function f_correct_overlaps
 ############################## parameter parsing ##############################
 ###############################################################################
 
-# handle the input file format
-if [ "$g_InputFormat" = "none" ]; then
-    g_DetectedFormat=$(f_guess_format "$g_InputFile")
-
-    if [ "$g_DetectedFormat" = "not detected" ]; then
-        f_print_error "Invalid Input File Format!\nSpecify input format manually to override autodetection."
-        exit -1
-    fi
-    
-    g_InputFormat="$g_DetectedFormat"
-    g_InputFormatData=( $(echo $g_InputFormat) )
-    g_FormatDetected=1
-else
-    g_InputFormatData=( "$g_InputFormat" 1 0 )
-fi
-
-# some info
-f_echo "Input File Format Detected: [${g_InputFormatData[@]}]"
-f_echo "Actual Data found at line: [${g_InputFormatData[1]}]"
-f_echo "Output Format Selected: [$g_OutputFormat]"
-
-
-# format specific data manipulation operations
-# executed only if format detection was performed
-if [ "$g_FormatDetected" -eq 1 ]; then  
-    case "${g_InputFormatData[0]}" in
-        
-        "microdvd")
-        if [ "$g_InFpsGiven" -eq 0 ]; then
-
-            tmpFps=${g_InputFormatData[$(( ${#g_InputFormatData[@]} - 1 ))]}                        
-            if [ -n "$tmpFps" ] && [ "$tmpFps" != "0" ]; then
-                g_InputFrameRate=$tmpFps
-            fi
-        fi
-        
-        f_echo "Input FPS: [$g_InputFrameRate]"       
-        ;;
-        
-        *)
-        ;;
-    esac
-fi
-
-# the same for output format
-case "$g_OutputFormat" in   
-    "microdvd") 
-    f_echo "Output FPS: [$g_OutputFrameRate]"     
-    ;;
-    
-    *)
-    ;;
-esac
-
 
 # check if conversion is really needed
 if [ "${g_InputFormatData[0]}" = "$g_OutputFormat" ]; then
