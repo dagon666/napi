@@ -338,10 +338,33 @@ redirect_to_stdout() {
 
 # EOF
 
+################################## FLOAT CMP ###################################
+
+float_lt() {
+    awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1<n2) exit 0; exit 1}'
+}
 
 
+float_gt() {
+    awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1>n2) exit 0; exit 1}'
+}
 
-############################## DB ######################################
+
+float_le() {
+    awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1<=n2) exit 0; exit 1}'
+}
+
+
+float_ge() {
+    awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1>=n2) exit 0; exit 1}'
+}
+
+
+float_eq() {
+    awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1==n2) exit 0; exit 1}'
+}
+
+################################## DB ##########################################
 
 # that was an experiment which I decided to drop after all. 
 # those functions provide a mechanism to generate consistently named global vars

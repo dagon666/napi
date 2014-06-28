@@ -901,40 +901,6 @@ function f_correct_overlaps
 ###############################################################################
 ############################### common routines ###############################
 ###############################################################################
-###############################################################################
-############################## parameter parsing ##############################
-###############################################################################
-
-
-# check if conversion is really needed
-if [ "${g_InputFormatData[0]}" = "$g_OutputFormat" ]; then
-
-    # additional format specific checks
-    case "${g_InputFormatData[0]}" in
-    
-        "microdvd")
-            if [ "${g_InputFrameRate:0:5}" = "${g_OutputFrameRate:0:5}" ]; then
-                f_print_warning "Convertion aborted. In Fps == Out Fps == [$g_InputFrameRate]"
-				# RET_NOACT
-                exit 251
-            fi
-        ;;
-    
-        *)
-        f_print_warning "No convertion is needed input format == output format"
-		# RET_NOACT
-		exit 251
-        ;;
-    esac
-fi
-
-###############################################################################
-############################## parameter parsing ##############################
-###############################################################################
-
-###############################################################################
-############################## actual convertion ##############################
-###############################################################################
 
 g_Reader="f_read_${g_InputFormatData[0]}_format"
 g_Writer="f_write_${g_OutputFormat}_format"

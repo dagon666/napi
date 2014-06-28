@@ -24,7 +24,7 @@
 ################################################################################
 
 # verify presence of the napi_common library
-declare -r NAPI_COMMON_PATH=
+declare -r NAPI_COMMON_PATH=.
 if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
@@ -297,6 +297,11 @@ verify_argv() {
         _error "plik wejsciowy niepoprawny" &&
         return $RET_PARAM
 
+    # check presence of output file
+    [ -z "${g_outf[$___PATH]}" ] || [ "${g_outf[$___PATH]}" = "none" ] || [ ! -s "${g_inf[$___PATH]}" ] &&
+        _error "nie okreslono pliku wejsciowego" &&
+        return $RET_PARAM
+
     # verifying input format
     if [ "${g_inf[$___FORMAT]}" != "none" ]; then
         _debug $LINENO "weryfikuje format wejsciowy"
@@ -357,13 +362,35 @@ correct_fps() {
 }
 
 
+check_if_conv_needed() {
+    local inf=$(echo "${g_inf[$___FORMAT]}" | lcase)
+    local outf=$(echo "${g_outf[$___FORMAT]}" | lcase)
+    local rv=$RET_OK
+
+    case "$inf" in
+        'microdvd')
+            _debug $LINENO "porownuje fps dla formatu microdvd"
+            if float_eq "${g_inf[$___FPS]}" "${g_outf[$___FPS]}"; then
+                _warning "konwersja nie jest wymagana, fps pliku wejsciowego jest rowny zadanemu"
+                rc=$RET_NOACT
+            fi
+            ;;
+        *)
+            rv=$RET_NOACT
+            ;;
+    esac
+
+    return $RET_OK
+}
+
+
 print_format_summary() {
     local prefix="$1"
     local file_name=$(basename "$2")
     _status "${prefix}FILE" "$file_name"
     _status "${prefix}FORMAT" "$3"
-    _status "${prefix}IN_FPS" "$4"
-    _status "${prefix}IN_DETAILS" "$5"
+    _status "${prefix}FPS" "$4"
+    _status "${prefix}DETAILS" "$5"
     return $RET_OK
 }
 
@@ -401,8 +428,12 @@ process_file() {
     print_format_summary "OUT_" "${g_outf[@]}"
 
     # we've got the data, quit
-    [ "$g_get_info" -eq 1 ] && return $RET_BREAK
+    [ "$g_getinfo" -eq 1 ] && return $RET_BREAK
 
+    # check if the conversion is needed
+    check_if_conv_needed
+    status=$?
+    [ "$status" -eq $RET_NOACT ] && return "$status"
 
     return $RET_OK
 }
@@ -416,6 +447,7 @@ process_file() {
 main() {
     # first positional
     local arg1="${1:-}"
+    local status=$RET_OK
 
     # if no arguments are given, then print help and exit
     [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
@@ -437,8 +469,9 @@ main() {
     # process the file
     _debug $LINENO "argumenty poprawne, przetwarzam plik"
     process_file
+    status=$?
 
-    return $RET_OK
+    return $status
 }
 
 
