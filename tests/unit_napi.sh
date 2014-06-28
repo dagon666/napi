@@ -51,9 +51,14 @@ declare -r g_ut_root='unit_test_env'
 # tests env setup
 #
 oneTimeSetUp() {
+
     # create env
+	origPATH="$PATH"
     mkdir -p "$g_assets_path/$g_ut_root"
+    mkdir -p "$g_assets_path/$g_ut_root/bin"
     mkdir -p "$g_assets_path/$g_ut_root/sub dir"
+
+	export PATH="$g_assets_path/$g_ut_root/bin:$PATH"
     
     # the space in the file name is deliberate
     cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/av1 file.avi"
@@ -68,9 +73,46 @@ oneTimeSetUp() {
 oneTimeTearDown() {
     # clear the env
     rm -rfv "$g_assets_path/$g_ut_root"
+
+	# restore original PATH
+	export PATH="$origPATH"
 }
 
 ################################################################################
+
+#
+# test subtitles tag extraction routine
+#
+test_extract_subs_xml() {
+	
+	return 0
+}
+
+#
+# test nfo extraction routine
+#
+test_extract_nfo_xml() {
+
+	return 0
+}
+
+#
+# test cover extraction routine
+#
+test_extract_cover_xml() {
+	
+	return 0
+}
+
+
+#
+# test xml download item routine
+#
+test_download_item_xml() {
+	
+	return 0
+}
+
 
 #
 # general function to test printing routines
@@ -113,6 +155,23 @@ test_debug() {
 #
 test_info() {
     _test_printers '_info' 2
+}
+
+
+#
+# test the generic blit function
+#
+test_blit() {
+	g_system[3]=0
+	g_system[4]=8
+	local output=''
+	output=$(_blit "some message" | grep "00:0008 some message" | wc -l)
+	assertEquals "testing blit function and output format" 1 "$output"
+
+	_blit "abc" > /dev/null
+
+	assertEquals "checking the fork id status" 0 ${g_system[3]}
+	assertEquals "checking the msg cnt" 9 ${g_system[4]}
 }
 
 
@@ -385,6 +444,12 @@ test_system_tools() {
 # verify the configure_cmds routine
 #
 test_configure_cmds() {
+
+	# let's prepare wget mock
+    ln -sf "/vagrant/tests/mocks/wget_help" "$g_assets_path/$g_ut_root/bin/wget"
+	export SUPPORT_S=0
+	export SUPPORT_POST=0
+
     # linux 
     configure_cmds
     assertEquals 'check md5 for linux' 'md5sum' "$g_cmd_md5"
@@ -400,7 +465,29 @@ test_configure_cmds() {
     assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
     assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
 
+	# checking wget capabilities detection
     g_system[0]="linux"
+	configure_cmds
+	assertEquals "0 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
+	assertEquals "0 wget no post support" 0 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=0
+	export SUPPORT_POST=1
+	configure_cmds
+	assertEquals "1 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
+	assertEquals "1 wget post support" 1 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=1
+	export SUPPORT_POST=0
+	configure_cmds
+	assertEquals "2 wget check for -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
+	assertEquals "2 wget no post support" 0 ${g_cmd_wget[1]}
+
+	export SUPPORT_S=1
+	export SUPPORT_POST=1
+	configure_cmds
+	assertEquals "3 wget check for lack of -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
+	assertEquals "3 wget no post support" 1 ${g_cmd_wget[1]}
 }
 
 
@@ -477,31 +564,31 @@ test_get_fps() {
     if [ -n "$(builtin type -P mediainfo)" ]; then
         g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mediainfo' 'doesnt_matter.avi')
-        assertNotEquals 'get fps with mediainfo' 0 $fps
+        assertNotEquals 'get fps with mediainfo - bogus file' 0 "$fps"
     fi
 
     if [ -n "$(builtin type -P mediainfo)" ]; then
         g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mediainfo' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals "get fps with mediainfo" 0 ${fps:-0}
+        assertNotEquals "get fps with mediainfo" 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P mplayer)" ]; then
         g_tools=( $(modify_value 'mplayer' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mplayer' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals 'get fps with mplayer' 0 ${fps:-0}
+        assertNotEquals 'get fps with mplayer' 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P mplayer2)" ]; then
         g_tools=( $(modify_value 'mplayer2' 1 ${g_tools[@]}) )
         fps=$(get_fps 'mplayer2' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals "get fps with mplayer2" 0 ${fps:-0}
+        assertNotEquals "get fps with mplayer2" 0 "${fps:-0}"
     fi
 
     if [ -n "$(builtin type -P ffmpeg)" ]; then
         g_tools=( $(modify_value 'ffmpeg' 1 ${g_tools[@]}) )
         fps=$(get_fps 'ffmpeg' "$g_assets_path/$g_ut_root/av1 file.avi")
-        assertNotEquals 'get fps with ffmpeg' 0 ${fps:-0}
+        assertNotEquals 'get fps with ffmpeg' 0 "${fps:-0}"
     fi
 
 
@@ -536,6 +623,7 @@ test_parse_argv() {
 
     # save original settings
     cp_g_cover=$g_cover
+    cp_g_nfo=$g_nfo
     cp_g_delete_orig=$g_delete_orig
     cp_g_skip=$g_skip
     cp_g_stats_print=$g_stats_print
@@ -556,6 +644,7 @@ test_parse_argv() {
 
     # test complex command
     parse_argv -c \
+        -n \
         -d \
         -s \
         --stats \
@@ -577,6 +666,7 @@ test_parse_argv() {
         file1.avi file2.avi 2>&1 > /dev/null
 
     assertEquals 'checking cover flag' 1 $g_cover
+    assertEquals 'checking cover flag' 1 $g_nfo
     assertEquals 'checking delete_orig flag' 1 $g_delete_orig
     assertEquals 'checking skip flag' 1 $g_skip
     assertEquals 'checking stats flag' 1 $g_stats_print
@@ -601,6 +691,7 @@ test_parse_argv() {
 
     # restore default settings
     g_cover=$cp_g_cover
+    g_nfo=$cp_g_nfo
     g_delete_orig=$cp_g_delete_orig
     g_skip=$cp_g_skip
     g_stats_print=$cp_g_stats_print
@@ -679,22 +770,49 @@ test_verify_encoding() {
 test_verify_id() {
     local status=0
     declare -a cp_g_tools=( ${g_tools[@]} )
+	declare -a cp_g_system=( ${g_system[@]} )
 
     g_system[2]='pynapi'
     verify_id 2>&1 > /dev/null
     status=$?
     assertEquals 'success for pynapi' $RET_OK $status
 
+    g_system[2]='NapiProjekt'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjekt - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
+
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
+
     g_system[2]='other'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'other - failure 7z marked as absent' $RET_FAIL $status
+    assertEquals 'other - failure 7z marked as absent' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     # faking 7z presence
     g_tools=( 7z=1 )
+	g_cmd_7z='7z'
+    g_system[2]='other'
     verify_id 2>&1 > /dev/null
     status=$?
-    assertEquals 'other - failure 7z marked as absent' $RET_OK $status
+    assertEquals 'other - failure 7z marked as present' $RET_OK $status
+	assertEquals 'checking for id' 'other' ${g_system[2]}
+
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_UNAV $status
+
+    g_tools=( 7z=1 base64=1 awk=1 )
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'success for NapiProjektPython - 7z & base64 & awk' $RET_OK $status
 
     g_system[2]='unknown_system'
     verify_id 2>&1 > /dev/null
@@ -702,6 +820,7 @@ test_verify_id() {
     assertEquals 'unknown_system - failure' $RET_PARAM $status
 
     g_tools=( ${cp_g_tools[@]} )
+	g_system=( ${cp_g_system[@]} )
 }
 
 
@@ -811,7 +930,7 @@ test_verify_argv() {
     g_system[2]='other'
     verify_argv 2>&1 > /dev/null
     status=$?
-    assertEquals 'checking failure due to lack of 7z' $RET_PARAM $status
+    assertEquals 'checking failure due to lack of 7z' $RET_BREAK $status
     g_system[2]='pynapi'
 
     local logfile=$(mktemp -t logfile.XXXX)
@@ -878,36 +997,273 @@ test_get_http_status() {
 #
 test_download_url() {
     local status=0
-    local cp_g_cmd_wget="$g_cmd_wget"
+	declare -a cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
 
-    g_cmd_wget="mocks/wget_log 127 none"
+    g_cmd_wget[0]="mocks/wget_log 127 none"
     download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
     status=$?
     assertEquals 'check failure status' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 none"
+    g_cmd_wget[0]="mocks/wget_log 0 none"
     local output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check unknown http code' "unknown" $output
 
-    g_cmd_wget="mocks/wget_log 0 301_200"
-    local output=0
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+    output=0
     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_OK $status
     assertEquals 'check 200 http code' "301 200" "$output"
 
-    g_cmd_wget="mocks/wget_log 0 404"
-    local output=0
+    g_cmd_wget[0]="mocks/wget_log 0 404"
+    output=0
     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
     status=$?
     assertEquals 'check success status' $RET_FAIL $status
     assertEquals 'check 404 http code' "404" "$output"
 
-    g_cmd_wget="$cp_g_cmd_wget"
+	# test post request
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=0
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post failure status' $RET_FAIL $status
+
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=1
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post success status' $RET_OK $status
+    assertEquals 'check 200 http code' "301 200" "$output"
+
+	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
 }
 
+
+#
+# test the awk code execution wrapper
+#
+test_run_awk_script() {
+
+	local code='{ print $2 }'
+	local status=0
+	local output=''
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	echo "col1 col2 col3" | run_awk_script "$code"
+	status=$?
+	assertEquals "awk failure - awk marked as absent" $RET_FAIL $status
+	
+	g_tools=( awk=1 )
+	output=$(echo "col1 col2 col3" | run_awk_script "$code")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the stream processing" "col2" "$output"
+	
+	local tmpf=$(mktemp -t tmp.awk.XXXXXXXX)
+
+	echo "col1 col2 col3" > "$tmpf"
+	output=$(run_awk_script "$code" "$tmpf")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the file processing" "col2" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml single tag extraction check
+#
+test_extract_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><nested><x>data</x></nested></taga>'
+	output=$(echo "$data" | extract_xml_tag 'x')
+	assertEquals "checking for extracted tag" "<x>data</x>" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_xml_tag 'x' "$tmpf")
+	assertEquals "checking for extracted tag from file" "<x>data</x>" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml cdata tag extraction check
+#
+test_extract_cdata_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><![CDATA[some_data]]></taga>'
+	output=$(echo "$data" | extract_cdata_tag)
+	assertEquals "checking for extracted data" "some_data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_cdata_tag "$tmpf")
+	assertEquals "checking for extracted data from file" "some_data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml tag strip check
+#
+test_strip_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga>data</taga>'
+	output=$(echo "$data" | strip_xml_tag 'taga')
+	assertEquals "checking for bare data" "data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(strip_xml_tag 'taga' "$tmpf")
+	assertEquals "checking for bare data from file" "data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# test 7z verification function
+#
+test_verify_7z() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local status=0
+
+	g_tools=(  )
+	verify_7z
+	status=$?
+	assertEquals 'No 7z found' $RET_FAIL $status
+	assertTrue 'empty g_cmd_7z' "[ -z \"$g_cmd_7z\" ]"
+
+	g_tools=( 7za=1 )
+	verify_7z
+	status=$?
+	assertEquals '7za found' $RET_OK $status
+	assertEquals 'g_cmd_7z = 7za' '7za' "$g_cmd_7z"
+
+	g_tools=( 7z=1 7za=1 )
+	verify_7z
+	status=$?
+	assertEquals '7z found' $RET_OK $status
+	assertEquals 'g_cmd_7z = 7z' '7z' "$g_cmd_7z"
+
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# test xml download data function
+#
+test_download_data_xml() {
+	local status=0
+
+	(
+		retval=$RET_OK
+
+		download_url() {
+			return $retval
+		}
+		export -f download_url
+
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass'
+		status=$?
+		assertEquals 'checking success download status' $RET_OK $status
+
+		retval=$RET_FAIL
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' 2>&1 > /dev/null
+		status=$?
+		assertEquals 'checking failure download status' $RET_FAIL $status
+	)
+
+	return 0
+}
+
+
+#
+# test get_xml wrapper
+#
+test_get_xml() {
+
+	local xmltmp=$(mktemp tmp.xml.XXXXXXXX)
+	local status=0
+
+	(
+
+	retval=$RET_FAIL
+	download_data_xml() {
+
+		return $retval
+	}
+
+	get_xml 0 'movie.avi' 123 PL 'not_existing.xml'
+	status=$?
+	assertEquals 'checking failure status' $RET_FAIL $status
+
+	get_xml 0 'movie.avi' 123 PL "$xmltmp"
+	status=$?
+	assertEquals 'checking success status xml already exists' $RET_OK $status
+
+	retval=$RET_OK
+	get_xml 0 'movie.avi' 123 PL "not_existing.xml"
+	status=$?
+	assertEquals 'checking success status download_data_xml is successful' $RET_OK $status
+
+	)
+
+	unlink "$xmltmp"
+	return 0
+}
+
+
+#
+# test xml cleanup routine
+#
+test_cleanup_xml() {
+	local media_path="$g_assets_path/$g_ut_root/av1 file.avi"
+	local xml_path="$g_assets_path/$g_ut_root/av1 file.xml"
+	declare -a cp_g_system=( ${g_system[@]} )
+
+	touch "$xml_path"
+	echo "bogus data" > "$xml_path"
+
+	g_system[2]='pynapi'
+	cleanup_xml "$media_path"
+	assertTrue 'checking file existence' "[ -e \"$xml_path\" ]"
+
+	g_system[2]='NapiProjektPython'
+	cleanup_xml "$media_path"
+	assertFalse 'checking file absence' "[ -e \"$xml_path\" ]"
+
+	g_system=( ${cp_g_system[@]} )
+	[ -e "$xml_path" ] && unlink "$xml_path"
+	return 0
+}
+
+# TODO VERIFIED UP TO HERE =================================================
 
 #
 # test download subs routine

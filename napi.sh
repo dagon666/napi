@@ -1,9 +1,12 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 #
 # script version
 #
-declare -r g_revision="v1.2.1"
+declare -r g_revision="v1.3.1"
 
 ########################################################################
 ########################################################################
@@ -49,19 +52,22 @@ declare -a g_abbrev=( "" "" )
 declare g_orig_prefix='ORIG_'
 
 #
-# system - detected system type
+# 0 - system - detected system type
 # - linux
 # - darwin - mac osx
 #
-# numer of forks
+# 1 - numer of forks
 #
-# id
+# 2 - id
 # - pynapi - identifies itself as pynapi
 # - other - identifies itself as other
+# - NapiProjektPython - uses new napiprojekt3 API - NapiProjektPython
+# - NapiProjekt - uses new napiprojekt3 API - NapiProjekt
 #
-# fork id
+# 3 - fork id
+# 4 - msg counter
 #
-declare -a g_system=( 'linux' '1' 'pynapi' 1 )
+declare -a g_system=( 'linux' '1' 'NapiProjektPython' 0 1 )
 
 #
 # @brief minimum size of files to be processed
@@ -72,6 +78,11 @@ declare g_min_size=0
 # @brief whether to download cover or not
 #
 declare g_cover=0
+
+#
+# @brief whether to download nfo or not
+#
+declare g_nfo=0
 
 #
 # @brief whether to skip downloading if file is already present
@@ -173,15 +184,28 @@ g_stats_print=0
 # =1 - mandatory tool
 # =0 - optional tool
 #
-declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' 'cut=1' 'stat=1' 'basename=1' 'dirname=1' 'cat=1' 'cp=1' 'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' '7z=0' 'iconv=0' 'mediainfo=0' 'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
+    'wc=1' 'dd=1' 'grep=1' 'seq=1' 'sed=1' \
+    'cut=1' 'base64=0' 'unlink=0' 'stat=1' \
+    'basename=1' 'dirname=1' 'cat=1' 'cp=1' \
+    'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' \
+    '7z=0' '7za=0' '7zr=0' 'iconv=0' 'mediainfo=0' \
+    'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
 
 # fps detectors
-declare -a g_tools_fps=( 'mediainfo' 'mplayer' 'mplayer2' 'ffmpeg' )
+declare -a g_tools_fps=( 'ffmpeg' 'mediainfo' 'mplayer' 'mplayer2' )
+
+# 
+# @brief wget details
+# 0 - cmd
+# 1 - flag defining if wget supports post requests
+declare -a g_cmd_wget=( 'wget -q -O' '0' )
 
 g_cmd_stat='stat -c%s'
-g_cmd_wget='wget -q -O'
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
+g_cmd_unlink='unlink'
+g_cmd_7z=''
 
 ################################## RETVAL ######################################
 
@@ -200,14 +224,26 @@ declare -r RET_BREAK=253
 # resource unavailable
 declare -r RET_UNAV=252
 
+# no action taken
+declare -r RET_NOACT=251
+
 ################################## STDOUT ######################################
+
+#
+# @brief produce output
+#
+_blit() {
+    printf "#%02d:%04d %s\n" ${g_system[3]} ${g_system[4]} "$*"
+    g_system[4]=$(( g_system[4] + 1 ))
+}
+
 
 #
 # @brief print a debug verbose information
 #
 _debug() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 3 ] && echo -e "#${g_system[3]} --- $line: $*"
+    [ $g_verbosity -ge 3 ] && _blit "--- $line: $*"
     return $RET_OK
 }
 
@@ -217,7 +253,7 @@ _debug() {
 #
 _info() {
     local line=${1:-0} && shift
-    [ $g_verbosity -ge 2 ] && echo -e "#${g_system[3]} -- $line: $*"
+    [ $g_verbosity -ge 2 ] && _blit "-- $line: $*"
     return $RET_OK
 }
 
@@ -247,7 +283,7 @@ _error() {
 # @brief print standard message
 #
 _msg() {
-    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} - $*"
+    [ $g_verbosity -ge 1 ] && _blit "- $*"
     return $RET_OK
 }
 
@@ -256,7 +292,7 @@ _msg() {
 # @brief print status type message
 #
 _status() {
-    [ $g_verbosity -ge 1 ] && echo -e "#${g_system[3]} $1 -> $2"
+    [ $g_verbosity -ge 1 ] && _blit "$1 -> $2"
     return $RET_OK
 }
 
@@ -291,11 +327,32 @@ redirect_to_stdout() {
 ################################### misc #######################################
 
 #
+# @brief count the number of lines in a file
+#
+count_lines() {
+
+    # it is being executed in a subshell to strip any leading white spaces
+    # which some of the wc versions produce
+
+    # shellcheck disable=SC2046
+    # shellcheck disable=SC2005
+    echo $(wc -l)
+}
+
+
+#
 # @brief lowercase the input
 #
 lcase() {
-    tr '[:upper:]' '[:lower:]'
+    # some old busybox implementations have problems with locales
+    # which renders that syntax unusable
+    # tr '[:upper:]' '[:lower:]'
+
+    # deliberately reverted to old syntax
+    # shellcheck disable=SC2021
+    tr '[A-Z]' '[a-z]'
 }
+
 
 #
 # @brief get the extension of the input
@@ -303,6 +360,7 @@ lcase() {
 get_ext() {
     echo "${1##*.}"
 }
+
 
 #
 # @brief strip the extension of the input
@@ -336,10 +394,15 @@ lookup_value() {
     local i=''
     local rv=$RET_FAIL
     local key="$1" && shift
+    local tk=''
 
+    # using $* is deliberate to allow parsing either array or space delimited strings
+
+    # shellcheck disable=SC2048
     for i in $*; do
-        if [ $(get_key "$i") = "$key" ]; then
-            get_value $i
+        tk=$(get_key "$i")
+        if [ "$tk"  = "$key" ]; then
+            get_value "$i"
             rv=$RET_OK
             break
         fi
@@ -362,7 +425,7 @@ lookup_key() {
 
     for i in "$@"; do
         [ "$i" = "$key" ] && rv=$RET_OK && break
-        idx=$(( $idx + 1 ))
+        idx=$(( idx + 1 ))
     done
 
     echo $idx
@@ -379,13 +442,16 @@ lookup_key() {
 modify_value() {
     local key=$1 && shift
     local value=$1 && shift
-
+    
     local i=0
+    local k=''
     declare -a rv=()
 
+    # shellcheck disable=SC2048
     for i in $*; do
-		# unfortunately old shells don't support rv+=( "$i" )
-        [ "$(get_key $i)" != "$key" ] && rv=( "${rv[@]}" "$i" )
+        k=$(get_key "$i")
+        # unfortunately old shells don't support rv+=( "$i" )
+        [ "$i" != "$key" ] && rv=( "${rv[@]}" "$i" )
     done
 
     rv=( "${rv[@]}" "$key=$value" )
@@ -424,9 +490,9 @@ declare -ar g_LanguageCodes3L=( 'ALB' 'ENG' 'ARA' 'BUL' 'CHI' 'HRV' 'CZE' \
 #
 list_languages() {
     local i=0
-    while [ $i -lt ${#g_Language[@]} ]; do
+    while [ "$i" -lt "${#g_Language[@]}" ]; do
         echo "${g_LanguageCodes2L[$i]}/${g_LanguageCodes3L[$i]} - ${g_Language[$i]}"
-        i=$(( $i + 1 ))
+        i=$(( i + 1 ))
     done
 }
 
@@ -435,7 +501,7 @@ list_languages() {
 # @brief verify that the given language code is supported
 #
 verify_language() {
-    local lang="${1:-''}"
+    local lang="${1:-}"
     local i=0
     declare -a l_arr=( )
     
@@ -444,11 +510,13 @@ verify_language() {
     local l_arr_name="g_LanguageCodes${#lang}L";
     eval l_arr=\( \${${l_arr_name}[@]} \)
 
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     i=$(lookup_key "$lang" ${l_arr[@]})
     local found=$?
 
-    echo $i 
-    [ $found -eq $RET_OK ] && return $RET_OK
+    echo "$i" 
+    [ "$found" -eq $RET_OK ] && return $RET_OK
     return $RET_FAIL
 }
 
@@ -459,7 +527,7 @@ verify_language() {
 #
 normalize_language() {
     local i=${1:-0}
-    i=$(( $i + 0 ))
+    i=$(( i + 0 ))
 
     local lang=${g_LanguageCodes2L[$1]}
     
@@ -477,18 +545,17 @@ normalize_language() {
 #
 verify_tool_presence() {
     local tool=$(builtin type -p "$1")
-	local tool2=''
-	local rv=$RET_UNAV
+    local rv=$RET_UNAV
 
-	# make sure it's really there
-	if [ -z "$tool" ]; then
-		type "$1" > /dev/null 2>&1
-		rv=$?
-	else
-		rv=$RET_OK
-	fi
+    # make sure it's really there
+    if [ -z "$tool" ]; then
+        type "$1" > /dev/null 2>&1
+        rv=$?
+    else
+        rv=$RET_OK
+    fi
 
-	return $rv
+    return $rv
 }
 
 
@@ -496,7 +563,7 @@ verify_tool_presence() {
 # determines number of available cpu's in the system
 #
 get_cores() {
-    grep -i processor /proc/cpuinfo | wc -l
+    grep -i processor /proc/cpuinfo | count_lines
 }
 
 
@@ -512,6 +579,7 @@ get_system() {
 # @brief configure external commands
 #
 configure_cmds() {
+    local k=''
     _debug $LINENO "konfiguruje stat i md5"
 
     # verify stat & md5 tool
@@ -527,11 +595,28 @@ configure_cmds() {
     g_tools=( "${g_tools[@]}" "$g_cmd_md5=1" )
 
     _debug $LINENO "sprawdzam czy wget wspiera opcje -S"
-    local cmd_test=$(wget --help 2>&1 | grep "\-S")
+    local s_test=$(wget --help 2>&1 | grep "\-S")
 
-    [ -n "$cmd_test" ] && 
-        g_cmd_wget='wget -q -S -O' &&
+    [ -n "$s_test" ] && 
+        g_cmd_wget[0]='wget -q -S -O' &&
         _info $LINENO "wget wspiera opcje -S"
+
+    _debug $LINENO "sprawdzam czy wget wspiera zadania POST"
+    local p_test=$(wget --help 2>&1 | grep "\-\-post\-")
+
+    g_cmd_wget[1]=0
+    [ -n "$p_test" ] && 
+        g_cmd_wget[1]=1 &&
+        _info $LINENO "wget wspiera zadania POST"
+
+    # check unlink command
+    _debug $LINENO "sprawdzam obecnosc unlink"
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
+    [ "$(lookup_value 'unlink' ${g_tools[@]})" = "0" ] &&
+        _info $LINENO 'brak unlink, g_cmd_unlink = rm' &&
+        g_cmd_unlink='rm -rf'
 
     return $RET_OK
 }
@@ -562,15 +647,15 @@ verify_tools() {
 
     for t in "$@"; do
         p=1
-        tool="$(get_key $t)"
-        m="$(get_value $t)"
+        tool=$(get_key "$t")
+        m=$(get_value "$t")
 
         ! verify_tool_presence "$tool" && p=0
         # ret+=( "$tool=$p" )
         ret=( "${ret[@]}" "$tool=$p" )
         
         # break if mandatory tool is missing
-        [ $m -eq 1 ] && [ $p -eq 0 ] && rv=$RET_FAIL && break
+        [ "$m" -eq 1 ] && [ "$p" -eq 0 ] && rv=$RET_FAIL && break
     done
 
     echo ${ret[*]}
@@ -582,9 +667,15 @@ verify_tools() {
 # @brief get extension for given subtitle format
 #
 get_sub_ext() {
+    local status=0
     declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     lookup_value "$1" ${fmte[@]}
-    [ $? -ne $RET_OK ] && echo $g_default_ext
+    status=$?
+
+    [ "$status" -ne $RET_OK ] && echo $g_default_ext
     return $RET_OK
 }
 
@@ -596,9 +687,15 @@ get_sub_ext() {
 count_fps_detectors() {
     local c=0
     local t=""
+    local v=''
 
-    for t in ${g_tools_fps[@]}; do      
-        [ "$(lookup_value $t ${g_tools[@]})" = "1" ] && c=$(( $c + 1 ))
+    for t in "${g_tools_fps[@]}"; do
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
+        v=$(lookup_value "$t" ${g_tools[@]})
+        [ "$v" = "1" ] && c=$(( c + 1 ))
+
     done
 
     echo $c
@@ -613,7 +710,7 @@ count_fps_detectors() {
 #
 get_fps() {
     local fps=0
-	local t="${1:-default}"
+    local t="${1:-default}"
  
     # don't bother if there's no tool available or not specified
     if [ -z "$t" ] || [ "$t" = "default" ]; then
@@ -621,19 +718,21 @@ get_fps() {
         return $RET_PARAM
     fi
     
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local tool=$(lookup_value "$1" ${g_tools[@]})
 
     # prevent empty output
-    tool=$(( $tool + 0 ))
+    tool=$(( tool + 0 ))
 
-    if [ $tool -ne 0 ]; then
+    if [ "$tool" -ne 0 ]; then
         case "$1" in
             'mplayer' | 'mplayer2' )
             fps=$($1 -identify -vo null -ao null -frames 0 "$2" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2)
             ;;
 
             'mediainfo' )
-            fps=$($1 "$2" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]')
+            fps=$($1 --Output='Video;%FrameRate%' "$2")
             ;;
 
             'ffmpeg' )
@@ -645,7 +744,8 @@ get_fps() {
         esac
     fi
 
-    echo $fps
+    # just a precaution
+    echo "$fps" | cut -d ' ' -f 1
     return $RET_OK
 }
 
@@ -656,6 +756,9 @@ get_fps() {
 # @brief parse the cli arguments
 #
 parse_argv() {
+
+    _debug $LINENO "parsowanie argumentow"
+
     # command line arguments parsing
     while [ $# -gt 0 ]; do
         unset varname
@@ -672,6 +775,8 @@ parse_argv() {
 
             # cover download
             "-c" | "--cover" ) g_cover=1 ;;
+            # nfo download
+            "-n" | "--nfo" ) g_nfo=1 ;;
             # orig prefix 
             "-d" | "--delete-orig") g_delete_orig=1 ;;
             # skip flag
@@ -695,7 +800,7 @@ parse_argv() {
 
             # identification
             "-I" | "--id") varname="g_system[2]"
-            msg="okresl typ narzedzia jako pynapi albo other"
+            msg="okresl typ narzedzia jako pynapi/other (legacy API) albo NapiProjekt/NapiProjektPython (API-3)"
             ;;
 
             # logfile
@@ -753,16 +858,16 @@ parse_argv() {
 
             # parameter is not a known argument, probably a filename
             *) 
-			# g_paths+=( "$1" ) 
-			g_paths=( "${g_paths[@]}" "$1" ) 
-			;;
+            # g_paths+=( "$1" ) 
+            g_paths=( "${g_paths[@]}" "$1" ) 
+            ;;
         esac
 
         # set the global var for simple switches
         # not requiring any further verification
         if [ -n "$varname" ]; then
             shift
-            [ -z "$1" ] && _error $msg && return $RET_FAIL
+            [ -z "$1" ] && _error "$msg" && return $RET_FAIL
             eval "${varname}=\$1"
         fi
         shift
@@ -799,7 +904,7 @@ verify_credentials() {
 #
 verify_encoding() {
     [ "$1" = 'default' ] && return $RET_OK
-    echo test | iconv -t $1 > /dev/null 2>&1
+    echo test | iconv -t "$1" > /dev/null 2>&1
     return $?
 }
 
@@ -811,20 +916,51 @@ verify_id() {
     local rv=$RET_OK
 
     case ${g_system[2]} in
-        'pynapi' | 'other' ) ;;
-        *) 
+        'pynapi' | 'other' | 'NapiProjektPython' | 'NapiProjekt' ) ;;
+        
+        *) # any other - revert to napi projekt 'classic'
         rv=$RET_PARAM
         g_system[2]='pynapi'
         ;;
     esac
 
-    if [ "${g_system[2]}" = 'other' ]; then
-        local p=$(lookup_value '7z' ${g_tools[@]})
-        if [ $(( $p + 0 )) -eq 0 ]; then
-            _error "7z nie jest dostepny. zmien id na pynapi albo zainstaluj 7z"
-            rv=$RET_FAIL
+
+    # 7z check
+    if [ "${g_system[2]}" = 'other' ] || 
+        [ "${g_system[2]}" = 'NapiProjektPython' ] ||
+        [ "${g_system[2]}" = 'NapiProjekt' ]; then
+
+        if [ -z "$g_cmd_7z" ]; then
+            _error "7z nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
+            g_system[2]='pynapi'
+            return $RET_UNAV
         fi
     fi
+
+
+    # check for necessary tools for napiprojekt3 API
+    if [ "${g_system[2]}" = 'NapiProjektPython' ] ||
+        [ "${g_system[2]}" = 'NapiProjekt' ]; then
+
+        declare -a t=( 'base64' 'awk' )
+        local p=''
+        local k=''
+
+        for k in "${t[@]}"; do
+
+            # this function can cope with that kind of input
+            # shellcheck disable=SC2068
+            p=$(lookup_value "$k" ${g_tools[@]})
+            p=$(( p + 0 ))
+
+            if [ "$p" -eq 0 ]; then
+                _error "$k nie jest dostepny. zmieniam id na 'pynapi'. PRZYWRACAM TRYB LEGACY"
+                g_system[2]='pynapi'
+                return $RET_UNAV
+            fi
+        done
+    fi
+
     return $rv
 }
 
@@ -835,18 +971,23 @@ verify_id() {
 verify_format() {
     # format verification if conversion requested
     if [ "$g_sub_format" != 'default' ]; then
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         local sp=$(lookup_value 'subotage.sh' ${g_tools[@]})
 
         # make sure it's a number
-        sp=$(( $sp + 0 ))
+        sp=$(( sp + 0 ))
 
-        if [ $sp -eq 0 ]; then
+        if [ "$sp" -eq 0 ]; then
             _error "subotage.sh nie jest dostepny. konwersja nie jest mozliwa"
             return $RET_PARAM
         fi
 
         declare -a formats=( $(subotage.sh -gf) )
 
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         if ! lookup_key $g_sub_format ${formats[@]} > /dev/null; then
             _error "podany format docelowy jest niepoprawny [$g_sub_format]"
             return $RET_PARAM
@@ -863,28 +1004,41 @@ verify_format() {
 verify_fps_tool() {
     local t=''
     local sp=0
+    local n=0
 
     # verify selected fps tool
     if [ "$g_fps_tool" != 'default' ]; then
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         if ! lookup_key "$g_fps_tool" ${g_tools_fps[@]} > /dev/null; then
             _error "podane narzedzie jest niewspierane [$g_fps_tool]"
             return $RET_PARAM
         fi
         
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
         sp=$(lookup_value "$g_fps_tool" ${g_tools[@]})
 
         # make sure it's a number
-        sp=$(( $sp + 0 ))
+        sp=$(( sp + 0 ))
 
-        if [ $sp -eq 0 ]; then
+        if [ "$sp" -eq 0 ]; then
             _error "$g_fps_tool nie jest dostepny"
             return $RET_PARAM
         fi
     else
+        local v=''
+
         # choose first available as the default tool
-        if [ $(count_fps_detectors) -gt 0 ]; then 
-            for t in ${g_tools_fps[@]}; do
-                [ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && 
+        n=$(count_fps_detectors)
+        if [ "$n" -gt 0 ]; then 
+            for t in "${g_tools_fps[@]}"; do
+
+                # this function can cope with that kind of input
+                # shellcheck disable=SC2068
+                v=$(lookup_value $t ${g_tools[@]})
+                [ "$v" -eq 1 ] && 
                     g_fps_tool=$t && 
                     break
             done
@@ -896,10 +1050,54 @@ verify_fps_tool() {
 
 
 #
+# @brief verify presence of any of the 7z tools
+# 
+verify_7z() {
+    local rv=$RET_OK
+    local lv=''
+
+    # check 7z command
+    _debug $LINENO "sprawdzam narzedzie 7z"
+    # use 7z or 7za only, 7zr doesn't support passwords
+    declare -a t7zs=( '7za' '7z' )
+    g_cmd_7z=''
+
+    for k in "${t7zs[@]}"; do
+
+        # this function can cope with that kind of input
+        # shellcheck disable=SC2068
+        lv=$(lookup_value "$k" ${g_tools[@]})
+        [ "$lv" = "1" ] &&
+            _info $LINENO "7z wykryty jako [$k]" &&
+            g_cmd_7z="$k" &&
+            break
+    done
+
+    [ -z "$g_cmd_7z" ] &&
+        rv=$RET_FAIL &&
+        _info $LINENO 'brak 7z/7za albo 7zr'
+
+    return $rv
+}
+
+
+#
 # @brief verify correctness of the argv settings provided
 #
 verify_argv() {
     local status=0
+
+    # make sure first that the printing functions will work
+    case "$g_verbosity" in
+        0 | 1 | 2 | 3 ) 
+            ;;
+        *)
+            _error "poziom gadatliwosci moze miec jedynie wartosci z zakresu (0-3)"
+            return $RET_BREAK
+            ;;
+    esac
+
+    _debug $LINENO "weryfikacja argumentow"
 
     # verify credentials correctness
     _debug $LINENO 'sprawdzam dane uwierzytelniania'
@@ -909,9 +1107,10 @@ verify_argv() {
 
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
-    g_min_size=$(( $g_min_size + 0 ))
-    g_verbosity=$(( $g_verbosity + 0 ))
-    g_system[1]=$(( ${g_system[1]} + 0 ))
+    g_min_size=$(( g_min_size + 0 ))
+    g_verbosity=$(( g_verbosity + 0 ))
+    g_system[1]=$(( g_system[1] + 0 ))
+
 
     # verify encoding request
     _debug $LINENO 'sprawdzam wybrane kodowanie'
@@ -920,30 +1119,48 @@ verify_argv() {
         g_charset='default'
     fi
 
+    # check the 7z tool presence
+    verify_7z
+
     # verify the id setting
     _debug $LINENO 'sprawdzam id'
     verify_id
     status=$?
 
-    if [ $status = $RET_PARAM ]; then
-        _warning "nieznany id [${g_system[2]}], przywracam domyslny"
+    case $status in
+        $RET_OK )
+            _debug $LINENO "id zweryfikowane pomyslnie [${g_system[2]}]"
+            ;;
 
-    elif [ $status = $RET_FAIL ]; then
-        _error "brak wymaganych narzedzi"
-        return $RET_PARAM
-    fi
+        $RET_PARAM )
+            _warning "nieznany id, przywrocono TRYB LEGACY (id = pynapi lub other)"
+            ;;
+
+        $RET_UNAV )
+            _warning "nie wszystkie narzedzia sa dostepne. Zainstaluj brakujace narzedzia by korzystac z nowego API napiprojekt"
+            ;;
+
+        *)
+            _error "nieznany blad, podczas weryfikacji id..."
+            return $RET_BREAK
+            ;;
+    esac
+
     
     # logfile verification  
     _debug $LINENO 'sprawdzam logfile'
     [ -e "$g_logfile" ] && 
-        _warning "plik loga istnieje - bedzie nadpisany"
+        _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych" &&
+        return $RET_BREAK
+
     
     # language verification
     _debug $LINENO 'sprawdzam wybrany jezyk'
     local idx=0
     idx=$(verify_language "$g_lang")
+    status=$?
 
-    if [ $? -ne $RET_OK ]; then
+    if [ "$status" -ne $RET_OK ]; then
         if [ "$g_lang" = "list" ]; then 
             list_languages
             return $RET_BREAK
@@ -953,17 +1170,20 @@ verify_argv() {
         fi
     else
         _debug $LINENO "jezyk znaleziony, index = $idx"
-        g_lang=$(normalize_language $idx)
+        g_lang=$(normalize_language "$idx")
     fi
     unset idx
+
 
     # format verification
     _debug $LINENO 'sprawdzam format'
     ! verify_format && return $RET_PARAM
 
+
     # fps tool verification
     _debug $LINENO 'sprawdzam wybrane narzedzie fps'
     ! verify_fps_tool && return $RET_PARAM
+
 
     # verify external script
     _debug $LINENO 'sprawdzam zewnetrzny skrypt'
@@ -991,7 +1211,7 @@ f() {
     local i=0
 
     # for i in {0..4}; do
-	# again in order to be compliant with bash < 3.0
+    # again in order to be compliant with bash < 3.0
     for i in $(seq 0 4); do
         local a=${t_add[$i]}
         local m=${t_mul[$i]}
@@ -1001,8 +1221,8 @@ f() {
         local v=$(( 16#${sum:$t:2} ))
         
         local x=$(( (v*m) % 0x10 ))
-        local z=$(printf "%X" $x)
-        b="$b$(echo $z | lcase)"
+        local z=$(printf "%x" $x)
+        b="$b$z"
     done
 
     echo "$b"
@@ -1022,30 +1242,519 @@ get_http_status() {
 # @brief wrapper for wget
 # @param url
 # @param output file
+# @param POST data - if set the POST request will be done instead of GET (default)
 #
 # returns the http code(s)
 #
 download_url() {
     local url="$1"
     local output="$2"
+    local post="$3"
     local headers=""
     local rv=$RET_OK
     local code='unknown'
 
-    headers=$($g_cmd_wget "$output" "$url" 2>&1)
+    local status=$RET_FAIL
 
-    if [ $? -eq $RET_OK ]; then
+    # determine whether to perform a GET or a POST
+    if [ -z "$post" ]; then
+        headers=$(${g_cmd_wget[0]} "$output" "$url" 2>&1)
+        status=$?
+    elif [ "${g_cmd_wget[1]}" -eq 1 ]; then
+        headers=$(${g_cmd_wget[0]} "$output" --post-data="$post" "$url" 2>&1)
+        status=$?
+    fi
+
+    # check the status of the command
+    if [ "$status" -eq $RET_OK ]; then
         # check the headers
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
-            code=$(echo $headers | get_http_status | cut -d ' ' -f 2)
+            code=$(echo "$headers" | get_http_status | cut -d ' ' -f 2)
+
+            # shellcheck disable=SC2143
+            # shellcheck disable=SC2086
             [ -n "$(echo $code | grep 200)" ] && rv=$RET_OK
         fi
     else
         rv=$RET_FAIL
     fi
     
-    echo $code
+    echo "$code"
+    return $rv
+}
+
+
+#
+# @brief run awk code
+# @param awk code
+# @param (optional) file - if no file - process the stream
+#
+run_awk_script() {
+    local awk_script="${1:-}"
+    local file_path="${2:-}"
+    local num_arg=$#
+
+    # 0 - file
+    # 1 - stream
+    local input_type=0
+
+    # detect number of arguments
+    [ "$num_arg" -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
+    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
+    awk_presence=$(( awk_presence + 0 ))
+
+    # bail out if awk is not available
+    [ "$awk_presence" -eq 0 ] && return $RET_FAIL
+
+    # process a stream or a file
+    if [ "$input_type" -eq 0 ]; then
+        awk "$awk_script" "$file_path"
+    else
+        awk "$awk_script"
+    fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief extracts xml tag contents
+# @param tag name 
+# @param file name (optional)
+#
+extract_xml_tag() {
+    local tag="$1"
+    local file_path="${2:-}"
+    local awk_script=''
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    RS=">"
+    ORS=">"
+}
+/<$tag/,/<\\\/$tag/ { print }
+EOF
+
+    run_awk_script "$awk_script" "$file_path"
+    return $?
+}
+
+
+#
+# @brief extracts cdata contents
+# @param file name or none (if used as a stream filter)
+#
+extract_cdata_tag() {
+    local file_path="${1:-}"
+    local awk_script=''
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    RS="CDATA";
+    FS="[\\]\\[]";
+}
+{ 
+    print \$2; 
+}
+EOF
+
+    run_awk_script "$awk_script" "$file_path" | tr -d '\n'
+    return $?
+}
+
+
+#
+# @brief strip xml tag 
+# @param tag name (if used with file given)
+# @param file name or a tag name (if used as a stream filter)
+#
+strip_xml_tag() {
+    local tag="$1"
+    local file_path="${2:-}"
+    local awk_script=''
+
+# embed small awk program to extract the tag contents
+read -d "" awk_script << EOF
+BEGIN {
+    FS="[><]"
+}
+/$tag/ { print \$3 }
+EOF
+
+    run_awk_script "$awk_script" "$file_path"
+    return $?
+}
+
+
+#
+# @brief download xml data using new napiprojekt API
+# @param md5sum of the media file
+# @param file name of the media file
+# @param size of the media file in bytes
+# @param path of the xml file (including filename)
+# @param language (PL if not provided)
+# @param napi user
+# @param napi passwd
+#
+download_data_xml() {
+    local url="http://napiprojekt.pl/api/api-napiprojekt3.php"
+    local client_version="2.2.0.2399"
+    local client_id="${g_system[2]}" # should be something like NapiProjektPython
+
+    # input data
+    local md5sum=${1:-0}
+    local movie_file="${2:-}"
+    local byte_size=${3:-0};
+    local of="$4"
+    local lang="${5:-PL}"
+    local user="${6:-''}"
+    local passwd="${7:-''}"
+    
+    local http_codes=''
+    local status=$RET_OK
+    local rv=$RET_OK
+    
+    local data="mode=31&\
+        client=$client_id&\
+        client_ver=$client_version&\
+        user_nick=$user&\
+        user_password=$passwd&\
+        downloaded_subtitles_id=$md5sum&\
+        downloaded_subtitles_lang=$lang&\
+        downloaded_cover_id=$md5sum&\
+        advert_type=flashAllowed&\
+        video_info_hash=$md5sum&\
+        nazwa_pliku=$movie_file&\
+        rozmiar_pliku_bajty=$byte_size&\
+        the=end"
+
+
+    http_codes=$(download_url "$url" "$of" "$data")
+    status=$?
+    _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
+
+    if [ "$status" -ne $RET_OK ]; then
+        _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
+        # ... and exit
+        rv=$RET_FAIL
+    fi
+
+    return $rv
+}
+
+
+#
+# @brief get the compound xml file containing all the data
+#
+# This is a wrapper for download_data_xml
+#
+# @param md5sum
+# @param movie file path
+# @param size of the file in bytes
+# @param language
+#
+get_xml() {
+    local md5sum=${1:-0}
+    local movie_file="${2:-}"
+    local byte_size=${3:-0};
+    local lang="${4:-PL}"
+    local xml_path="${5:-}"
+
+    local size=0
+    local min_size=32
+
+    # assume failure
+    local rv=$RET_FAIL
+
+    if [ -e "$xml_path" ]; then
+        # oh good, we already have it
+        rv=$RET_OK
+    else
+        # snap, it needs to be downloaded
+
+        # g_cred expansion is deliberate
+        # shellcheck disable=SC2068
+        download_data_xml "$md5sum" "$movie_file" "$byte_size" "$xml_path" "$lang" ${g_cred[@]}
+        rv=$?
+    fi
+
+    if [ "$rv" -eq $RET_OK ]; then
+        size=$($g_cmd_stat "$xml_path")
+
+        # verify the size
+        if [ "$size" -lt "$min_size" ]; then
+            _error "downloaded xml file's size is less than $min_size"
+            $g_cmd_unlink "$xml_path"
+            rv=$RET_FAIL
+        fi
+    fi
+
+    return $rv
+}
+
+
+#
+# @brief extract subtitles out of xml
+# @param xml file path
+# @param subs file path
+#
+extract_subs_xml() {
+    local xml_path="${1:-}"
+    local subs_path="${2:-}"
+    local xml_status=0
+    local rv=$RET_OK
+    local status=$RET_FAIL
+
+    local napi_pass="iBlm8NTigvru0Jr0"
+
+    # I've got the xml, extract Interesting parts
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
+
+    _debug $LINENO "subs xml status [$xml_status]"
+    if [ "$xml_status" -eq 0 ]; then
+        _error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
+        return $RET_UNAV
+    fi
+
+    # extract the subs data
+    local xml_subs=$(extract_xml_tag 'subtitles' "$xml_path")
+
+    # extract content
+    local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
+
+    # create archive file
+    local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
+    echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
+
+    if [ -s "$tmp_7z_archive" ]; then
+        _debug $LINENO "rozpakowuje archiwum ..."
+        $g_cmd_7z x -y -so -p"$napi_pass" "$tmp_7z_archive" 2> /dev/null > "$subs_path"
+        status=$?
+    fi
+
+    # check 7z status
+    if [ "$status" -ne $RET_OK ]; then
+        _error "7z zwraca blad. nie mozna rozpakowac napisow"
+        rv=$RET_FAIL
+    fi
+
+    # check for size
+    if ! [ -s "$subs_path" ]; then
+        _info $LINENO "plik docelowy ma zerowy rozmiar"
+        rv=$RET_FAIL
+    fi
+
+    # get rid of the subs
+    [ "$rv" != $RET_OK ] && [ -e "$subs_path" ] && $g_cmd_unlink "$subs_path"
+
+    # get rid of the archive
+    [ -e "$tmp_7z_archive" ] && $g_cmd_unlink "$tmp_7z_archive"
+    return $rv
+}
+
+
+#
+# @brief extract informations out of xml
+# @param xml file path
+# @param nfo file path
+#
+extract_nfo_xml() {
+    local xml_path="${1:-}"
+    local nfo_path="${2:-}"
+    local xml_status=0
+    local rv=$RET_OK
+
+    local k=''
+    local v=''
+
+    declare -a subs_tags=( 'author' 'uploader' 'upload_date' )
+    declare -a movie_tags=( 'title' 'other_titles' 'year' \
+       'country' 'genre' 'direction' \
+       'screenplay' 'music' 'imdb_com' \
+       'filmweb_pl' 'fdb_pl' 'stopklatka_pl' )
+
+    # I've got the xml, extract Interesting parts
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
+
+    _debug $LINENO "xml status [$xml_status]"
+    if [ "$xml_status" -eq 0 ]; then
+        _error "napiprojekt zglasza niepowodzenie - informacje niedostepne"
+        return $RET_UNAV
+    fi
+
+    # extract the subs data
+    local xml_subs=$(extract_xml_tag 'subtitles' "$xml_path")
+
+    # extract the movie data
+    local xml_movie=$(extract_xml_tag 'movie' "$xml_path")
+
+    # purge the file initially
+    echo "nfo generated by napi $g_revision" > "$nfo_path"
+
+    # extract data from subtitles tag
+    for k in "${subs_tags[@]}"; do
+        v=$(echo "$xml_subs" | extract_xml_tag "$k" | strip_xml_tag "$k")
+        echo "$k: $v" >> "$nfo_path"
+    done
+
+    local cdata=0
+    local en=''
+    local pl=''
+
+    # extract data from movie tag
+    for k in "${movie_tags[@]}"; do
+        v=$(echo "$xml_movie" | extract_xml_tag "$k")
+
+        cdata=$(echo "$v" | grep 'CDATA' | count_lines)
+        en=$(echo "$v" | extract_xml_tag "en" | strip_xml_tag "en")
+        pl=$(echo "$v" | extract_xml_tag "pl" | strip_xml_tag "pl")
+
+        if [ "$cdata" != "0" ]; then
+            v=$(echo "$v" | extract_cdata_tag | tr -d "\r\n")
+        elif [ -n "$en" ] || [ -n "$pl" ]; then
+            v="$pl/$en"
+        else
+            v=$(echo "$v" | strip_xml_tag "$k")
+        fi
+
+        echo "$k: $v" >> "$nfo_path"
+    done
+
+    return $rv
+}
+
+
+#
+# @brief extract cover out of xml
+# @param xml file path
+# @param subs file path
+#
+extract_cover_xml() {
+    local xml_path="${1:-}"
+    local cover_path="${2:-}"
+    local xml_status=0
+    local rv=$RET_OK
+
+    # I've got the xml, extract Interesting parts
+    xml_status=$(extract_xml_tag 'status' "$xml_path" | grep 'success' | count_lines)
+
+    _debug $LINENO "cover xml status [$xml_status]"
+    if [ "$xml_status" -eq 0 ]; then
+        _error "napiprojekt zglasza niepowodzenie - okladka niedostepna"
+        return $RET_UNAV
+    fi
+
+    # extract the cover data
+    local xml_cover=$(extract_xml_tag 'cover' "$xml_path")
+
+    # write archive data
+    echo "$xml_cover" | extract_cdata_tag | base64 -d > "$cover_path" 2> /dev/null
+
+    if ! [ -s "$cover_path" ]; then
+        _info $LINENO "okladka ma zerowy rozmiar, usuwam..."
+        [ -e "$cover_path" ] && $g_cmd_unlink "$cover_path"
+        rv=$RET_FAIL
+    fi
+
+    return $rv
+}
+
+
+#
+# @brief removes the remaining xml file if present
+# @param movie filename
+#
+cleanup_xml() {
+    local movie_path="${1:-}"
+
+    if [ "${g_system[2]}" != "NapiProjektPython" ] && 
+        [ "${g_system[2]}" != "NapiProjekt" ]; then
+        # don't even bother if id is not configured
+        # to any compatible with napiprojekt3 api
+        _debug $LINENO "nie ma co sprzatac, plik xml jest tworzony tylko dla napiprojekt3 api"
+        return $RET_OK
+    fi
+
+    local movie_file=$(basename "$movie_path")
+    local base=$(strip_ext "$movie_file")
+    local xmlfile="${base}.xml"
+    local path=$(dirname "$movie_path")
+
+    # check for file presence
+    if [ -e "$path/$xmlfile" ]; then
+        $g_cmd_unlink "$path/$xmlfile"
+        _debug $LINENO "usunieto plik xml dla [$movie_file]"
+    fi
+
+    return $RET_OK
+}
+
+
+#
+# @brief download item (subs or cover) using napiprojekt3 API
+# @param md5sum
+# @param movie file path
+# @param output file path
+# @param language
+# @param item type subs/cover
+#
+download_item_xml() {
+    local item="${1:-subs}"
+
+    local md5sum=${2:-0}
+    local movie_path="${3:-}"
+    local item_path="${4:-}"
+    local lang="${5:-PL}"
+
+    local path=$(dirname "$movie_path")
+    local movie_file=$(basename "$movie_path")
+    local noext=$(strip_ext "$movie_file")
+    local xml_path="$path/${noext}.xml"
+    local byte_size=$($g_cmd_stat "$movie_path")
+
+    # xml extract function name
+    local func_name="extract_${item}_xml"
+
+    # assume failure
+    local rv=$RET_FAIL;
+
+    # item verification
+    case "$item" in
+        'subs' | 'cover' | 'nfo')
+            ;;
+        *)
+            _error "obslugiwane bloki to cover/subs/nfo [$item]"
+            rv=$RET_BREAK
+            return $rv
+            ;;
+    esac
+
+    _info $LINENO "pobieram $item metoda xml"
+
+    # get the god damn xml
+    get_xml "$md5sum" "$movie_file" "$byte_size" "$lang" "$xml_path"
+    rv=$?
+
+    # check the status
+    [ $rv -ne $RET_OK ] && 
+        _error "blad. nie mozna pobrac pliku xml" &&
+        return $RET_FAIL
+
+    # verify the contents
+    # check if the file was downloaded successfully by checking
+    # if it exists at all 
+    [ ! -e "$xml_path" ] &&
+        _error "sciagniety plik nie istnieje, nieznany blad" &&
+        return $RET_FAIL
+
+    $func_name "$xml_path" "$item_path"
+    rv=$?
     return $rv
 }
 
@@ -1057,14 +1766,14 @@ download_url() {
 # @param output filepath
 # @param requested subtitles language
 #
-download_subs() {
-    local md5sum=${1:-0}
-    local h=${2:-0}
+download_subs_classic() {
+    local md5sum="${1:-0}"
+    local h="${2:-0}"
     local of="$3"
-    local lang="${4:-'PL'}"
-    local id="${5:-'pynapi'}"
-    local user="${6:-''}"
-    local passwd="${7:-''}"
+    local lang="${4:-PL}"
+    local id="${5:-pynapi}"
+    local user="${6:-}"
+    local passwd="${7:-}"
     local status=$RET_FAIL
 
     local rv=$RET_OK
@@ -1072,21 +1781,24 @@ download_subs() {
 
     # downloaded filename
     local dof="$of"
-    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=$lang&f=$md5sum&t=$h&v=$id&kolejka=false&nick=$user&pass=$passwd&napios=posix"
+    local url="http://napiprojekt.pl/unit_napisy/dl.php?l=${lang}&f=${md5sum}&t=${h}&v=${id}&kolejka=false&nick=${user}&pass=${passwd}&napios=posix"
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ "$id" = "other" ] && dof=$(mktemp -t napisy.7z.XXXXXXXX)
+    [ "$id" = "other" ] && dof="$(mktemp napisy.7z.XXXXXXXX)"
+
+    # log the url with all the variables
+    _debug $LINENO "url: [$url]"
 
     http_codes=$(download_url "$url" "$dof")
     status=$?
     _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
-    if [ $status -ne $RET_OK ]; then
+    if [ "$status" -ne $RET_OK ]; then
         _error "blad wgeta. nie mozna pobrac pliku [$of], odpowiedzi http: [$http_codes]"
 
         # cleanup
-        [ "$id" = "other" ] && [ -e "$dof" ] && unlink "$dof"
+        [ "$id" = "other" ] && [ -e "$dof" ] && $g_cmd_unlink "$dof"
 
         # ... and exit
         return $RET_FAIL
@@ -1099,13 +1811,23 @@ download_subs() {
         ;;
 
         "other")
-        7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
-        [ -e "$dof" ] && unlink "$dof"
+        $g_cmd_7z x -y -so -p"$napi_pass" "$dof" 2> /dev/null > "$of"
+        status=$?
 
-        if ! [ -s "$of" ]; then
+        [ -e "$dof" ] && $g_cmd_unlink "$dof"
+
+        # check 7z status
+        if [ "$status" -ne $RET_OK ]; then
+            _error "7z zwraca blad. nie mozna rozpakowac napisow"
+            rv=$RET_FAIL
+            [ -e "$of" ] && $g_cmd_unlink "$of"
+        fi
+
+        # check file existence
+        if [ ! -s "$of" ]; then
             _info $LINENO "plik docelowy ma zerowy rozmiar"
             rv=$RET_FAIL
-            [ -e "$of" ] && unlink "$of"
+            [ -e "$of" ] && $g_cmd_unlink "$of"
         fi
         ;;
 
@@ -1115,7 +1837,7 @@ download_subs() {
     esac
 
     # verify the contents
-    if [ $rv -eq $RET_OK ]; then
+    if [ "$rv" -eq $RET_OK ]; then
 
         # check if the file was downloaded successfully by checking
         # if it exists at all 
@@ -1125,19 +1847,22 @@ download_subs() {
         fi
 
         # count lines in the file
-        local lines=$(wc -l "$of" | cut -d ' ' -f 1)
+        _debug $LINENO "licze linie w pliku [$of]"
+        local lines=$(cat "$of" | count_lines)
         
         # adjust that if needed
         local min_lines=3
 
-        if [ $lines -lt $min_lines ]; then
+        _debug $LINENO "lines/min_lines: [$lines/$min_lines]"
+
+        if [[ "$lines" -lt "$min_lines" ]]; then
             _info $LINENO "plik zawiera mniej ($lines) niz $min_lines lin(ie). zostanie usuniety"
 
             local fdata=$(cat "$of")
             _debug $LINENO "$fdata"
 
             rv=$RET_FAIL
-            unlink "$of"
+            $g_cmd_unlink "$of"
         fi
     fi
 
@@ -1146,16 +1871,16 @@ download_subs() {
 
 
 #
-# @brief: retrieve cover
+# @brief: retrieve cover (probably deprecated okladka_pobierz doesn't exist - 404)
 # @param: md5sum
 # @param: outputfile
 #
-download_cover() {
+download_cover_classic() {
     local url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
     local rv=$RET_FAIL
-	local http_codes=""
+    local http_codes=""
 
-	http_codes=$(download_url "$url" "$2")
+    http_codes=$(download_url "$url" "$2")
     rv=$?
     _info $LINENO "otrzymane odpowiedzi http: [$http_codes]"
 
@@ -1164,7 +1889,7 @@ download_cover() {
         # if file doesn't exist or has zero size
         if ! [ -s "$2" ]; then
             rv=$RET_UNAV 
-            [ -e "$2" ] && unlink "$2"
+            [ -e "$2" ] && $g_cmd_unlink "$2"
         fi
     fi
 
@@ -1185,11 +1910,58 @@ get_subtitles() {
 
     # md5sum and hash calculation
     local sum=$(dd if="$fn" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
-    local hash=$(f $sum)
+    local h=0
+    local status=$RET_FAIL
 
-    _info $LINENO "pobieram napisy dla pliku [$fn]"
-    download_subs $sum $hash "$of" $lang ${g_system[2]} ${g_cred[@]}
-    return $?
+    local media_file=$(basename "$fn")
+    _info $LINENO "pobieram napisy dla pliku [$media_file]"
+
+    # pick method depending on id
+    case ${g_system[2]} in
+        'NapiProjekt' | 'NapiProjektPython' )
+            download_item_xml "subs" "$sum" "$fn" "$of" "$lang"
+            status=$?
+            ;;
+
+        'pynapi' | 'other' )
+            h=$(f "$sum" | lcase)
+
+            # g_cred expansion is deliberate
+            # shellcheck disable=SC2068
+            download_subs_classic "$sum" "$h" "$of" "$lang" "${g_system[2]}" ${g_cred[@]}
+            status=$?
+            ;;
+    esac
+    return $status
+}
+
+
+#
+# @brief downloads information file for a given media file
+# @param media file path
+# @param nfo file path
+#
+get_nfo() {
+    local path=$(dirname "$1")
+    local media_file=$(basename "$1")
+    local nfo_fn=$(strip_ext "$media_file")
+    local status=$RET_FAIL
+
+    nfo_fn="${nfo_fn}.nfo"
+    _info $LINENO "pobieram nfo dla pliku [$media_file]"
+    
+    # pick method depending on id
+    case ${g_system[2]} in
+        'NapiProjekt' | 'NapiProjektPython' )
+            download_item_xml "nfo" 0 "$1" "$path/$nfo_fn" 'PL'
+            status=$?
+            ;;
+
+        *)
+            _error "pobieranie informacji o pliku jest mozliwe tylko przy uzyciu napiprojekt API-3 (id: NapiProjekPython/NapiProjekt)"
+            ;;
+    esac
+    return $status
 }
 
 
@@ -1199,14 +1971,29 @@ get_subtitles() {
 get_cover() {
     local sum=$(dd if="$1" bs=1024k count=10 2> /dev/null | $g_cmd_md5 | cut -d ' ' -f 1)
     local path=$(dirname "$1")
-	local media_file=$(basename "$1")
+    local media_file=$(basename "$1")
     local cover_fn=$(strip_ext "$media_file")
+    local status=$RET_FAIL
+
+    local lang="$2"
     
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
     
-    download_cover $sum "$path/$cover_fn"
-    return $?
+    # pick method depending on id
+    case ${g_system[2]} in
+        'NapiProjekt' | 'NapiProjektPython' )
+            download_item_xml "cover" "$sum" "$1" "$path/$cover_fn" "$lang" 
+            status=$?
+            ;;
+
+        'pynapi' | 'other' )
+            download_cover_classic "$sum" "$path/$cover_fn"
+            status=$?
+            ;;
+    esac
+
+    return $status
 }
 
 
@@ -1216,14 +2003,17 @@ get_cover() {
 #
 get_charset() {
     local file="$1"
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local ft_presence=$(lookup_value 'file' ${g_tools[@]})
     local charset='WINDOWS-1250'
     local et=''
 
     # sanitizing the value
-    ft_presence=$(( $ft_presence + 0 ))
+    ft_presence=$(( ft_presence + 0 ))
 
-    if [ $ft_presence -eq 1 ]; then
+    if [ "$ft_presence" -eq 1 ]; then
 
         et=$(file \
             --brief \
@@ -1241,8 +2031,8 @@ get_charset() {
             case "$et" in
                 *utf*) charset="UTF8";;
                 *iso*) charset="ISO-8859-2";;
-				us-ascii) charset="US-ASCII";;
-				csascii) charset="CSASCII";;
+                us-ascii) charset="US-ASCII";;
+                csascii) charset="CSASCII";;
                 *ascii*) charset="ASCII";;
                 *) charset="WINDOWS-1250";;
             esac
@@ -1262,23 +2052,23 @@ get_charset() {
 #
 convert_charset() {
     local file="$1"
-    local d="${2:-'utf8'}"
+    local d="${2:-utf8}"
     local s="${3}"
     local rv=$RET_FAIL
 
     # detect charset
     [ -z "$s" ] && s=$(get_charset "$file")
-	
-    local tmp=$(mktemp -t napi.XXXXXXXX)
+    
+    local tmp=$(mktemp napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
     if [ $? -eq $RET_OK ]; then
-		_debug $LINENO "moving after charset conv. $tmp -> $file"
+        _debug $LINENO "moving after charset conv. $tmp -> $file"
         mv "$tmp" "$file"
         rv=$RET_OK
     fi
 
-    [ -e "$tmp" ] && unlink "$tmp"
+    [ -e "$tmp" ] && $g_cmd_unlink "$tmp"
     return $rv
 }
 
@@ -1298,6 +2088,8 @@ verify_extension() {
         'mpeg' 'wmv' '3gp' 'asf' 'divx' \
         'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
 
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     lookup_key "$extension" ${formats[@]} > /dev/null && is_video=1
 
     echo $is_video
@@ -1313,6 +2105,8 @@ verify_extension() {
 prepare_file_list() {
     local file=""
     local min_size=${1:-0}
+    local ve=0
+    local fs=0
 
     shift
     for file in "$@"; do
@@ -1329,12 +2123,15 @@ prepare_file_list() {
         # if so, then recursively search the dir
         elif [ -d "$file" ]; then
             local tmp="$file"
-            prepare_file_list $min_size "$tmp"/*
+            prepare_file_list "$min_size" "$tmp"/*
 
         else
             # check if the respective file is a video file (by extention)       
-            if [ $(verify_extension "$file") -eq 1 ] &&
-               [ $($g_cmd_stat "$file") -ge $(( $min_size*1024*1024 )) ]; then
+            ve=$(verify_extension "$file")
+            fs=$($g_cmd_stat "$file")
+
+            if [ "$ve" -eq 1 ] &&
+               [ "$fs" -ge $(( min_size*1024*1024 )) ]; then
                 # g_files+=( "$file" )
                 g_files=( "${g_files[@]}" "$file" )
             fi
@@ -1356,7 +2153,7 @@ prepare_file_list() {
 prepare_filenames() {
     
     # media filename (with path)
-    local fn="${1:-''}"
+    local fn="${1:-}"
 
     # media filename without extension
     local noext=$(strip_ext "$fn")
@@ -1425,30 +2222,32 @@ convert_format() {
     local sb_data=''
 
     # for the backup
-    local tmp="$(mktemp -t napi.XXXXXXXX)"
+    local tmp="$(mktemp napi.XXXXXXXX)"
 
-	# verify original file existence before proceeding further
-	! [ -e "$path/$input" ] &&
-		_error "oryginalny plik nie istnieje" &&
-		return $RET_FAIL
+    # verify original file existence before proceeding further
+    ! [ -e "$path/$input" ] &&
+        _error "oryginalny plik nie istnieje" &&
+        return $RET_FAIL
 
     # create backup
     _debug $LINENO "backupuje oryginalny plik jako $tmp"
     cp "$path/$input" "$tmp"
 
     # if delete orig flag has been requested don't rename the original file
-    if [ $g_delete_orig -eq 0 ]; then
+    if [ "$g_delete_orig" -eq 0 ]; then
         _info $LINENO "kopiuje oryginalny plik jako [$orig]" &&
         cp "$path/$input" "$path/$orig"
-	else
-		# get rid of it, if it already exists
-		[ -e "$path/$orig" ] && unlink "$path/$orig"
-	fi
+    else
+        # get rid of it, if it already exists
+        [ -e "$path/$orig" ] && $g_cmd_unlink "$path/$orig"
+    fi
 
     # detect video file framerate
-    [ $g_fps_tool != 'default' ] && fps=$(get_fps $g_fps_tool "$media_path")
+    [ "$g_fps_tool" != 'default' ] && 
+        _info $LINENO "wykrywam fps uzywajac: $g_fps_tool"
+        fps=$(get_fps "$g_fps_tool" "$media_path")
 
-    if [ "$fps" != "0" ]; then
+    if [ -n "$fps" ] && [ "$fps" != "0" ]; then
         _msg "wykryty fps: $fps"
         fps_opt="-fi $fps"
     else
@@ -1456,6 +2255,9 @@ convert_format() {
     fi
 
     _msg "wolam subotage.sh"
+
+    # fps_opt must be expanded for the subotage call
+    # shellcheck disable=SC2086
     sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
     status=$?
 
@@ -1467,17 +2269,31 @@ convert_format() {
         _msg "pomyslnie przekonwertowano do $g_sub_format"
         [ "$input" != "$conv" ] &&
             _msg "usuwam oryginalny plik" &&
-            unlink "$path/$input"
+            $g_cmd_unlink "$path/$input"
+
+    elif [ $status -eq $RET_NOACT ]; then
+        _msg "subotage.sh - konwersja nie jest konieczna"
+        
+        #copy the backup to converted
+        cp "$tmp" "$path/$conv"
+
+        # get rid of the original file
+        [ "$input" != "$conv" ] &&
+            _msg "usuwam oryginalny plik" &&
+            $g_cmd_unlink "$path/$input"
+
+        rv=$RET_OK
+
     else
         _msg "konwersja do $g_sub_format niepomyslna"
-
         # restore the backup (the original file may be corrupted due to failed conversion)
         cp "$tmp" "$path/$input"
         rv=$RET_FAIL
+
     fi
 
     # delete a backup
-    [ -e "$tmp" ] && unlink "$tmp"
+    [ -e "$tmp" ] && $g_cmd_unlink "$tmp"
     return $rv
 }
 
@@ -1498,10 +2314,10 @@ check_subs_presence() {
 
     _debug $LINENO "g_cmd_cp = $g_cmd_cp"
 
-    if [ $g_sub_format != 'default' ]; then
+    if [ "$g_sub_format" != 'default' ]; then
 
         # unconverted unavailable, converted available
-        rv=$(( $rv | 1 ))
+        rv=$(( rv | 1 ))
 
         if [ -e "$path/${g_pf[7]}" ]; then
             _status "SKIP" "$media_file"
@@ -1520,15 +2336,15 @@ check_subs_presence() {
 
         else
             _info $LINENO "skonwertowany plik niedostepny"
-            rv=$(( $rv & ~1 ))
+            rv=$(( rv & ~1 ))
         fi
 
         # we already have what we need - bail out
-        [ $(( $rv & 1 )) -eq 1 ] && return $rv
+        [ $(( rv & 1 )) -eq 1 ] && return $rv
     fi
 
     # assume unconverted available & verify that
-    rv=$(( $rv | 2 ))
+    rv=$(( rv | 2 ))
 
     # when the conversion is not required
     if [ -e "$path/${g_pf[1]}" ]; then
@@ -1544,7 +2360,7 @@ check_subs_presence() {
 
     else
         _info $LINENO "oryginalny plik niedostepny"
-        rv=$(( $rv & ~2 ))
+        rv=$(( rv & ~2 ))
     fi
 
     # exceptionally in this function return value caries the 
@@ -1569,28 +2385,28 @@ obtain_file() {
 
     # prepare all the possible filename combinations
     prepare_filenames "$media_file"
-    _debug $LINE "potencjalne nazwy plikow: ${g_pf[*]}"
-	_debug $LINE "katalog docelowy [$path]"
+    _debug $LINENO "potencjalne nazwy plikow: ${g_pf[*]}"
+    _debug $LINENO "katalog docelowy [$path]"
 
-    if [ $g_skip -eq 1 ]; then
+    if [ "$g_skip" -eq 1 ]; then
         _debug $LINENO "sprawdzam dostepnosc pliku"
         check_subs_presence "$media_file" "$path"
         av=$?
     fi
 
     _info $LINENO "dostepnosc pliku $av"
-    _debug $LINENO "przekonwertowany dostepny = $(( $av & 1 ))"
-    _debug $LINENO "oryginalny dostepny = $(( ($av & 2) >> 1 ))"
+    _debug $LINENO "przekonwertowany dostepny = $(( av & 1 ))"
+    _debug $LINENO "oryginalny dostepny = $(( (av & 2) >> 1 ))"
 
     # if conversion is requested
     if [ "$g_sub_format" != 'default' ]; then
 
         case $av in
             0) # download & convert
-                if get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang; then
+                if get_subtitles "$media_path" "$path/${g_pf[1]}" "$g_lang"; then
                     _debug $LINENO "napisy pobrano, nastapi konwersja"
                     should_convert=1
-                    g_stats[0]=$(( ${g_stats[0]} + 1 ))
+                    g_stats[0]=$(( g_stats[0] + 1 ))
                 else
                     # unable to get the file
                     _debug $LINENO "napisy niedostepne"
@@ -1602,7 +2418,7 @@ obtain_file() {
                 _debug $LINENO "nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
 
                 # increment skipped counter
-                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                g_stats[2]=$(( g_stats[2] + 1 ))
                 rv=$RET_OK
             ;;
 
@@ -1610,7 +2426,7 @@ obtain_file() {
                 _debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
 
                 # increment skipped counter
-                g_stats[2]=$(( ${g_stats[2]} + 1 ))
+                g_stats[2]=$(( g_stats[2] + 1 ))
                 should_convert=1
             ;;
         esac
@@ -1622,7 +2438,7 @@ obtain_file() {
             rv=$?
 
             # increment converted counter
-            g_stats[3]=$(( ${g_stats[3]} + 1 ))
+            g_stats[3]=$(( g_stats[3] + 1 ))
         fi
 
     else
@@ -1630,13 +2446,13 @@ obtain_file() {
 
         # file is not available - download
         if [ ${av[0]} -eq 0 ]; then
-            get_subtitles "$media_path" "$path/${g_pf[1]}" $g_lang
+            get_subtitles "$media_path" "$path/${g_pf[1]}" "$g_lang"
             rv=$?
-            [ $rv -eq $RET_OK ] && g_stats[0]=$(( ${g_stats[0]} + 1 ))
+            [ $rv -eq $RET_OK ] && g_stats[0]=$(( g_stats[0] + 1 ))
         else
 
             # increment skipped counter
-            g_stats[2]=$(( ${g_stats[2]} + 1 ))
+            g_stats[2]=$(( g_stats[2] + 1 ))
             rv=$RET_OK
         fi
     fi
@@ -1678,26 +2494,39 @@ process_file() {
             _msg "wywoluje zewnetrzny skrypt" &&
             $g_hook "$path/${g_pf[$si]}"
 
+        # download nfo
+        # if requested to do so
+        if [ "$g_nfo" -eq 1 ]; then
+            if get_nfo "$media_path"; then
+                _status "OK" "nfo for $media_file"
+            else
+                _status "UNAV" "nfo for $media_file"
+            fi 
+        fi
+
         # download cover
         # assumed here that cover is only available
         # if subtitles are
-        if [ $g_cover -eq 1 ]; then
-            if get_cover "$media_path"; then
-                _status "OK" "cover for $media_path"
-                g_stats[4]=$(( ${g_stats[4]} + 1 ))
+        if [ "$g_cover" -eq 1 ]; then
+            if get_cover "$media_path" "$g_lang"; then
+                _status "OK" "cover for $media_file"
+                g_stats[4]=$(( g_stats[4] + 1 ))
             else
                 _status "UNAV" "cover for $media_file"
-                g_stats[5]=$(( ${g_stats[5]} + 1 ))
+                g_stats[5]=$(( g_stats[5] + 1 ))
             fi 
         fi # if [ $g_cover -eq 1 ]
     else
         _status "UNAV" "$media_file"
-        g_stats[1]=$(( ${g_stats[1]} + 1 ))
+        g_stats[1]=$(( g_stats[1] + 1 ))
         rv=$RET_UNAV
     fi # if [ $status = $RET_OK ]
 
+    # cleanup the xml remnants
+    cleanup_xml "$media_path"
+
     # increment total processed counter
-    g_stats[6]=$(( ${g_stats[6]} + 1 ))
+    g_stats[6]=$(( g_stats[6] + 1 ))
     return $rv
 }
 
@@ -1715,13 +2544,13 @@ process_files() {
     # current
     local c=$s
 
-    while [ $c -lt ${#g_files[@]} ]; do
+    while [ "$c" -lt ${#g_files[@]} ]; do
         _info $LINENO "#$s - index poczatkowy $c"
         process_file "${g_files[$c]}"
-        c=$(( $c + $i ))
+        c=$(( c + i ))
     done
 
-	# dump statistics to fd #8 (if it has been opened before)
+    # dump statistics to fd #8 (if it has been opened before)
     [ -e "/proc/self/fd/8" ] && echo "${g_stats[*]}" >&8
     return $RET_OK
 }
@@ -1735,9 +2564,6 @@ sum_stats() {
     local file="$1"
     local awk_script=''
     local fc=${#g_stats[@]}
-    local awk_presence=$(lookup_value 'awk' ${g_tools[@]})
-
-    awk_presence=$(( $awk_presence + 0 ))
 
 # embed small awk program to count the columns
 read -d "" awk_script << EOF
@@ -1759,7 +2585,7 @@ END {
 EOF
 
     # update the contents
-    [ $awk_presence -eq 1 ] && g_stats=( $(awk "$awk_script" "$file") )
+    g_stats=( $(run_awk_script "$awk_script" "$file") )
     return $RET_OK
 }
 
@@ -1769,31 +2595,43 @@ EOF
 #
 spawn_forks() {
     local c=0
-    local stats_file="$(mktemp -t stats.XXXXXXXX)"
+    local stats_file="$(mktemp stats.XXXXXXXX)"
+    local old_msg_cnt=0
 
     # open fd #8 for statistics collection
     exec 8<> "$stats_file"
 
     # spawn parallel processing
-    while [ $c -lt ${g_system[1]} ] && [ $c -lt ${#g_files[@]} ]; do
-        g_system[3]=$(( $c + 1 ))
-        _debug $LINENO "tworze fork #${g_system[3]}, przetwarzajacy od $c z incrementem ${g_system[1]}"
+    while [ $c -lt "${g_system[1]}" ] && [ $c -lt ${#g_files[@]} ]; do
+
+        _debug $LINENO "tworze fork #$(( c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
+
+        g_system[3]=$(( c + 1 ))
+        old_msg_cnt=${g_system[4]}
+        g_system[4]=1 # reset message counter
         process_files $c ${g_system[1]} &
+
+        # restore original values
+        g_system[4]=$old_msg_cnt
         c=${g_system[3]}
+        g_system[3]=0
+
     done
     
     # wait for all forks
     wait
 
     # sum stats data
-    sum_stats "$stats_file"
-
-    # close the fd
-    exec 8>&-
-    [ -e "$stats_file" ] && unlink "$stats_file"
+    if [ -e "$stats_file" ]; then
+        sum_stats "$stats_file"
+        # close the fd
+        exec 8>&-
+        $g_cmd_unlink "$stats_file"
+    fi
 
     # restore main fork id
-    g_system[3]=1
+    g_system[3]=0
+
     return $RET_OK
 }
 
@@ -1810,7 +2648,7 @@ print_stats() {
 
     while [ $i -lt ${#g_stats[@]} ]; do
         _status "${labels[$i]}" "${g_stats[$i]}"
-        i=$(( $i + 1 ))
+        i=$(( i + 1 ))
     done
 
     return $RET_OK
@@ -1822,12 +2660,18 @@ print_stats() {
 # @brief prints the help & options overview
 #
 usage() {
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local subotage_presence=$(lookup_value 'subotage.sh' ${g_tools[@]})
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     local iconv_presence=$(lookup_value 'iconv' ${g_tools[@]})
 
     # precaution to prevent variables from being empty
-    subotage_presence=$(( $subotage_presence + 0 ))
-    iconv_presence=$(( $iconv_presence + 0 ))
+    subotage_presence=$(( subotage_presence + 0 ))
+    iconv_presence=$(( iconv_presence + 0 ))
 
     echo "=============================================================="
     echo "napi.sh version $g_revision (identifies as ${g_system[2]})"
@@ -1838,15 +2682,16 @@ usage() {
     echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
     echo "   -c | --cover - pobierz okladke"
 
-    [ $iconv_presence -eq 1 ] && 
+    [ "$iconv_presence" -eq 1 ] && 
         echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
 
     echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
     echo "   -F | --forks - okresl recznie ile rownoleglych procesow utworzyc (dom. ${g_system[1]})"
-    echo "   -I | --id <pynapi|other> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
+    echo "   -I | --id <pynapi|other|NapiProjektPython|NapiProjekt> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
     echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
     echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
+    echo "   -n | --nfo - utworz plik z informacjami o napisach (wspierane tylko z id NapiProjektPython/NapiProjekt)"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
     echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
@@ -1854,7 +2699,7 @@ usage() {
     echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
     echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     
-    if [ $subotage_presence -eq 1 ]; then    
+    if [ "$subotage_presence" -eq 1 ]; then    
         echo "   -d | --delete-orig - Delete the original file"   
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
         echo "   -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
@@ -1878,7 +2723,7 @@ usage() {
     echo " napi.sh katalog_z_filmami - wyszukiwanie we wskazanym katalogu"
     echo "                             i podkatalogach."
     
-    if [ $subotage_presence -ne 1 ]; then
+    if [ "$subotage_presence" -ne 1 ]; then
         echo " "
         echo "UWAGA !!!"
         echo "napi.sh moze automatycznie dokonywac konwersji napisow"
@@ -1890,13 +2735,18 @@ usage() {
         echo " napi.sh -f subrip *       - sciaga napisy dla kazdego znalezionego pliku"
         echo "                           po czym konwertuje je do formatu subrip"
 
-        if [ $(count_fps_detectors) -gt 0 ]; then 
+        local c_fps=$(count_fps_detectors)
+
+        if [ "$c_fps" -gt 0 ]; then 
             echo
             echo "Wykryte narzedzia detekcji FPS"
 
             local t=0
-            for t in ${g_tools_fps[@]}; do
-                [ $(lookup_value $t ${g_tools[@]}) -eq 1 ] && echo $t
+            for t in "${g_tools_fps[@]}"; do
+
+                # this function can cope with that kind of input
+                # shellcheck disable=SC2068
+                [ "$(lookup_value $t ${g_tools[@]})" -eq 1 ] && echo $t
             done
             echo
         else
@@ -1919,7 +2769,7 @@ usage() {
 # 
 main() {
     # first positional
-    local arg1="${1:-''}"
+    local arg1="${1:-}"
 
     # debug
     _debug $LINENO "$0: ($g_revision) uruchamianie ..." 
@@ -1939,7 +2789,11 @@ main() {
 
     # verify tools presence
     _debug $LINENO "sprawdzam narzedzia ..." 
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
     g_tools=( $(verify_tools ${g_tools[@]}) )
+
     if [ $? -ne $RET_OK ]; then
         _error "nie wszystkie wymagane narzedzia sa dostepne"
         _debug $LINENO "${g_tools[*]}"
@@ -1953,13 +2807,13 @@ main() {
         usage &&
         return $RET_BREAK
 
-    _info $LINENO "parsowanie argumentow"
+    # get argv
     if ! parse_argv "$@"; then
         _error "niepoprawne argumenty..."
         return $RET_FAIL
     fi
 
-    _info $LINENO "weryfikacja argumentow"
+    # verify argv
     if ! verify_argv; then 
         _error "niepoprawne argumenty..."
         return $RET_FAIL
@@ -1971,6 +2825,14 @@ main() {
     _msg "wywolano o $(date)"
     _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
 
+    _msg "================================================="
+    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
+    _msg "API (napiprojekt-3)"
+    _msg "Jezeli zauwazysz jakies problemy z nowym API"
+    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
+    _msg "starego API korzystajac z opcji --id pynapi"
+    _msg "================================================="
+
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
@@ -1978,7 +2840,7 @@ main() {
     # do the job
     spawn_forks
 
-    [ $g_stats_print -eq 1 ] && print_stats
+    [ "$g_stats_print" -eq 1 ] && print_stats
 
     # cleanup & exit
     _info $LINENO "przywracam STDOUT"
@@ -1988,7 +2850,7 @@ main() {
 }
 
 # call the main
-[ ${SHUNIT_TESTS:-0} -eq 0 ] && main "$@"
+[ "${SHUNIT_TESTS:-0}" -eq 0 ] && main "$@"
 
 # EOF
 ######################################################################## 
@@ -2024,3 +2886,4 @@ main() {
 ## }
 
 ######################################################################## 
+
