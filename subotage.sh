@@ -87,8 +87,32 @@ declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer" "tmplayer" "fab" 
 ################################################################################
 
 guess_format() {
-    # TODO implement me
-    return $RET_OK
+    local file_path="$1"
+    local lc=$(cat "$file_path" 2> /dev/null | count_lines)
+
+    local fmt='not_detected'
+    local detector='none'
+    local f=''
+    local rv=$RET_OK
+
+    [ -z "$lc" ] || [ "$lc" -eq 0 ] &&
+        return $RET_FAIL
+
+    for f in "${g_formats[@]}"; do
+        detector="check_format_${f}"
+
+        # check if detector exists
+        if ! verify_function_presence "$detector"; then
+            return $RET_FAIL
+        fi
+
+        fmt=$($detector "$file_path")
+        [ "$fmt" != "not_detected" ] && break
+    done
+
+    [ "$fmt" = "not_detected" ] && rv=$RET_FAIL
+    echo "$fmt"
+    return $rv
 }
 
 

@@ -822,26 +822,6 @@ function f_write_fab_format
 ############################### common routines ###############################
 ###############################################################################
 
-# @brief try to determine the input file format
-function f_guess_format
-{
-    local lines=$(cat "$1" 2> /dev/null | count_lines)
-    if [ "$lines" -eq 0 ]; then
-        f_print_error "Input file has zero lines inside"
-        exit -1
-    fi
-    
-    local detected_format="not detected"
-    
-    for a in "${g_FileFormats[@]}"; do
-        function_name="f_is_${a}_format"
-        detected_format=$($function_name "$1")
-        [ "$detected_format" != "not detected" ] && break
-    done
-
-    echo $detected_format
-}
-
 function f_correct_overlaps
 {
     time_type=$(head -n 1 "$g_ProcTmpFile")
