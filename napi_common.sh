@@ -109,6 +109,14 @@ lcase() {
 
 
 #
+# @brief get rid of the newline/carriage return
+#
+strip_newline() {
+    tr -d '\r\n'
+}
+
+
+#
 # @brief get the extension of the input
 #
 get_ext() {
@@ -325,7 +333,9 @@ to_stderr() {
 # @brief redirect stdout to logfile
 #
 redirect_to_logfile() {
-    [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ] && exec 3>&1 1> "${g_output[$___LOG]}"
+    [ -n "${g_output[$___LOG]}" ] && 
+    [ "${g_output[$___LOG]}" != "none" ] && 
+    exec 3>&1 1> "${g_output[$___LOG]}"
 }
 
 
@@ -333,7 +343,8 @@ redirect_to_logfile() {
 # @brief redirect output to stdout
 #
 redirect_to_stdout() {
-    [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ] && exec 1>&3 3>&-
+    [ -n "${g_output[$___LOG]}" ] && 
+    [ "${g_output[$___LOG]}" != "none" ] && exec 1>&3 3>&-
 }
 
 # EOF

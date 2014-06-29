@@ -86,6 +86,70 @@ declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer" "tmplayer" "fab" 
 
 ################################################################################
 
+# microdvd format detection routine
+check_format_microdvd() {
+    local file_path="$1"
+
+    local max_attempts=3
+    local attempts=$max_attempts
+    local first_line=1
+    local match="not_detected"
+    
+
+    while read file_line; do
+        [ "$attempts" -eq 0 ] && break
+        first_line=$(( max_attempts - attempts + 1 ))
+        attempts=$(( attempts - 1 ))       
+
+        match=$(echo "$file_line" | \
+            LANG=C awk '{ gsub("^{[0-9]*}{[0-9]*}.*$", "success"); print }')
+
+        # skip empty lines
+        [ -z "$match" ] && continue
+
+        # we've got a match
+        if [ "$match" = "success" ]; then
+
+            echo "$file_line" | awk 'BEGIN {
+            FS="}"
+        } {
+
+        where=match($3, "[0-9]{2}(\\.[0-9]+)*[:space:]*(fps)*([\r\n ])+");
+        print substr($3, where, RLENGTH);
+    }
+        '
+            
+
+            exit
+        fi
+
+
+    done < "$file_path"
+
+    echo "$match"
+    return $RET_OK
+}
+
+check_format_mpl2() {
+
+    return $RET_OK
+}
+
+check_format_subviewer() {
+
+    return $RET_OK
+}
+
+check_format_tmplayer() {
+
+    return $RET_OK
+}
+
+check_format_fab() {
+
+    return $RET_OK
+}
+
 guess_format() {
     local file_path="$1"
     local lc=$(cat "$file_path" 2> /dev/null | count_lines)
@@ -112,6 +176,7 @@ guess_format() {
 
     [ "$fmt" = "not_detected" ] && rv=$RET_FAIL
     echo "$fmt"
+    echo 'chuj'
     return $rv
 }
 
@@ -323,7 +388,7 @@ verify_argv() {
 
     # check presence of output file
     [ -z "${g_outf[$___PATH]}" ] || [ "${g_outf[$___PATH]}" = "none" ] || [ ! -s "${g_inf[$___PATH]}" ] &&
-        _error "nie okreslono pliku wejsciowego" &&
+        _error "nie okreslono pliku wyjsciowego" &&
         return $RET_PARAM
 
     # verifying input format
@@ -346,6 +411,15 @@ verify_argv() {
     ! verify_fps "${g_outf[$___FPS]}" && return $RET_PARAM
 
     return 0
+}
+
+
+#
+# @brief tries to parse out fps data from microdvd format line
+#
+detect_microdvd_fps() {
+
+    return $RET_OK
 }
 
 
@@ -444,7 +518,8 @@ process_file() {
     if [ "$g_getinfo" -eq 1 ] || [ "${g_inf[$___FORMAT]}" = "none" ]; then
         _debug $LINENO "wykrywam format pliku wejsciowego"
 
-        g_inf[$___DETAILS]=$(guess_format "${g_inf[$___PATH]}")
+        # g_inf[$___DETAILS]=$(guess_format "${g_inf[$___PATH]}")
+        guess_format "${g_inf[$___PATH]}"
         status=$?
 
         fmt=( ${g_inf[$___DETAILS]} )
