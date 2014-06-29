@@ -395,12 +395,26 @@ print_format_summary() {
 }
 
 
+convert_formats() {
+    local freader="$1"
+    local fwriter="$2"
+    local rv=$RET_OK
+
+    return $rv
+}
+
+
 #
 # process the file
 #
 process_file() {
     local status=$RET_OK
+    local freader=''
+    local fwriter=''
     declare -a fmt=()
+
+    g_inf[$___FORMAT]=$(echo "${g_inf[$___FORMAT]}" | lcase)
+    g_outf[$___FORMAT]=$(echo "${g_outf[$___FORMAT]}" | lcase)
 
     # detect the format if requested
     if [ "$g_getinfo" -eq 1 ] || [ "${g_inf[$___FORMAT]}" = "none" ]; then
@@ -435,7 +449,23 @@ process_file() {
     status=$?
     [ "$status" -eq $RET_NOACT ] && return "$status"
 
-    return $RET_OK
+    # create read/write routine names & verify them
+    freader="read_format_${g_inf[$___FORMAT]}"
+    if ! verify_function_presence "$freader"; then
+        _error "funkcja czytajaca [$freader] nie istnieje"
+        return $RET_BREAK
+    fi
+    
+    fwriter="write_format_${g_outf[$___FORMAT]}"
+    if ! verify_function_presence "$freader"; then
+        _error "funkcja piszaca do formatu [$freader] nie istnieje"
+        return $RET_BREAK
+    fi
+    
+    convert_formats "$freader" "$fwriter"
+    status=$?
+
+    return $status
 }
 
 

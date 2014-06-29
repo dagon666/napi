@@ -282,25 +282,6 @@ normalize_language() {
 #################################### ENV #######################################
 
 #
-# @brief checks if the tool is available in the PATH
-#
-verify_tool_presence() {
-    local tool=$(builtin type -p "$1")
-    local rv=$RET_UNAV
-
-    # make sure it's really there
-    if [ -z "$tool" ]; then
-        type "$1" > /dev/null 2>&1
-        rv=$?
-    else
-        rv=$RET_OK
-    fi
-
-    return $rv
-}
-
-
-#
 # @brief configure external commands
 #
 configure_cmds() {

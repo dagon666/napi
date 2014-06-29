@@ -902,9 +902,6 @@ function f_correct_overlaps
 ############################### common routines ###############################
 ###############################################################################
 
-g_Reader="f_read_${g_InputFormatData[0]}_format"
-g_Writer="f_write_${g_OutputFormat}_format"
-
 echo > "$g_ProcTmpFile"
 
 # input file, first valid line, format specific data
@@ -925,9 +922,5 @@ fi
     
 # remove the temporary processing file
 rm -rf "$g_ProcTmpFile"
-echo "Done"
 
-###############################################################################
-############################## actual convertion ##############################
-###############################################################################
 # EOF

@@ -364,6 +364,45 @@ float_eq() {
     awk -v n1="$1" -v n2="$2" 'BEGIN{ if (n1==n2) exit 0; exit 1}'
 }
 
+#################################### ENV #######################################
+
+#
+# @brief checks if the tool is available in the PATH
+#
+verify_tool_presence() {
+    local tool=$(builtin type -p "$1")
+    local rv=$RET_UNAV
+
+    # make sure it's really there
+    if [ -z "$tool" ]; then
+        type "$1" > /dev/null 2>&1
+        rv=$?
+    else
+        rv=$RET_OK
+    fi
+
+    return $rv
+}
+
+#
+# @brief check function presence
+#
+verify_function_presence() {
+    local tool=$(builtin type -t "$1")
+    local rv=$RET_UNAV
+
+    # make sure it's really there
+    if [ -z "$tool" ]; then
+        type "$1" > /dev/null 2>&1;
+        rv=$?
+        [ "$rv" -ne $RET_OK ] && tool='empty'
+    fi
+        
+    # check the output
+    [ "$tool" = "function" ] && rv=$RET_OK
+    return $rv
+}
+
 ################################## DB ##########################################
 
 # that was an experiment which I decided to drop after all. 
