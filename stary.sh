@@ -1,27 +1,6 @@
 #!/bin/bash
 
-g_InFpsGiven=0
-g_FormatDetected=0
 g_ProcTmpFile="/tmp/subotage_$$.tmp"
-
-###############################################################################
-############################ format read routines #############################
-###############################################################################
-# Input parameters
-# - filename to process
-#
-# Output: 
-# - should be written in universal format. Line format
-# - subtitle line number
-# - time type: ( "hms", "hmsms", "secs" )
-# - start time
-# - stop time
-# - line itself
-#
-# Return Value
-# - 0 - when file is processed and all the data is converted to 
-#             universal format present in /tmp file
-###############################################################################
 
 # subviewer -> uni format converter
 function f_read_subviewer_format
@@ -245,9 +224,6 @@ function f_read_subrip_format
 }
 
 
-###############################################################################
-############################ format read routines #############################
-###############################################################################
 
 
 

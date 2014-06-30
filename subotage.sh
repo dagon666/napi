@@ -189,7 +189,6 @@ check_format_subrip() {
 
 read -d "" match_ts << 'EOF'
 {
-    # ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+[:space:]-->[:space:][0-9]+:[0-9]+:[0-9]+,[0-9]+"
     ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\\r\\n]*"
     full_reg =  "^" prefix ts "$";
     print match($0, full_reg);
@@ -252,8 +251,10 @@ check_format_subviewer2() {
 
 read -d "" match_ts << 'EOF'
 {
-    reg = "^[0-9]+:[0-9]+:[0-9]+:[0-9]+,[0-9]+:[0-9]+:[0-9]+:[0-9]+[:space:]*[\\r\\n]*$"
+    match_group="[0-9]+:[0-9]+:[0-9]+\.[0-9]+"
+    reg = "^" match_group "," match_group "[:space:]*[\\r\\n]*$"
     where = match($0, reg);
+    print where;
 }
 EOF
 
@@ -274,7 +275,7 @@ EOF
 
         # we've got a match
         if [ "$match_tmp" -ne 0 ]; then
-            match="subviewer $first_line $header_line"
+            match="subviewer2 $first_line $header_line"
             break
         fi
     done < "$file_path"
@@ -374,6 +375,53 @@ EOF
 ###############################################################################
 
 
+###############################################################################
+############################ format read routines #############################
+###############################################################################
+# Input parameters
+# - filename to process
+#
+# Output: 
+# - should be written in universal format. Line format
+# - subtitle line number
+# - time type: ( "hms", "hmsms", "secs" )
+# - start time
+# - stop time
+# - line itself
+#
+# Return Value
+# - $RET_OK - when file is processed and all the data is converted to 
+#             universal format present in /tmp file
+###############################################################################
+
+read_format_subviewer2() {
+    return $RET_OK
+}
+
+read_format_tmplayer() {
+    
+    return $RET_OK
+}
+
+read_format_microdvd() {
+    
+    return $RET_OK
+}
+
+read_format_mpl2() {
+    
+    return $RET_OK
+}
+
+read_format_subrip() {
+    
+    return $RET_OK
+}
+
+###############################################################################
+############################ format read routines #############################
+###############################################################################
+
 guess_format() {
     local file_path="$1"
     local lc=$(cat "$file_path" 2> /dev/null | count_lines)
@@ -399,8 +447,8 @@ guess_format() {
     done
 
     [ "$fmt" = "not_detected" ] && rv=$RET_FAIL
+
     echo "$fmt"
-    echo 'chuj'
     return $rv
 }
 
@@ -770,8 +818,7 @@ process_file() {
     if [ "$g_getinfo" -eq 1 ] || [ "${g_inf[$___FORMAT]}" = "none" ]; then
         _debug $LINENO "wykrywam format pliku wejsciowego"
 
-        # g_inf[$___DETAILS]=$(guess_format "${g_inf[$___PATH]}")
-        guess_format "${g_inf[$___PATH]}"
+        g_inf[$___DETAILS]=$(guess_format "${g_inf[$___PATH]}")
         status=$?
 
         fmt=( ${g_inf[$___DETAILS]} )
