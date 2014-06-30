@@ -82,8 +82,19 @@ g_lastingtime=3000
 #
 # supported subtitle file formats
 #
-declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer" "tmplayer" "fab" )
+declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer2" "tmplayer" "fab" )
 
+################################################################################
+
+
+################################################################################
+########################## format detection routines ###########################
+################################################################################
+# each detection function should return a string delimited by spaces containing:
+# - format name (as in g_formats table) or "not_detedted" string
+#       if file has not been identified
+# - line in file on which a valid format line has been found (starting from 1)
+# - format specific data
 ################################################################################
 
 # microdvd format detection routine
@@ -164,17 +175,71 @@ check_format_mpl2() {
 }
 
 
+# subrip format detection routine
 check_format_subrip() {
-    
+    local file_path="$1"
+    local max_attempts=8
+    local first_line=1
+    local attempts=$max_attempts
+
+    local counter_type="not_found"
     local match="not_detected"
+    local match_tmp=''
+    local match_ts=''
+
+read -d "" match_ts << 'EOF'
+{
+    # ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+[:space:]-->[:space:][0-9]+:[0-9]+:[0-9]+,[0-9]+"
+    ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\\r\\n]*"
+    full_reg =  "^" prefix ts "$";
+    print match($0, full_reg);
+}
+EOF
+
+    while read file_line; do
+        [ "$attempts" -eq 0 ] && break
+
+        if [ "$counter_type" = "not_found" ]; then
+                first_line=$(( max_attempts - attempts + 1 ))
+                match_tmp=$(echo "$file_line" | \
+                    LANG=C awk '/^[0-9]+[\r\n]*$/')
+
+                if [ -n "$match_tmp" ]; then
+                    counter_type="newline"
+                    continue
+                fi
+
+                # check for inline counter
+                match_tmp=$(echo "$file_line" | \
+                    LANG=C awk -v prefix="[0-9]+ " "$match_ts")
+
+                if [ "$match_tmp" -ne 0 ]; then
+                    counter_type="inline"
+                    match="subrip $first_line inline"
+                    break
+                fi
+
+        elif [ "$counter_type" = "newline" ]; then
+                # check for the time signature
+                match_tmp=$(echo "$file_line" | \
+                    LANG=C awk -v prefix="" "$match_ts")
+
+                if [ "$match_tmp" -ne 0 ]; then
+                    counter_type="newline"
+                    match="subrip $first_line newline"
+                    break
+                fi
+        fi
+
+        attempts=$(( attempts - 1 ))
+    done < "$file_path"
 
     echo "$match"
     return $RET_OK
 }
 
 
-check_format_subviewer() {
-
+check_format_subviewer2() {
     local match="not_detected"
 
     echo "$match"
@@ -275,6 +340,10 @@ check_format_fab() {
     return $RET_OK
 }
 
+###############################################################################
+########################## format detection routines ##########################
+###############################################################################
+
 
 guess_format() {
     local file_path="$1"
@@ -322,7 +391,7 @@ list_formats() {
                       "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
                       "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
                       "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
-                      "similar to subviewer, subrip.\n\t\t0022 : 00:05:22:01  00:05:23:50. No header" \
+                      "similar to subviewer2, subrip.\n\t\t0022 : 00:05:22:01  00:05:23:50. No header" \
                     ) 
 
     if [ "$long" -eq 1 ]; then

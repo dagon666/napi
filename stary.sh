@@ -4,15 +4,6 @@ g_InFpsGiven=0
 g_FormatDetected=0
 g_ProcTmpFile="/tmp/subotage_$$.tmp"
 
-################################################################################
-########################## format detection routines ###########################
-################################################################################
-# each detection function should return a string delimited by spaces containing:
-# - format name (as in g_FileFormats table) or "not detedted" string
-#       if file has not been identified
-# - line in file on which a valid format line has been found (starting from 1)
-# - format specific data
-################################################################################
 
 # fab format detection routine
 function f_is_fab_format
@@ -81,62 +72,6 @@ function f_is_subviewer_format
         
     echo $match 
 }
-
-
-# subrip format detection routine
-function f_is_subrip_format
-{
-    local match="not detected"
-    local max_attempts=8
-    local attempts=$max_attempts
-    local counter_type="not found"
-    local first_line=1
-
-    while read file_line; do
-        if [ "$attempts" -eq 0 ]; then
-            break
-        fi
-
-        if [ "$counter_type" = "not found" ]; then      
-            cntn=$(echo "$file_line" | awk '/^[0-9]+[\r\n]*$/')
-            first_line=$(( max_attempts - attempts + 1 ))
-
-            if [ -n "$cntn" ]; then
-                counter_type="newline"              
-                continue
-            fi
-            
-            cnti=$(echo "$file_line" | sed -r 's/^[0-9]+ [0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
-
-            if [ "$cnti" = "success" ]; then
-                counter_type="inline"
-                match="subrip $first_line inline"
-                break
-            fi
-        elif [ "$counter_type" = "newline" ]; then
-            
-            time_check=$(echo "$file_line" | sed -r 's/^[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*$/success/')
-
-            if [ "$time_check" = "success" ]; then
-                match="subrip $first_line newline"
-                break
-            else
-                counter_type="not found"
-            fi
-        fi
-                    
-        attempts=$(( attempts - 1 ))       
-    done < "$1" 
-    
-    echo "$match" 
-}
-
-###############################################################################
-########################## format detection routines ##########################
-###############################################################################
-
-
-
 
 ###############################################################################
 ############################ format read routines #############################
