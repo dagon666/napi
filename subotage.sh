@@ -94,8 +94,8 @@ check_format_microdvd() {
     local attempts=$max_attempts
     local first_line=1
     local match="not_detected"
+    local fps_detected=''
     
-
     while read file_line; do
         [ "$attempts" -eq 0 ] && break
         first_line=$(( max_attempts - attempts + 1 ))
@@ -109,21 +109,19 @@ check_format_microdvd() {
 
         # we've got a match
         if [ "$match" = "success" ]; then
+            fps_detected=$(echo "$file_line" | \
+                lcase | \
+                detect_microdvd_fps | \
+                strip_newline)
 
-            echo "$file_line" | awk 'BEGIN {
-            FS="}"
-        } {
+            if [ -z "$fps_detected" ]; then
+                match="microdvd $first_line"
+            else
+                match="microdvd $first_line $fps_detected"
+            fi
 
-        where=match($3, "[0-9]{2}(\\.[0-9]+)*[:space:]*(fps)*([\r\n ])+");
-        print substr($3, where, RLENGTH);
-    }
-        '
-            
-
-            exit
+            break
         fi
-
-
     done < "$file_path"
 
     echo "$match"
@@ -418,7 +416,36 @@ verify_argv() {
 # @brief tries to parse out fps data from microdvd format line
 #
 detect_microdvd_fps() {
+    local awk_code=''
 
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    FS="}"
+}
+
+{
+    # regular expressions to match the fps data
+    regs[1]="[0-9]{2}[\.0-9]{2,}[:space:]*(fps)*";
+    regs[2]="[0-9]{2}+[:space:]*(fps)*";
+
+    # execute regexp each by each and seek for a match
+    for (r in regs) {
+
+        where = match($3, regs[r]);
+        if (where) {
+            m = substr($3, where, RLENGTH);
+
+            # extract only numbers
+            print substr(m, match(m, "[\.0-9]+"), RLENGTH);
+
+            break;
+        }
+    }
+}
+EOF
+
+    awk "$awk_code"
     return $RET_OK
 }
 

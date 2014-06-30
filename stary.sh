@@ -133,46 +133,6 @@ function f_is_tmplayer_format
     echo $match
 }
 
-# microdvd format detection routine
-function f_is_microdvd_format
-{
-    local max_attempts=3
-    local attempts=$max_attempts
-    local match="not detected"
-    local first_line=1
-	local fps=''
-
-    while read file_line; do
-        if [ "$attempts" -eq 0 ]; then
-            break
-        fi
-
-        first_line=$(( max_attempts - attempts + 1 ))
-        
-        match_value=$(echo $file_line | cut -d '}' -f -2 | sed 's/^{[0-9]*}{[0-9]*$/success/')      
-
-        # it is microdvd format, try to determine the frame rate from the first line
-        if [ "$match_value" = "success" ]; then
-            match="microdvd $first_line"
-            fps_info=$(head -n 1 "$1" | cut -d '}' -f 3-)
-			fps=0
-
-			local fps_value=$(echo "$fps_info" | awk '/^[0-9]+[\.0-9]*[\r\n]*$/')
-            if [ -n "$fps_value" ]; then
-                fps=$(echo $fps_info | tr -d '\r\n')
-            fi
-            break   
-        fi
-        
-        attempts=$(( attempts - 1 ))       
-    done < "$1"
-
-	if [ "$match" != "not detected"  ]; then
-		echo "$match $fps"
-	else
-		echo "$match"
-	fi
-}
 
 # mpl2 format detection routine
 function f_is_mpl2_format
