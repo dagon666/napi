@@ -4,75 +4,6 @@ g_InFpsGiven=0
 g_FormatDetected=0
 g_ProcTmpFile="/tmp/subotage_$$.tmp"
 
-
-# fab format detection routine
-function f_is_fab_format
-{
-    local max_attempts=8
-    local attempts=$max_attempts
-    local match="not detected"
-    local first_line=1
-	local cnti='empty'
-    
-    while read file_line; do
-        if [ "$attempts" -eq 0 ]; then
-            break
-        fi
-        
-        first_line=$(( max_attempts - attempts + 1))  
-        cnti=$(echo $file_line | sed -r 's/^[0-9]+ : [0-9]+:[0-9]+:[0-9]+:[0-9]+[ ]+[0-9]+:[0-9]+:[0-9]+:[0-9]+[\r\n]*$/success/')
-        
-        if [ "$cnti" = "success" ]; then
-            match="fab $first_line"
-            break
-        fi  
-        
-        attempts=$(( attempts - 1 ))       
-    done < "$1"
-    echo $match
-}
-
-# subviewer format detection routine
-function f_is_subviewer_format
-{
-    local max_attempts=16
-    local attempts=$max_attempts
-    local match="not detected"
-    local first_line=0
-    
-    local header_found=0
-	local header_line=''
-
-    while read file_line; do
-        if [ "$attempts" -eq 0 ]; then
-            break
-        fi
-        
-        first_line=$(( first_line + 1 ))
-        
-        if [ "$header_found" -eq 1 ]; then
-            match_line=$(echo $file_line | sed -r 's/^[0-9]+:[0-9]+:[0-9]+:[0-9]+,[0-9]+:[0-9]+:[0-9]+:[0-9]+[ \r]*$/success/')
-            
-            if [ "$match_line" = "success" ]; then
-                first_line=$(( first_line - 1 ))
-                match="subviewer $first_line"
-                break
-            fi          
-        fi
-
-		header_line=$(echo $file_line | grep "\[INFORMATION\]")
-                
-        if [ -n "$header_line" ]; then
-            header_found=1
-            continue
-        fi
-                
-        attempts=$(( attempts - 1 ))       
-    done < "$1"
-        
-    echo $match 
-}
-
 ###############################################################################
 ############################ format read routines #############################
 ###############################################################################
@@ -314,30 +245,6 @@ function f_read_subrip_format
 }
 
 
-# fab -> uni format converter
-function f_read_fab_format
-{
-    echo "hmsms" > "$g_ProcTmpFile"
-    
-    tail -n +"$2" "$1" | tr -d '\r' | 
-        awk "BEGIN { FS=\"\n\"; RS=\"\"; };
-            {   
-                split(\$1,tm, \":\");
-                split(tm[5],tm2, \" \");
-                printf(\"%d %02d:%02d:%02d.%02d %02d:%02d:%02d.%02d \", 
-                    tm[1], tm[2], tm[3], tm[4], tm2[1],
-                    tm2[2], tm[6], tm[7], tm[8]);
-                                        
-                for (i=2; i<=NF; i++) {
-                    if (i>2) printf(\"|\");
-                    printf(\"%s\", \$i);                        
-                }
-                printf(\"\n\");
-            }" >> "$g_ProcTmpFile"
-                
-    echo 0
-}
-
 ###############################################################################
 ############################ format read routines #############################
 ###############################################################################
@@ -572,62 +479,6 @@ function f_write_subrip_format
     
     echo 0
 }
-
-
-# uni -> fab format converter
-function f_write_fab_format
-{
-    time_type=$(head -n 1 "$g_ProcTmpFile")
-    
-    case $time_type in
-    "secs")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{ 
-            printf(\"%04d : %02d:%02d:%02d:%02d  %02d:%02d:%02d:%02d\n\",
-            \$1, (\$2/3600),((\$2/60)%60),(\$2%60),
-            int((\$2 - int(\$2))*100),          
-            (\$3/3600),((\$3/60)%60),(\$3%60),
-            int((\$3 - int(\$3))*100));         
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf (\"\n\n\");
-         }" | tr '|' '\n' > "$1"
-    ;;
-    
-    "hmsms")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{  split(\$2, start, \":\"); 
-            split(\$3, stop, \":\");    
-            printf(\"%04d : %02d:%02d:%02d:%02d  %02d:%02d:%02d:%02d\n\",
-                \$1, (start[1]),(start[2]),(start[3]),
-                int((start[3] - int(start[3]))*100),
-                (stop[1]),(stop[2]),(stop[3]),
-                int((stop[3] - int(stop[3]))*100));
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
-    ;;  
-
-    "hms")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{  split(\$2, start, \":\"); 
-            split(\$3, stop, \":\");    
-            printf(\"%04d : %02d:%02d:%02d:%02d  %02d:%02d:%02d:%02d\n\",
-                \$1, (start[1]),(start[2]),(start[3]),
-                (0),
-                (stop[1]),(stop[2]),(stop[3]),
-                (0));
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
-    ;;  
-    
-    *)
-    echo 1
-    return
-    ;;
-    esac
-    
-    echo 0
-}
-
 
 ###############################################################################
 ############################ format write routines ############################

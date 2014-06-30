@@ -82,7 +82,7 @@ g_lastingtime=3000
 #
 # supported subtitle file formats
 #
-declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer2" "tmplayer" "fab" )
+declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer2" "tmplayer" )
 
 ################################################################################
 
@@ -240,7 +240,44 @@ EOF
 
 
 check_format_subviewer2() {
+    local file_path="$1"
     local match="not_detected"
+    local match_tmp=''
+    local max_attempts=16
+    local attempts=$max_attempts
+
+    local first_line=0
+    local header_line=0
+    local match_ts=''
+
+read -d "" match_ts << 'EOF'
+{
+    reg = "^[0-9]+:[0-9]+:[0-9]+:[0-9]+,[0-9]+:[0-9]+:[0-9]+:[0-9]+[:space:]*[\\r\\n]*$"
+    where = match($0, reg);
+}
+EOF
+
+    while read file_line; do
+        [ "$attempts" -eq 0 ] && break
+        first_line=$(( max_attempts - attempts + 1 ))
+
+        if [ "$header_line" -eq 0 ]; then
+            # try to detect header
+            match_tmp=$(echo "$file_line" | grep "\[INFORMATION\]")
+
+            # set the header line
+            [ -n "$match_tmp" ] && header_line="$first_line"
+        fi
+
+        match_tmp=$(echo "$file_line" | \
+            LANG=C awk "$match_ts")
+
+        # we've got a match
+        if [ "$match_tmp" -ne 0 ]; then
+            match="subviewer $first_line $header_line"
+            break
+        fi
+    done < "$file_path"
 
     echo "$match"
     return $RET_OK
@@ -332,14 +369,6 @@ EOF
 }
 
 
-check_format_fab() {
-
-    local match="not_detected"
-
-    echo "$match"
-    return $RET_OK
-}
-
 ###############################################################################
 ########################## format detection routines ##########################
 ###############################################################################
@@ -387,11 +416,10 @@ list_formats() {
 
     # description for every supported file format
     declare -ar desc=( "Format based on frames. Uses given framerate\n\t\t(default is [$g_inf[$___FPS]] fps)" \
-                      "[start][stop] format. The unit is time based == 0.1 sec" \
-                      "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
-                      "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
-                      "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
-                      "similar to subviewer2, subrip.\n\t\t0022 : 00:05:22:01  00:05:23:50. No header" \
+                       "[start][stop] format. The unit is time based == 0.1 sec" \
+                       "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
+                       "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
+                       "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
                     ) 
 
     if [ "$long" -eq 1 ]; then
