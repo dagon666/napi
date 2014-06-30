@@ -94,6 +94,7 @@ check_format_microdvd() {
     local attempts=$max_attempts
     local first_line=1
     local match="not_detected"
+    local match_tmp=""
     local fps_detected=''
     
     while read file_line; do
@@ -101,14 +102,14 @@ check_format_microdvd() {
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match=$(echo "$file_line" | \
-            LANG=C awk '{ gsub("^{[0-9]*}{[0-9]*}.*$", "success"); print }')
+        match_tmp=$(echo "$file_line" | \
+            LANG=C awk '{ gsub("^{[0-9]+}{[0-9]*}.*$", "success"); print }')
 
         # skip empty lines
-        [ -z "$match" ] && continue
+        [ -z "$match_tmp" ] && continue
 
         # we've got a match
-        if [ "$match" = "success" ]; then
+        if [ "$match_tmp" = "success" ]; then
             fps_detected=$(echo "$file_line" | \
                 lcase | \
                 detect_microdvd_fps | \
@@ -122,31 +123,158 @@ check_format_microdvd() {
 
             break
         fi
+
     done < "$file_path"
 
     echo "$match"
     return $RET_OK
 }
 
-check_format_mpl2() {
 
+# mpl2 format detection routine
+check_format_mpl2() {
+    local file_path="$1"
+
+    local max_attempts=3
+    local attempts=$max_attempts
+    local first_line=1
+    local match="not_detected"
+    local match_tmp=""
+
+    while read file_line; do
+        [ "$attempts" -eq 0 ] && break
+        first_line=$(( max_attempts - attempts + 1 ))
+        attempts=$(( attempts - 1 ))       
+
+        match_tmp=$(echo "$file_line" | \
+            LANG=C awk '{ gsub("^\\[[0-9]+\\]\\[[0-9]*\\].*$", "success"); print }')
+
+        # skip empty lines
+        [ -z "$match_tmp" ] && continue
+
+        # we've got a match
+        if [ "$match_tmp" = "success" ]; then
+            match="mpl2 $first_line"
+            break
+        fi
+    done < "$file_path"
+
+    echo "$match"
     return $RET_OK
 }
+
+
+check_format_subrip() {
+    
+    local match="not_detected"
+
+    echo "$match"
+    return $RET_OK
+}
+
 
 check_format_subviewer() {
 
+    local match="not_detected"
+
+    echo "$match"
     return $RET_OK
 }
 
+
+# tmplayer format detection routine
 check_format_tmplayer() {
+    local file_path="$1"
 
+    local max_attempts=3
+    local attempts=$max_attempts
+    local first_line=1
+    local match="not_detected"
+    local match_tmp=""
+
+    declare -a tmp_data=()
+    local hour_digits=2
+    local multiline=0
+    local delim=':'
+
+    local generic_check=''
+    local extract_delim=''
+
+read -d "" generic_check << 'EOF'
+{
+    # 1 - multiline check regexp (length: 10/11)
+    # 2 - non-multiline regexp (length: 8/9)
+    reg[1] = "^[0-9]{1,2}:[0-9]{2}:[0-9]{2},[0-9]{1}[:;=,]{1}";
+    reg[2] = "^[0-9]{1,2}:[0-9]{2}:[0-9]{2}[:;=,]{1}";
+    result=-1
+
+    for (i in reg) {
+        where = match($0, reg[i]);
+        if (where) {
+            result = i " " RLENGTH;
+            break;
+        }
+    }
+
+    print result;
+}
+EOF
+
+
+read -d "" extract_delim << 'EOF'
+{
+    print substr($0, match_len, 1);
+}
+EOF
+
+
+    while read file_line; do
+        [ "$attempts" -eq 0 ] && break
+        first_line=$(( max_attempts - attempts + 1 ))
+        attempts=$(( attempts - 1 ))       
+
+        match_tmp=$(echo "$file_line" | LANG=C awk "$generic_check")
+
+        # skip empty lines
+        [ -z "$match_tmp" ] && continue
+
+        # we've got a match, get more data
+        if [ "$match_tmp" != "-1" ]; then
+
+            tmp_data=( $match_tmp )
+
+
+            # determine the hour digits
+            [ "${tmp_data[1]}" -eq 10 ] || 
+            [ "${tmp_data[1]}" -eq 8 ] && hour_digits=1
+
+            # extract delimiter
+            delim=$(echo "$file_line" | \
+                LANG=C awk -v match_len="${tmp_data[1]}" "$extract_delim")
+
+            # is it a multiline format (hh:mm:ss,LINENO=)?
+            [ "${tmp_data[0]}" -eq 1 ] && multiline=1
+
+            # form the format identification string
+            match="tmplayer $first_line $hour_digits $multiline [$delim]"
+            break
+        fi
+
+    done < "$file_path"
+    
+    echo "$match"
     return $RET_OK
 }
+
 
 check_format_fab() {
 
+    local match="not_detected"
+
+    echo "$match"
     return $RET_OK
 }
+
 
 guess_format() {
     local file_path="$1"
@@ -445,7 +573,7 @@ BEGIN {
 }
 EOF
 
-    awk "$awk_code"
+    LANG=C awk "$awk_code"
     return $RET_OK
 }
 
