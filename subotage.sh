@@ -75,7 +75,7 @@ declare -a g_outf=( 'none' 'subrip' '0' '1 0' )
 g_getinfo=0
 
 #
-# @brief defines how long the subtitles should last
+# @brief defines how long the subtitles should last (in ms)
 #
 g_lastingtime=3000
 
@@ -411,10 +411,12 @@ read_format_microdvd() {
     local awk_code=''
     declare -a details=( "${g_inf[$___DETAILS]}" )
 
+    TODO broken
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[{}]+"
+    FS="[}{]";
     lines_processed=0;
+    __last_time = __last_time / 1000;
 }
 /^[:space:]*$/ {
     next;
@@ -425,7 +427,6 @@ NR >= __start_line {
     line_data=4;
 
     if (!($3 + 0)) {
-        line_data=3;
         frame_end=$2 + __last_time*__fps;        
     }
 
@@ -482,14 +483,27 @@ function print_ts(cnt,
             sh, sm, ss, sc,
             eh, em, es, ec) {
 
+    printf("%d\\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\\n",
+        cnt,
+        sh,sm,ss,sc,
+        eh,em,ss,ec);
+}
+
+function print_content() {
+    for (i=4; i<=NF; i++) {
+        tmp = sprintf("%s ", $i);
+        gsub(/\\|/, "\\n", tmp);
+        printf ( "%s ", tmp );
+    }
+
+    printf("\\n\\n");
 }
 
 NR > 1 {
-    for (i=4; i<=NF; i++) printf("%s ", $i);
+    cnt = $1;
 
     switch(time_type) {
     case "secs":
-        cnt = $1;
         sh = $2/3600;
         sm = $2/60;
         ss = $2%60;
@@ -499,24 +513,43 @@ NR > 1 {
         em = $3/60;
         es = $3%60;
         ec = int(($3 - int($3))*1000);
-
-        print_ts(cnt, sh)
-
         break
 
+    case "hmsms":
+    case "hms":
+        split($2, start, ":");
+        split($3, stop, ":");
 
-        
+        sh = start[1];
+        sm = start[2];
+        ss = start[3];
+        sc = 0;
+
+        eh = stop[1];
+        em = stop[2];
+        es = stop[3];
+        ec = 0;
+
+        if (time == "hmsms") {
+            sc = int((start[3] - int(start[3]))*1000);
+            ec = int((stop[3] - int(stop[3]))*1000);
+        }
+        break
+
+    default:
+        exit 1;
+        break;
     }
-}
 
-END {
-    printf("\\n\\n");
+    print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec);
+    print_content();
 }
 EOF
 
-    awk "$awk_code" "$in_file_path" > "$out_file_path"
-
-    
+    # use the AWK force :)
+    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+        return $RET_FAIL;
+    fi
     return $RET_OK
 }
 
@@ -765,7 +798,9 @@ verify_argv() {
         return $RET_PARAM
 
     # check presence of output file
-    [ -z "${g_outf[$___PATH]}" ] || [ "${g_outf[$___PATH]}" = "none" ] || [ ! -s "${g_inf[$___PATH]}" ] &&
+    [ -z "${g_outf[$___PATH]}" ] || 
+    [ "${g_outf[$___PATH]}" = "none" ] &&
+    [ "$g_getinfo" -eq 0 ] &&
         _error "nie okreslono pliku wyjsciowego" &&
         return $RET_PARAM
 
@@ -822,10 +857,15 @@ BEGIN {
             break;
         }
     }
+
+    exit 1;
 }
 EOF
 
-    LANG=C awk "$awk_code"
+    if ! LANG=C awk "$awk_code"; then
+        return $RET_FAIL
+    fi
+
     return $RET_OK
 }
 
@@ -849,7 +889,10 @@ correct_fps() {
                 det=( ${g_inf[$___DETAILS]} )
                 i=${#det[@]}
                 i=$(( i - 1 ))
-                [ -n "${det[$i]}" ] && [ "${det[$i]}" != "0" ] && 
+
+                [ "$i" -ge 2 ] &&
+                [ -n "${det[$i]}" ] && 
+                [ "${det[$i]}" != "0" ] && 
                     _info $LINENO "ustawiam wykryty fps jako: ${det[$i]}" &&
                     g_inf[$___FPS]="${det[$i]}"
                 ;;

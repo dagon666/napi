@@ -402,62 +402,6 @@ function f_write_mpl2_format
     echo 0
 }
 
-# uni -> subrip format converter
-function f_write_subrip_format
-{
-    time_type=$(head -n 1 "$g_ProcTmpFile")
-    
-    case $time_type in
-    "secs")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{ 
-            printf(\"%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n\",
-            \$1, (\$2/3600),((\$2/60)%60),(\$2%60),
-            int((\$2 - int(\$2))*1000),         
-            (\$3/3600),((\$3/60)%60),(\$3%60),
-            int((\$3 - int(\$3))*1000));            
-
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf (\"\n\n\");
-         }" | tr '|' '\n' > "$1"
-    ;;
-    
-    "hmsms")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{  split(\$2, start, \":\"); 
-            split(\$3, stop, \":\");    
-            printf(\"%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n\",
-                \$1, (start[1]),(start[2]),(start[3]),
-                int((start[3] - int(start[3]))*1000),
-                (stop[1]),(stop[2]),(stop[3]),
-                int((stop[3] - int(stop[3]))*1000));
-
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
-    ;;  
-
-    "hms")
-    tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
-    awk "{  split(\$2, start, \":\"); 
-            split(\$3, stop, \":\");    
-            printf(\"%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n\",
-                \$1, (start[1]),(start[2]),(start[3]),
-                (0),
-                (stop[1]),(stop[2]),(stop[3]),
-                (0));
-
-            for (i=4; i<=NF; i++) printf(\"%s \", \$i);
-            printf \"\n\n\" }" | tr '|' '\n' > "$1"
-    ;;  
-    
-    *)
-    echo 1
-    return
-    ;;
-    esac
-    
-    echo 0
-}
 
 ###############################################################################
 ############################ format write routines ############################
