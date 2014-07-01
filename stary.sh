@@ -519,30 +519,3 @@ function f_correct_overlaps
     ;;
     esac	
 }
-
-###############################################################################
-############################### common routines ###############################
-###############################################################################
-
-echo > "$g_ProcTmpFile"
-
-# input file, first valid line, format specific data
-status=$($g_Reader "$g_InputFile" "${g_InputFormatData[1]}" "${g_InputFormatData[2]}")
-
-if [ "$status" -ne 0 ]; then
-    f_print_error "Reading error. Error code: [$status]"
-    exit -1
-else
-	f_correct_overlaps
-    status=$($g_Writer "$g_OutputFile")
-    
-    if [ "$status" -ne 0 ]; then
-        f_print_error "Writing error. Error code: [$status]"
-        exit -1
-    fi
-fi
-    
-# remove the temporary processing file
-rm -rf "$g_ProcTmpFile"
-
-# EOF

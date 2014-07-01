@@ -380,6 +380,7 @@ EOF
 ###############################################################################
 # Input parameters
 # - filename to process
+# - output filename
 #
 # Output: 
 # - should be written in universal format. Line format
@@ -403,10 +404,51 @@ read_format_tmplayer() {
     return $RET_OK
 }
 
+
 read_format_microdvd() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+    declare -a details=( "${g_inf[$___DETAILS]}" )
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    FS="[{}]+"
+    lines_processed=0;
+}
+/^[:space:]*$/ {
+    next;
+}
+NR >= __start_line {
+    frame_start=$2;
+    frame_end=$3;
+    line_data=4;
+
+    if (!($3 + 0)) {
+        line_data=3;
+        frame_end=$2 + __last_time*__fps;        
+    }
+
+    printf("%s %s %s ", line_processed++, 
+        (frame_start/__fps),
+        (frame_end/__fps));
+
+    for (i=line_data; i<=NF; i++) printf("%s", $i);
+    printf("\\n");
+}
+EOF
     
+    _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+
+    echo "secs" > "$out_file_path"
+    awk -v __start_line="${details[1]}" \
+        -v __last_time="$g_lastingtime" \
+        -v __fps="${g_inf[$___FPS]}" \
+        "$awk_code" "$in_file_path" >> "$out_file_path"
+
     return $RET_OK
 }
+
 
 read_format_mpl2() {
     
@@ -420,6 +462,38 @@ read_format_subrip() {
 
 ###############################################################################
 ############################ format read routines #############################
+###############################################################################
+
+###############################################################################
+############################ format write routines ############################
+###############################################################################
+
+write_format_subrip() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+
+read -d "" awk_code << 'EOF'
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+}
+
+END {
+    printf("\\n\\n");
+}
+EOF
+
+    awk "$awk_code" "$in_file_path" > "$out_file_path"
+
+    
+    return $RET_OK
+}
+
+###############################################################################
+############################ format write routines ############################
 ###############################################################################
 
 guess_format() {
@@ -450,6 +524,11 @@ guess_format() {
 
     echo "$fmt"
     return $rv
+}
+
+
+correct_overlaps() {
+    return $RET_OK
 }
 
 
@@ -742,7 +821,7 @@ correct_fps() {
                 det=( ${g_inf[$___DETAILS]} )
                 i=${#det[@]}
                 i=$(( i - 1 ))
-                [ -n "${det[$i]}" ] && [ "${det[$i]}" -ne 0 ] && 
+                [ -n "${det[$i]}" ] && [ "${det[$i]}" != "0" ] && 
                     _info $LINENO "ustawiam wykryty fps jako: ${det[$i]}" &&
                     g_inf[$___FPS]="${det[$i]}"
                 ;;
@@ -764,6 +843,10 @@ check_if_conv_needed() {
     local inf=$(echo "${g_inf[$___FORMAT]}" | lcase)
     local outf=$(echo "${g_outf[$___FORMAT]}" | lcase)
     local rv=$RET_OK
+
+    [ "$inf" != "$outf" ] &&
+        _debug $LINENO "formaty rozne, konwersja wymagana" &&
+        return $RET_OK
 
     case "$inf" in
         'microdvd')
@@ -796,8 +879,24 @@ print_format_summary() {
 convert_formats() {
     local freader="$1"
     local fwriter="$2"
-    local rv=$RET_OK
+    local tmp_output=$(mktemp conversion.XXXXXXXX)
 
+    local rv=$RET_OK
+    local status=$RET_OK
+    
+    if ! $freader "${g_inf[$___PATH]}" "$tmp_output"; then
+        _error "blad podczas konwersji pliku wejsciowego na format uniwersalny"
+        rv=$RET_FAIL
+    else
+        correct_overlaps "$tmp_output"
+        if ! $fwriter "$tmp_output" "${g_outf[$___PATH]}"; then
+            _error "blad podczas konwersji do formatu docelowego"
+            rv=$RET_FAIL
+        fi
+    fi
+
+    # TODO - REMOVE ME, DISABLED THAT TEMPORARILY
+    # [ -e "$tmp_output" ] && rm -rf "$tmp_output"
     return $rv
 }
 
@@ -857,7 +956,7 @@ process_file() {
     fwriter="write_format_${g_outf[$___FORMAT]}"
     if ! verify_function_presence "$freader"; then
         _error "funkcja piszaca do formatu [$freader] nie istnieje"
-        return $RET_BREAK
+        # return $RET_BREAK # TODO - REMOVE THIS - DISABLED THAT TEMPORARILY
     fi
     
     convert_formats "$freader" "$fwriter"
