@@ -478,7 +478,35 @@ NR == 1 {
     time_type=$0;
 }
 
+function print_ts(cnt, 
+            sh, sm, ss, sc,
+            eh, em, es, ec) {
+
+}
+
 NR > 1 {
+    for (i=4; i<=NF; i++) printf("%s ", $i);
+
+    switch(time_type) {
+    case "secs":
+        cnt = $1;
+        sh = $2/3600;
+        sm = $2/60;
+        ss = $2%60;
+        sc = int(($2 - int($2))*1000);
+
+        eh = $3/3600;
+        em = $3/60;
+        es = $3%60;
+        ec = int(($3 - int($3))*1000);
+
+        print_ts(cnt, sh)
+
+        break
+
+
+        
+    }
 }
 
 END {

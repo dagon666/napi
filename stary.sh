@@ -416,6 +416,7 @@ function f_write_subrip_format
             int((\$2 - int(\$2))*1000),         
             (\$3/3600),((\$3/60)%60),(\$3%60),
             int((\$3 - int(\$3))*1000));            
+
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
             printf (\"\n\n\");
          }" | tr '|' '\n' > "$1"
@@ -430,6 +431,7 @@ function f_write_subrip_format
                 int((start[3] - int(start[3]))*1000),
                 (stop[1]),(stop[2]),(stop[3]),
                 int((stop[3] - int(stop[3]))*1000));
+
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
             printf \"\n\n\" }" | tr '|' '\n' > "$1"
     ;;  
@@ -443,6 +445,7 @@ function f_write_subrip_format
                 (0),
                 (stop[1]),(stop[2]),(stop[3]),
                 (0));
+
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
             printf \"\n\n\" }" | tr '|' '\n' > "$1"
     ;;  
