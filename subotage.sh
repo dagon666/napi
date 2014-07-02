@@ -461,6 +461,7 @@ read_format_tmplayer() {
 read -d "" awk_code << 'EOF'
 BEGIN {
     lines_processed = 1;
+    prev_time_start = 0;
     __last_time = __last_time / 1000;
 }
 
@@ -508,7 +509,7 @@ length($0) && NR >= __start_line {
         }
         else {
             if (NR > 1) {
-                printf("|");    
+                printf("\\n");    
                 lines_processed++;
             }
 
@@ -519,8 +520,7 @@ length($0) && NR >= __start_line {
                 seconds,
                 (time_end/3600),
                 ((time_end/60)%60),
-                (time_end%60)
-                );
+                (time_end%60));
             }
 
     } # __multiline
@@ -532,8 +532,7 @@ length($0) && NR >= __start_line {
             seconds,
             (time_end/3600),
             ((time_end/60)%60),
-            (time_end%60)
-            );
+            (time_end%60));
     }
 
     # display the line data
@@ -557,7 +556,7 @@ EOF
     echo "hms" > "$out_file_path"
     awk -F "$delimiter" -v __start_line="${details[1]}" \
         -v __last_time="$g_lastingtime" \
-        -v __multiline="${details[3]}"
+        -v __multiline="${details[3]}" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
 
     return $RET_OK
@@ -723,8 +722,44 @@ EOF
 ###############################################################################
 
 write_format_microdvd() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+    declare -a details=( ${g_outf[$___DETAILS]} )
+
+read -d "" awk_code << 'EOF'
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+
+    switch(time_type) {
+    case "secs":
+        printf("{%d}{%d}", 
+            $2*__fps,
+            $3*__fps);
+        break
+
+    case "hmsms":
+    case "hms":
+        break
+    }
+    
+    for (i=4; i<=NF; i++) printf("%s ", $i);
+    printf("\\n");
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
+    _info $LINENO "fps: ${g_outf[$___FPS]}"
+
+    awk -v __fps="${g_outf[$___FPS]}" \
+        "$awk_code" "$in_file_path" > "$out_file_path"
+
     return $RET_OK
 }
+
 
 write_format_mpl2() {
     return $RET_OK
