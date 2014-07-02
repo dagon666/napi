@@ -722,6 +722,15 @@ EOF
 ############################ format write routines ############################
 ###############################################################################
 
+write_format_microdvd() {
+    return $RET_OK
+}
+
+write_format_mpl2() {
+    return $RET_OK
+}
+
+
 write_format_subrip() {
     local in_file_path="$1"
     local out_file_path="$2"
@@ -803,6 +812,16 @@ EOF
     if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         return $RET_FAIL;
     fi
+    return $RET_OK
+}
+
+
+write_format_subviewer2() {
+    return $RET_OK
+}
+
+
+write_format_tmplayer() {
     return $RET_OK
 }
 

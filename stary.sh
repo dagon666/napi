@@ -1,8 +1,5 @@
 #!/bin/bash
 
-g_ProcTmpFile="/tmp/subotage_$$.tmp"
-
-
 # tmplayer -> uni format converter
 function f_read_tmplayer_format
 {
@@ -24,7 +21,8 @@ function f_read_tmplayer_format
     
         if [ "$delimiter" = ":" ]; then
             tail -n +"$2" "$1" | tr -d '\r' | 
-                awk "BEGIN { 
+                awk "
+				BEGIN { 
 						FS=\"$delimiter\";
 						line_processed = 1;
 					}; 
@@ -280,10 +278,6 @@ function f_write_mpl2_format
 
 ###############################################################################
 ############################ format write routines ############################
-###############################################################################
-
-###############################################################################
-############################### common routines ###############################
 ###############################################################################
 
 function f_correct_overlaps
