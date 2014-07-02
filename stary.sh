@@ -130,59 +130,6 @@ function f_read_tmplayer_format
     echo 0
 }
 
-# microdvd -> uni format converter
-function f_read_microdvd_format
-{   
-    echo "secs" > "$g_ProcTmpFile"
-    tail -n +"$2" "$1" | tr -d '\r' | 
-        awk "BEGIN { 
-				FS=\"[{}]+\";
-				txt_begin = 0;
-				line_processed = 1;
-			}; 
-			/^ *$/ {
-				next;
-			}
-			{
-				fstart=\$2;
-				if (\$3+0) {
-					txt_begin=4;
-					fend=\$3;
-				}
-				else {
-					txt_begin=3;
-					fend = \$2 + 5*$g_InputFrameRate;
-				}
-
-			   	printf \"%s %s %s \", line_processed++, 
-					(fstart/$g_InputFrameRate), (fend/$g_InputFrameRate);
-
-            	for (i=txt_begin; i<=NF; i++) 
-					printf(\"%s\", \$i);
-				printf \"\n\"; 
-			}" >> "$g_ProcTmpFile"
-    echo 0
-}
-
-# mpl2 -> uni format converter
-function f_read_mpl2_format
-{
-    echo "secs" > "$g_ProcTmpFile"
-    tail -n +"$2" "$1" | tr -d '\r' | 
-        awk "BEGIN { 
-				FS=\"[][]+\";
-				line_processed = 1;
-			}; 
-			/^ *$/ {
-				next;
-			}
-			NF { 
-				printf \"%s %s %s \", line_processed++, (\$2/10), (\$3/10);
-				for (i=4; i<=NF; i++) printf(\"%s\", \$i);
-				printf \"\n\"; 
-			}" >> "$g_ProcTmpFile"
-    echo 0
-}
 
 # subrip -> uni format converter
 function f_read_subrip_format

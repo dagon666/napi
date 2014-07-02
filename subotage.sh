@@ -399,6 +399,7 @@ read_format_subviewer2() {
     return $RET_OK
 }
 
+
 read_format_tmplayer() {
     
     return $RET_OK
@@ -429,7 +430,7 @@ NR >= __start_line {
         frame_end=$2 + __last_time*__fps;        
     }
 
-    printf("%s %s %s ", line_processed++, 
+    printf("%s %s %s ", lines_processed++, 
         (frame_start/__fps),
         (frame_end/__fps));
 
@@ -456,12 +457,65 @@ EOF
 
 
 read_format_mpl2() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+    declare -a details=( "${g_inf[$___DETAILS]}" )
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    FS="[][]+";
+    lines_processed = 1;    
+}
+
+/^[:space:]*$/ {
+    next;
+}
+
+length($0) && NR >= __start_line {
+    printf("%s %s %s ",
+        lines_processed++,
+        ($2/10),
+        ($3/10));
+
+    for (i=4; i<=NF; i++) printf("%s", $i);
+    printf("\\n");
+}
+EOF
     
+    _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+
+    echo "secs" > "$out_file_path"
+    awk -v __start_line="${details[1]}" \
+        "$awk_code" "$in_file_path" >> "$out_file_path"
+
     return $RET_OK
 }
 
+
 read_format_subrip() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+    declare -a details=( "${g_inf[$___DETAILS]}" )
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    FS="\\n";
+    RS="";
+}
+
+length($0) && NR >= __start_line {
+}
+EOF
     
+    _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+
+    echo "hmsms" > "$out_file_path"
+    awk -v __start_line="${details[1]}" \
+        -v __counter_type="${details[2]}" \
+        "$awk_code" "$in_file_path" >> "$out_file_path"
+
     return $RET_OK
 }
 
