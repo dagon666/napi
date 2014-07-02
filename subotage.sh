@@ -411,7 +411,6 @@ read_format_microdvd() {
     local awk_code=''
     declare -a details=( "${g_inf[$___DETAILS]}" )
 
-    TODO broken
 read -d "" awk_code << 'EOF'
 BEGIN {
     FS="[}{]";
@@ -424,7 +423,7 @@ BEGIN {
 NR >= __start_line {
     frame_start=$2;
     frame_end=$3;
-    line_data=4;
+    line_data=5;
 
     if (!($3 + 0)) {
         frame_end=$2 + __last_time*__fps;        
@@ -434,7 +433,12 @@ NR >= __start_line {
         (frame_start/__fps),
         (frame_end/__fps));
 
-    for (i=line_data; i<=NF; i++) printf("%s", $i);
+        for (i=line_data; i<=NF; i++) {
+            # strip control codes - comment this out if you want to keep'em
+            gsub( /[yYfFsScCP]{1}:.*/, "", $i );
+
+            printf("%s", $i);   
+        }
     printf("\\n");
 }
 EOF
