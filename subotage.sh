@@ -464,8 +464,9 @@ read_format_mpl2() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[][]+";
+    FS="[\]\[]";
     lines_processed = 1;    
+    __last_time = __last_time / 100;
 }
 
 /^[:space:]*$/ {
@@ -473,12 +474,20 @@ BEGIN {
 }
 
 length($0) && NR >= __start_line {
+
+    frame_start=$2;
+    frame_end=$3;
+
+    if (!($3 + 0)) {
+        frame_end=$2 + __last_time;        
+    }
+
     printf("%s %s %s ",
         lines_processed++,
-        ($2/10),
-        ($3/10));
+        (frame_start/10),
+        (frame_end/10));
 
-    for (i=4; i<=NF; i++) printf("%s", $i);
+    for (i=5; i<=NF; i++) printf("%s", $i);
     printf("\\n");
 }
 EOF
@@ -487,6 +496,7 @@ EOF
 
     echo "secs" > "$out_file_path"
     awk -v __start_line="${details[1]}" \
+        -v __last_time="$g_lastingtime" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
 
     return $RET_OK
@@ -544,7 +554,7 @@ function print_ts(cnt,
     printf("%d\\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\\n",
         cnt,
         sh,sm,ss,sc,
-        eh,em,ss,ec);
+        eh,em,es,ec);
 }
 
 function print_content() {
