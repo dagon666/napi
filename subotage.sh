@@ -410,7 +410,7 @@ read_format_microdvd() {
     local in_file_path="$1"
     local out_file_path="$2"
     local awk_code=''
-    declare -a details=( "${g_inf[$___DETAILS]}" )
+    declare -a details=( ${g_inf[$___DETAILS]} )
 
 read -d "" awk_code << 'EOF'
 BEGIN {
@@ -507,7 +507,7 @@ read_format_subrip() {
     local in_file_path="$1"
     local out_file_path="$2"
     local awk_code=''
-    declare -a details=( "${g_inf[$___DETAILS]}" )
+    declare -a details=( ${g_inf[$___DETAILS]} )
 
 read -d "" awk_code << 'EOF'
 BEGIN {
@@ -516,10 +516,37 @@ BEGIN {
 }
 
 length($0) && NR >= __start_line {
+    
+    line_data = 2;
+    gsub("\\r", "");
+
+    switch(__counter_type) {
+        case "inline":
+            gsub(",", ".", $1);
+            gsub("--> ", "", $1);
+            printf("%s ", $1);
+            break;
+
+        case "newline":
+        default:
+            gsub(",", ".", $2);
+            gsub("--> ", "", $2);
+            gsub(" ", "", $1);
+            printf("%s %s ", $1, $2);
+            line_data = 3;
+            break;
+    }
+
+    for (i = line_data; i<=NF; i++) {
+        if (i > line_data) printf("|");
+        printf("%s", $i);
+    }
+    printf("\\n");
 }
 EOF
     
     _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+    _debug $LINENO "licznik: ${details[2]}"
 
     echo "hmsms" > "$out_file_path"
     awk -v __start_line="${details[1]}" \
@@ -598,7 +625,7 @@ NR > 1 {
         es = stop[3];
         ec = 0;
 
-        if (time == "hmsms") {
+        if (time_type == "hmsms") {
             sc = int((start[3] - int(start[3]))*1000);
             ec = int((stop[3] - int(stop[3]))*1000);
         }

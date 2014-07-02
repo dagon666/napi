@@ -130,53 +130,6 @@ function f_read_tmplayer_format
     echo 0
 }
 
-
-# subrip -> uni format converter
-function f_read_subrip_format
-{
-    echo "hmsms" > "$g_ProcTmpFile"
-    
-    if [ "$3" = "inline" ]; then
-    
-        tail -n +"$2" "$1" | tr -d '\r' | 
-            awk "BEGIN { 
-					FS=\"\n\"; 
-					RS=\"\"; 
-				};
-                NF {  
-					gsub(\",\", \".\", \$1);
-                    printf(\"%s \", \$1);
-                    for (i=2; i<=NF; i++) {
-                        if (i>2) printf(\"|\");
-                        printf(\"%s\", \$i);                        
-                    }
-                    printf(\"\n\");
-                }" | sed 's/--> //' >> "$g_ProcTmpFile"
-                
-    else
-        # assume newline style      
-        tail -n +"$2" "$1" | tr -d '\r' | 
-            awk "BEGIN { FS=\"\n\"; RS=\"\"; };
-                {   gsub(\",\", \".\", \$2);
-                    printf(\"%s %s \", \$1, \$2);
-                    for (i=3; i<=NF; i++) {
-                        if (i>3) printf(\"|\");
-                        printf(\"%s\", \$i);                        
-                    }
-                    printf(\"\n\");
-                }" | sed 's/--> //' >> "$g_ProcTmpFile"                 
-    fi
-    
-    echo 0
-}
-
-
-
-
-
-
-
-
 ###############################################################################
 ############################ format write routines ############################
 ###############################################################################
