@@ -359,7 +359,7 @@ EOF
             [ "${tmp_data[0]}" -eq 1 ] && multiline=1
 
             # form the format identification string
-            match="tmplayer $first_line $hour_digits $multiline [$delim]"
+            match="tmplayer $first_line $hour_digits $multiline $delim"
             break
         fi
 
@@ -396,12 +396,170 @@ EOF
 ###############################################################################
 
 read_format_subviewer2() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+    declare -a details=( ${g_inf[$___DETAILS]} )
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    FS="\\n";
+    RS="";
+    lines_processed=1;
+}
+
+NR >= __start_line {
+
+    split($1, start, ",");
+    split(start[1], tm_start, ":");
+    split(start[2], tm_stop, ":");
+
+    time_start = ( tm_start[1]*3600 + 
+        tm_start[2]*60 + 
+        tm_start[3] + 
+        tm_start[4]/100 );
+
+    time_stop = ( tm_stop[1]*3600 + 
+        tm_stop[2]*60 + 
+        tm_stop[3] + 
+        tm_stop[4]/100 );
+
+    printf("%d %s %s ", lines_processed,
+        time_start,
+        time_stop );
+
+    for (i=2; i<=NF; i++) {
+        if (i>2) printf(\"|\");
+        printf("%s", $i);                        
+    }
+
+    lines_processed++;
+    printf("\\n");
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+
+    echo "secs" > "$out_file_path"
+    awk -v __start_line="${details[1]}" \
+        "$awk_code" "$in_file_path" >> "$out_file_path"
+
     return $RET_OK
 }
 
 
 read_format_tmplayer() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
     
+    declare -a details=( ${g_inf[$___DETAILS]} )
+    local delimiter=":"
+
+
+# match="tmplayer $first_line $hour_digits $multiline $delim"
+read -d "" awk_code << 'EOF'
+BEGIN {
+    lines_processed = 1;
+    __last_time = __last_time / 1000;
+}
+
+/^[:space:]*$/ {
+    next;
+}
+
+length($0) && NR >= __start_line {
+    
+    if (FS == ":") {
+        if (__multiline) {
+            split($3, ts, ",");
+            hours=$1;
+            minutes=$2;
+            seconds=ts[1];
+        }
+        else {
+            hours=$1;
+            minutes=$2;
+            seconds=$3;
+        }
+
+        line_start = 4;
+    }
+    else {
+        if (__multiline) {
+            split($1, ts, "[:,]");
+        }
+        else {
+            split($1, ts, ":");
+        }
+
+        hours = ts[1];
+        minutes = ts[2];
+        seconds = ts[3];
+        line_start = 2;
+    }
+    
+    time_start = hours*3600 + minutes*60 + seconds;
+    time_end = (time_start + __last_time);
+
+    if (__multiline) {
+        if (time_start == prev_time_start && NR > 1) {
+            printf("|");
+        }
+        else {
+            if (NR > 1) {
+                printf("|");    
+                lines_processed++;
+            }
+
+            printf("%d %02d:%02d:%02d %02d:%02d:%02d ",
+                lines_processed++,
+                hours,
+                minutes,
+                seconds,
+                (time_end/3600),
+                ((time_end/60)%60),
+                (time_end%60)
+                );
+            }
+
+    } # __multiline
+    else {
+        printf("%d %02d:%02d:%02d %02d:%02d:%02d ",
+            lines_processed++,
+            hours,
+            minutes,
+            seconds,
+            (time_end/3600),
+            ((time_end/60)%60),
+            (time_end%60)
+            );
+    }
+
+    # display the line data
+    for (i=line_start; i<=NF; i++) printf("%s", $i);
+
+    if (__multiline) {
+        prev_time_start = time_start;
+    }
+    else {
+        printf "\\n";     
+    }
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
+
+    # adjust the delimiter
+    [ -n "${details[4]}" ] && delimiter="${details[4]}"
+    _info $LINENO "delimiter [$delimiter]"
+
+    echo "hms" > "$out_file_path"
+    awk -F "$delimiter" -v __start_line="${details[1]}" \
+        -v __last_time="$g_lastingtime" \
+        -v __multiline="${details[3]}"
+        "$awk_code" "$in_file_path" >> "$out_file_path"
+
     return $RET_OK
 }
 
@@ -1010,6 +1168,7 @@ check_if_conv_needed() {
     local outf=$(echo "${g_outf[$___FORMAT]}" | lcase)
     local rv=$RET_OK
 
+    _debug $LINENO "sprawdzam formaty plikow [$inf]/[$outf]"
     [ "$inf" != "$outf" ] &&
         _debug $LINENO "formaty rozne, konwersja wymagana" &&
         return $RET_OK
@@ -1019,15 +1178,16 @@ check_if_conv_needed() {
             _debug $LINENO "porownuje fps dla formatu microdvd"
             if float_eq "${g_inf[$___FPS]}" "${g_outf[$___FPS]}"; then
                 _warning "konwersja nie jest wymagana, fps pliku wejsciowego jest rowny zadanemu"
-                rc=$RET_NOACT
+                rv=$RET_NOACT
             fi
             ;;
         *)
+            _debug $LINENO "formaty zgodne - konwersja nie wymagana"
             rv=$RET_NOACT
             ;;
     esac
 
-    return $RET_OK
+    return $rv
 }
 
 

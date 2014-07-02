@@ -2,31 +2,6 @@
 
 g_ProcTmpFile="/tmp/subotage_$$.tmp"
 
-# subviewer -> uni format converter
-function f_read_subviewer_format
-{
-    echo "secs" > "$g_ProcTmpFile"
-
-    tail -n +"$2" "$1" | tr -d '\r' | 
-    awk "BEGIN { 
-		FS=\"\n\"; RS=\"\"; linecc=1; 
-		};
-        {   split(\$1, start, \",\");
-            split(start[1], tm_start, \":\");
-            split(start[2], tm_stop, \":\");
-            time_start=(tm_start[1]*3600 + tm_start[2]*60 + tm_start[3] + tm_start[4]/100)
-            time_stop=(tm_stop[1]*3600 + tm_stop[2]*60 + tm_stop[3] + tm_stop[4]/100)       
-            printf(\"%d %s %s \", linecc, time_start, time_stop);           
-            for (i=2; i<=NF; i++) {
-                if (i>2) printf(\"|\");
-                printf(\"%s\", \$i);                        
-            }
-            printf(\"\n\");
-            linecc=linecc + 1;
-        }" >> "$g_ProcTmpFile"
-        
-    echo 0  
-}
 
 # tmplayer -> uni format converter
 function f_read_tmplayer_format
