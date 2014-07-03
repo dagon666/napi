@@ -521,7 +521,7 @@ length($0) && NR >= __start_line {
             }
 
             printf("%d %02d:%02d:%02d %02d:%02d:%02d ",
-                lines_processed++,
+                lines_processed,
                 hours,
                 minutes,
                 seconds,
@@ -1577,7 +1577,8 @@ convert_formats() {
         fi
     fi
 
-    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
+    # get rid of the temporary file
+    [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 
