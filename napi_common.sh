@@ -43,6 +43,7 @@ declare -r ___VERBOSITY=0
 declare -r ___LOG=1
 declare -r ___FORK=2
 declare -r ___CNT=3
+declare -r ___LOG_OWR=4
 
 #
 # 0 - verbosity
@@ -55,8 +56,9 @@ declare -r ___CNT=3
 #
 # 2 - fork id
 # 3 - msg counter
+# 4 - flag defining whether to overwrite the log or not
 #
-declare -a g_output=( 1 'none' 0 1 )
+declare -a g_output=( 1 'none' 0 1 0 )
 
 ################################## RETVAL ######################################
 

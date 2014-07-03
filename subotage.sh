@@ -24,7 +24,7 @@
 ################################################################################
 
 # verify presence of the napi_common library
-declare -r NAPI_COMMON_PATH=
+declare -r NAPI_COMMON_PATH=.
 if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
@@ -78,6 +78,11 @@ g_getinfo=0
 # @brief defines how long the subtitles should last (in ms)
 #
 g_lastingtime=3000
+
+#
+# @brief ipc file for multiprocess data exchange
+#
+g_ipc_file='none'
 
 #
 # supported subtitle file formats
@@ -1327,12 +1332,17 @@ parse_argv() {
 
             # thread id - this one's hidden not listed in the usage()
             "-t" | "--thread-id") varname="g_output[$___FORK]"
-                msg="nie okreslono czasu trwania napisow"
+                msg="nie okreslono id watku"
                 ;;
 
             # message-cnt - this one's hidden not listed in the usage()
             "-m" | "--message-cnt") varname="g_output[$___CNT]"
-                msg="nie okreslono czasu trwania napisow"
+                msg="nie okreslono licznika logow"
+                ;;
+
+            # message-cnt - this one's hidden not listed in the usage()
+            "--ipc-file") varname="g_ipc_file"
+                msg="nie okreslono pliku ipc"
                 ;;
 
             # get formats
@@ -1666,6 +1676,18 @@ process_file() {
 }
 
 
+#
+# @brief this is to inform any calling party about some internal data
+#
+create_output_summary() {
+    if [ -e "$g_ipc_file" ] && 
+        [ "$g_ipc_file" != "none" ]; then
+        # message counter
+        echo "${g_output[$___CNT]}" > "$g_ipc_file"
+    fi
+    return $RET_OK
+}
+
 ################################################################################
 
 #
@@ -1697,6 +1719,9 @@ main() {
     _debug $LINENO "argumenty poprawne, przetwarzam plik"
     process_file
     status=$?
+
+    # inform ipc
+    create_output_summary
 
     return $status
 }

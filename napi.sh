@@ -32,7 +32,7 @@
 ########################################################################
 
 # verify presence of the napi_common library
-declare -r NAPI_COMMON_PATH=
+declare -r NAPI_COMMON_PATH=.
 if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
@@ -860,7 +860,7 @@ verify_argv() {
        [ "${g_output[$___LOG]}" != "none" ]; then
 
         # whether to fail or not ?
-        if [ "${g_output[$___LOG_OWR]}" = 0 ]; then
+        if [ "${g_output[$___LOG_OWR]}" -eq 0 ]; then
             _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych"
             return $RET_BREAK
         else
@@ -1914,7 +1914,6 @@ prepare_filenames() {
 # @param filename for converted subtitles
 #
 convert_format() {
-
     local media_path="$1"
     local input="$2"
     local orig="$3"
@@ -1962,16 +1961,27 @@ convert_format() {
 
     _msg "wolam subotage.sh"
 
+    # create ipc file to update the message counter
+    local ipc_file="$(mktemp ipc.XXXXXXXX)"
+    local msg_counter=0
+
     # fps_opt must be expanded for the subotage call
     # shellcheck disable=SC2086
-    # subotage output only on demand
     subotage.sh -v "${g_output[$___VERBOSITY]}" \
         -i "$path/$input" \
         -of $g_sub_format \
         -t "${g_output[$___FORK]}" \
         -m "${g_output[$___CNT]}" \
+        --ipc-file "$ipc_file" \
         -o "$path/$conv" $fps_opt
     status=$?
+
+    # update the message counter
+    read msg_counter < "$ipc_file"
+    g_output[$___CNT]=$msg_counter
+
+    # get rid of the ipc file
+    [ -e "$ipc_file" ] && $g_cmd_unlink "$ipc_file"
 
     # remove the old format if conversion was successful
     if [ $status -eq $RET_OK ]; then
