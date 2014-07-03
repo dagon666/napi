@@ -146,6 +146,11 @@ declare g_verbosity=1
 declare g_logfile='none'
 
 #
+# @brief whether to overwrite the log or not
+#
+declare g_logoverwrite=0
+
+#
 # global paths list
 #
 declare -a g_paths=()
@@ -781,6 +786,8 @@ parse_argv() {
             "-d" | "--delete-orig") g_delete_orig=1 ;;
             # skip flag
             "-s" | "--skip") g_skip=1 ;;
+            # log overwrite option
+            "-lo" | "--log-overwrite") g_logoverwrite=1 ;;
 
             # stats flag
             "--stats") g_stats_print=1 ;;
@@ -1146,13 +1153,18 @@ verify_argv() {
             ;;
     esac
 
-    
     # logfile verification  
     _debug $LINENO 'sprawdzam logfile'
-    [ -e "$g_logfile" ] && 
-        _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych" &&
-        return $RET_BREAK
+    if [ -e "$g_logfile" ]; then
 
+        # whether to fail or not ?
+        if [ "$g_logoverwrite" = 0 ]; then
+            _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych"
+            return $RET_BREAK
+        else
+            _warning "plik loga istnieje, zostanie nadpisany"
+        fi
+    fi
     
     # language verification
     _debug $LINENO 'sprawdzam wybrany jezyk'
@@ -2678,33 +2690,34 @@ usage() {
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo
 
-    echo "   -a | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
-    echo "   -b | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
-    echo "   -c | --cover - pobierz okladke"
+    echo "   -a  | --abbrev <string> - dodaj dowolny string przed rozszerzeniem (np. nazwa.<string>.txt)"
+    echo "   -b  | --bigger-than <size MB> - szukaj napisow tylko dla plikow wiekszych niz <size>"
+    echo "   -c  | --cover - pobierz okladke"
 
     [ "$iconv_presence" -eq 1 ] && 
-        echo "   -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
+        echo "   -C  | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
 
-    echo "   -e | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
-    echo "   -F | --forks - okresl recznie ile rownoleglych procesow utworzyc (dom. ${g_system[1]})"
-    echo "   -I | --id <pynapi|other|NapiProjektPython|NapiProjekt> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
-    echo "   -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
-    echo "   -L | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
-    echo "   -M | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
-    echo "   -n | --nfo - utworz plik z informacjami o napisach (wspierane tylko z id NapiProjektPython/NapiProjekt)"
-    echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
-    echo "   -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
-    echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
-    echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
-    echo "   -v | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
-    echo "      | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
+    echo "   -e  | --ext - rozszerzenie dla pobranych napisow (domyslnie *.txt)"
+    echo "   -F  | --forks - okresl recznie ile rownoleglych procesow utworzyc (dom. ${g_system[1]})"
+    echo "   -I  | --id <pynapi|other|NapiProjektPython|NapiProjekt> - okresla jak napi.sh ma sie przedstawiac serwerom napiprojekt.pl (dom. ${g_system[2]})"
+    echo "   -l  | --log <logfile> - drukuj output to pliku zamiast na konsole"
+    echo "   -lo | --log-overwrite - jezeli plik loga juz istnieje - nadpisz go"
+    echo "   -L  | --language <LANGUAGE_CODE> - pobierz napisy w wybranym jezyku"
+    echo "   -M  | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
+    echo "   -n  | --nfo - utworz plik z informacjami o napisach (wspierane tylko z id NapiProjektPython/NapiProjekt)"
+    echo "   -p  | --pass <passwd> - haslo dla uzytkownika <login>"
+    echo "   -S  | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
+    echo "   -s  | --skip - nie sciagaj, jezeli napisy juz sciagniete"
+    echo "   -u  | --user <login> - uwierzytelnianie jako uzytkownik"
+    echo "   -v  | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
+    echo "       | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     
     if [ "$subotage_presence" -eq 1 ]; then    
-        echo "   -d | --delete-orig - Delete the original file"   
-        echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
-        echo "   -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
-        echo "   -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_orig_prefix)"   
-        echo "      | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
+        echo "   -d  | --delete-orig - Delete the original file"   
+        echo "   -f  | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+        echo "   -P  | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
+        echo "   -o  | --orig-prefix - prefix dla oryginalnego pliku przed konwersja (domyslnie: $g_orig_prefix)"   
+        echo "       | --conv-abbrev <string> - dodaj dowolny string przed rozszerzeniem podczas konwersji formatow"
         echo
         echo "Obslugiwane formaty konwersji napisow"
         subotage.sh -gl
