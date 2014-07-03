@@ -84,6 +84,12 @@ g_lastingtime=3000
 #
 declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer2" "tmplayer" )
 
+#
+# tools
+#
+g_cmd_cp='cp'
+g_cmd_unlink='rm -rf'
+
 ################################################################################
 
 
@@ -261,6 +267,7 @@ EOF
     while read file_line; do
         [ "$attempts" -eq 0 ] && break
         first_line=$(( max_attempts - attempts + 1 ))
+        attempts=$(( attempts - 1 ))
 
         if [ "$header_line" -eq 0 ]; then
             # try to detect header
@@ -404,32 +411,32 @@ read_format_subviewer2() {
 read -d "" awk_code << 'EOF'
 BEGIN {
     FS="\\n";
-    RS="";
+    RS=""; # blank line as record separator
     lines_processed=1;
 }
 
-NR >= __start_line {
+{
+    if (lines_processed == 1) {
+        rec = __start_line;
+    }
+    else {
+        rec = 1;
+    }
 
-    split($1, start, ",");
+    line_data = rec + 1;
+    split($rec, start, ",");
     split(start[1], tm_start, ":");
     split(start[2], tm_stop, ":");
 
-    time_start = ( tm_start[1]*3600 + 
-        tm_start[2]*60 + 
-        tm_start[3] + 
-        tm_start[4]/100 );
-
-    time_stop = ( tm_stop[1]*3600 + 
-        tm_stop[2]*60 + 
-        tm_stop[3] + 
-        tm_stop[4]/100 );
+    time_start = ( tm_start[1]*3600 + tm_start[2]*60 + tm_start[3] + tm_start[4]/100 );
+    time_stop = ( tm_stop[1]*3600 + tm_stop[2]*60 + tm_stop[3] + tm_stop[4]/100 );
 
     printf("%d %s %s ", lines_processed,
         time_start,
         time_stop );
 
-    for (i=2; i<=NF; i++) {
-        if (i>2) printf(\"|\");
+    for (i=line_data; i<=NF; i++) {
+        if (i>line_data) printf(\"|\");
         printf("%s", $i);                        
     }
 
@@ -580,23 +587,25 @@ BEGIN {
 }
 NR >= __start_line {
     frame_start=$2;
-    frame_end=$3;
+    frame_end=$4;
     line_data=5;
 
-    if (!($3 + 0)) {
+    if (!($4 + 0)) {
         frame_end=$2 + __last_time*__fps;        
     }
 
-    printf("%s %s %s ", lines_processed++, 
+    printf("%d %s %s ", lines_processed, 
         (frame_start/__fps),
         (frame_end/__fps));
 
-        for (i=line_data; i<=NF; i++) {
-            # strip control codes - comment this out if you want to keep'em
-            gsub( /[yYfFsScCP]{1}:.*/, "", $i );
+    lines_processed++;
 
-            printf("%s", $i);   
-        }
+    for (i=line_data; i<=NF; i++) {
+        # strip control codes - comment this out if you want to keep'em
+        gsub( /[yYfFsScCP]{1}:.*/, "", $i );
+
+        printf("%s", $i);   
+    }
     printf("\\n");
 }
 EOF
@@ -633,9 +642,9 @@ BEGIN {
 length($0) && NR >= __start_line {
 
     frame_start=$2;
-    frame_end=$3;
+    frame_end=$4;
 
-    if (!($3 + 0)) {
+    if (!($4 + 0)) {
         frame_end=$2 + __last_time;        
     }
 
@@ -670,27 +679,37 @@ read -d "" awk_code << 'EOF'
 BEGIN {
     FS="\\n";
     RS="";
+    lines_processed = 1;
 }
 
-length($0) && NR >= __start_line {
+length($0) {
     
-    line_data = 2;
+    # this is to skip initial non subs lines
+    if (lines_processed == 1) {
+        rec = __start_line;
+    }
+    else {
+        rec = 1;
+    }
+
+    line_data = rec + 1;
     gsub("\\r", "");
 
     switch(__counter_type) {
         case "inline":
-            gsub(",", ".", $1);
-            gsub("--> ", "", $1);
-            printf("%s ", $1);
+            gsub(",", ".", $rec);
+            gsub("--> ", "", $rec);
+            printf("%s ", $rec);
             break;
 
         case "newline":
         default:
-            gsub(",", ".", $2);
-            gsub("--> ", "", $2);
-            gsub(" ", "", $1);
-            printf("%s %s ", $1, $2);
-            line_data = 3;
+            ts = rec + 1;
+            gsub(",", ".", $ts);
+            gsub("--> ", "", $ts);
+            gsub(" ", "", $rec);
+            printf("%s %s ", $rec, $ts);
+            line_data++;
             break;
     }
 
@@ -699,6 +718,8 @@ length($0) && NR >= __start_line {
         printf("%s", $i);
     }
     printf("\\n");
+
+    lines_processed++;
 }
 EOF
     
@@ -725,7 +746,6 @@ write_format_microdvd() {
     local in_file_path="$1"
     local out_file_path="$2"
     local awk_code=''
-    declare -a details=( ${g_outf[$___DETAILS]} )
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
@@ -961,7 +981,12 @@ NR > 1 {
         sh, sm, ss, sc,
         eh, em, es, ec);
 
-    for (i=4; i<=NF; i++) printf("%s ", $i);
+    for (i=4; i<=NF; i++) {
+        tmp = sprintf("%s ", $i);
+        gsub(/\\|/, "\\n", tmp);
+        printf ( "%s ", tmp );
+    }
+
     printf("\\n\\n");
 }
 EOF
@@ -980,7 +1005,7 @@ EOF
     echo    "[SUBTITLE]" >> "$out_file_path"
     echo    "[COLF]&HFFFFFF,[STYLE]bd,[SIZE]18,[FONT]Arial" >> "$out_file_path"
 
-    if ! awk -v "$awk_code" "$in_file_path" >> "$out_file_path"; then
+    if ! awk "$awk_code" "$in_file_path" >> "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do subviewer2"
         return $RET_FAIL;
     fi
@@ -1006,13 +1031,19 @@ NR > 1 {
         sh = $2/3600;
         sm = ($2/60)%60;
         ss = $2%60;
-        printf("%02d:%02d:02d:", sh, sm, ss);
+        printf("%02d:%02d:%02d:", sh, sm, ss);
         break
 
     case "hmsms":
     case "hms":
         # just strip the fractional part
-        printf("%s:", substr($2, 0, index($2, ".")));
+        idx = index($2, ".") - 1;
+        if (idx) {
+            printf("%s:", substr($2, 0, idx))
+        }
+        else {
+            exit 1
+        }
         break
 
     default:
@@ -1027,7 +1058,7 @@ EOF
 
     _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
 
-    if ! awk -v "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do tmplayer"
         return $RET_FAIL
     fi
@@ -1078,6 +1109,7 @@ correct_overlaps() {
     local tmp_file=$(mktemp overlaps.XXXXXXXX)
     local file_name=$(basename "$file_path")
     local num_lines=0
+    local status=0
 
 read -d "" awk_code << 'EOF'
 BEGIN {
@@ -1088,6 +1120,7 @@ BEGIN {
 
 NR == 1 {
     time_type=$0;
+    print $0;
 }
 
 NR > 1 {
@@ -1127,7 +1160,7 @@ NR > 1 {
     case "hmsms":
     case "hms":
         # don't do anything for those - at the moment not supported        
-        exit 0;
+        exit 2;
         break
 
     default:
@@ -1141,19 +1174,29 @@ EOF
     num_lines=$(cat "$file_path" | count_lines)
     num_lines=$(( num_lines - 1 ))
 
-    if ! awk -v __num_lines="$num_lines" \
-        "$awk_code" "$file_path" > "$tmp_file"; then
-        _error "blad przy poprawianiu overlaps"
-        return $RET_FAIL
-    fi
+    awk -v __num_lines="$num_lines" \
+        "$awk_code" "$file_path" > "$tmp_file"; 
+    status=$?
+
+    case "$status" in
+        1)
+            _error "blad przy poprawianiu overlaps. przywracam oryg. pliki"
+            $g_cmd_cp "$file_path" "$tmp_file"
+            ;;
+
+        *)
+            _warning "brak korekcji nakladajacych sie napisow, dla formatu we."
+            $g_cmd_cp "$file_path" "$tmp_file"
+            ;;
+    esac
 
     _info $LINENO "kopiuje poprawiony plik na oryginalny [$tmp_file] -> [$file_name]"
-    cp "$tmp_file" "$file_path"
+    $g_cmd_cp "$tmp_file" "$file_path"
 
     # get rid of the temporary file
     [ -e "$tmp_file" ] &&
         _debug $LINENO "usuwam plik tymczasowy" &&
-        rm -rf "$tmp_file"
+        $g_cmd_unlink "$tmp_file"
 
     return $RET_OK
 }
@@ -1534,8 +1577,7 @@ convert_formats() {
         fi
     fi
 
-    # TODO - REMOVE ME, DISABLED THAT TEMPORARILY
-    # [ -e "$tmp_output" ] && rm -rf "$tmp_output"
+    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 

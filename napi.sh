@@ -1956,7 +1956,10 @@ convert_format() {
 
     # fps_opt must be expanded for the subotage call
     # shellcheck disable=SC2086
-    sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
+    sb_data=$(subotage.sh -v "${g_output[$___VERBOSITY]}" \
+        -i "$path/$input" \
+        -of $g_sub_format \
+        -o "$path/$conv" $fps_opt)
     status=$?
 
     # subotage output only on demand
