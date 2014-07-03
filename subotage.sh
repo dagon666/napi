@@ -1072,6 +1072,89 @@ guess_format() {
 
 
 correct_overlaps() {
+    local file_path="$1"
+    local awk_code=''
+
+    local tmp_file=$(mktemp overlaps.XXXXXXXX)
+    local file_name=$(basename "$file_path")
+    local num_lines=0
+
+read -d "" awk_code << 'EOF'
+BEGIN {
+    counter = 0;
+    line_counter = 0;
+    previous_end = 0;
+}
+
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+
+    switch(time_type) {
+    case "secs":
+        lines[counter,0] = NF;
+        for (i=1; i<=NF; i++) lines[counter,i] = $i;
+
+        if (counter == 0) {
+            if ((lines[1,3]+0) > (lines[0,2]+0)) lines[1,3] = lines[0,2];
+        }
+        else {
+            if ((lines[0,3]+0) > (lines[1,2]+0)) lines[0,3] = lines[1,2];
+        }
+        
+        # print every second line or if line counter == __num_lines
+        # flush'em both at once
+        do {
+           line_counter++;
+           counter = (counter + 1) % 2;
+
+           if ((line_counter >=2 || line_counter == __num_lines) && 
+               lines[counter,0]>0) {
+
+               printf("%s %s %s ", 
+                   lines[counter,1], lines[counter,2], lines[counter,3]);
+
+               for (i = 4; i<=lines[counter,0]; i++)
+                   printf("%s ", lines[counter,i]);
+
+               printf("\\n");
+           }
+        } while (line_counter == __num_lines)
+        break
+
+    case "hmsms":
+    case "hms":
+        # don't do anything for those - at the moment not supported        
+        exit 0;
+        break
+
+    default:
+        exit 1;
+        break
+    }
+}
+EOF
+    _info $LINENO "sprawdzam plik uniwersalny i usuwam overlaps"
+
+    num_lines=$(cat "$file_path" | count_lines)
+    num_lines=$(( num_lines - 1 ))
+
+    if ! awk -v __num_lines="$num_lines" \
+        "$awk_code" "$file_path" > "$tmp_file"; then
+        _error "blad przy poprawianiu overlaps"
+        return $RET_FAIL
+    fi
+
+    _info $LINENO "kopiuje poprawiony plik na oryginalny [$tmp_file] -> [$file_name]"
+    cp "$tmp_file" "$file_path"
+
+    # get rid of the temporary file
+    [ -e "$tmp_file" ] &&
+        _debug $LINENO "usuwam plik tymczasowy" &&
+        rm -rf "$tmp_file"
+
     return $RET_OK
 }
 
