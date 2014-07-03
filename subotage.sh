@@ -1648,10 +1648,14 @@ process_file() {
     # we've got the data, quit
     [ "$g_getinfo" -eq 1 ] && return $RET_BREAK
 
+    file_name=$(basename "${g_outf[$___PATH]}")
+
     # check if the conversion is needed
     check_if_conv_needed
     status=$?
-    [ "$status" -eq $RET_NOACT ] && return "$status"
+    [ "$status" -eq $RET_NOACT ] && 
+        _status "SKIP" "$file_name" &&
+        return "$status"
 
     # create read/write routine names & verify them
     freader="read_format_${g_inf[$___FORMAT]}"
@@ -1669,7 +1673,6 @@ process_file() {
     convert_formats "$freader" "$fwriter"
     status=$?
 
-    file_name=$(basename "${g_outf[$___PATH]}")
     [ "$status" -eq $RET_OK ] && _status "OK" "$file_name"
 
     return $status
