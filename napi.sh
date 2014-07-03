@@ -1956,20 +1956,20 @@ convert_format() {
 
     # fps_opt must be expanded for the subotage call
     # shellcheck disable=SC2086
-    sb_data=$(subotage.sh -v "${g_output[$___VERBOSITY]}" \
+    # subotage output only on demand
+    subotage.sh -v "${g_output[$___VERBOSITY]}" \
         -i "$path/$input" \
         -of $g_sub_format \
-        -o "$path/$conv" $fps_opt)
+        -t "${g_output[$___FORK]}" \
+        -m "${g_output[$___CNT]}" \
+        -o "$path/$conv" $fps_opt
     status=$?
-
-    # subotage output only on demand
-    _debug $LINENO "$sb_data"
 
     # remove the old format if conversion was successful
     if [ $status -eq $RET_OK ]; then
         _msg "pomyslnie przekonwertowano do $g_sub_format"
         [ "$input" != "$conv" ] &&
-            _msg "usuwam oryginalny plik" &&
+            _info $LINENO "usuwam oryginalny plik" &&
             $g_cmd_unlink "$path/$input"
 
     elif [ $status -eq $RET_NOACT ]; then

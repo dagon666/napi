@@ -24,7 +24,7 @@
 ################################################################################
 
 # verify presence of the napi_common library
-declare -r NAPI_COMMON_PATH=.
+declare -r NAPI_COMMON_PATH=
 if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
@@ -1325,6 +1325,16 @@ parse_argv() {
                 msg="nie okreslono czasu trwania napisow"
                 ;;
 
+            # thread id - this one's hidden not listed in the usage()
+            "-t" | "--thread-id") varname="g_output[$___FORK]"
+                msg="nie okreslono czasu trwania napisow"
+                ;;
+
+            # message-cnt - this one's hidden not listed in the usage()
+            "-m" | "--message-cnt") varname="g_output[$___CNT]"
+                msg="nie okreslono czasu trwania napisow"
+                ;;
+
             # get formats
             "-gl" | "--get-formats-long")        
                 list_formats 1
@@ -1484,7 +1494,7 @@ correct_fps() {
     local i=0
     declare -a det=()
  
-    if [ "${g_inf[$___FPS]}" -eq 0 ]; then
+    if float_eq "${g_inf[$___FPS]}" 0; then
 
         # set default setting
         g_inf[$___FPS]="$g_default_fps"
@@ -1511,9 +1521,10 @@ correct_fps() {
         esac
     fi
 
-    [ "${g_outf[$___FPS]}" -eq 0 ] &&
-        _info $LINENO "nie podano fps pliku wyjsciowego, zakladam taki sam jak wejscie" &&
+    if float_eq "${g_outf[$___FPS]}" 0; then
+        _info $LINENO "nie podano fps pliku wyjsciowego, zakladam taki sam jak wejscie"
         g_outf[$___FPS]="${g_inf[$___FPS]}"
+    fi
 
     return $RET_OK
 }
@@ -1550,10 +1561,13 @@ check_if_conv_needed() {
 print_format_summary() {
     local prefix="$1"
     local file_name=$(basename "$2")
-    _status "${prefix}FILE" "$file_name"
-    _status "${prefix}FORMAT" "$3"
-    _status "${prefix}FPS" "$4"
-    _status "${prefix}DETAILS" "$5"
+
+    if [ "$g_getinfo" -eq 1 ] || [ "${g_output[$___VERBOSITY]}" -ge 2 ]; then
+        _status "${prefix}FILE" "$file_name"
+        _status "${prefix}FORMAT" "$3"
+        _status "${prefix}FPS" "$4"
+        _status "${prefix}DETAILS" "$5"
+    fi
     return $RET_OK
 }
 
@@ -1591,6 +1605,7 @@ process_file() {
     local freader=''
     local fwriter=''
     declare -a fmt=()
+    local file_name=''
 
     g_inf[$___FORMAT]=$(echo "${g_inf[$___FORMAT]}" | lcase)
     g_outf[$___FORMAT]=$(echo "${g_outf[$___FORMAT]}" | lcase)
@@ -1643,6 +1658,9 @@ process_file() {
     
     convert_formats "$freader" "$fwriter"
     status=$?
+
+    file_name=$(basename "${g_outf[$___PATH]}")
+    [ "$status" -eq $RET_OK ] && _status "OK" "$file_name"
 
     return $status
 }
