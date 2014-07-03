@@ -32,7 +32,7 @@
 ########################################################################
 
 # verify presence of the napi_common library
-declare -r NAPI_COMMON_PATH=.
+declare -r NAPI_COMMON_PATH=
 if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
