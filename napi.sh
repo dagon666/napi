@@ -2463,6 +2463,22 @@ usage() {
 ################################################################################
 
 #
+# @brief inform that we're using new API now
+#
+print_new_api_info() {
+    _msg "================================================="
+    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
+    _msg "API (napiprojekt-3)"
+    _msg "Jezeli zauwazysz jakies problemy z nowym API"
+    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
+    _msg "starego API korzystajac z opcji --id pynapi"
+    _msg "================================================="
+
+    return $RET_OK
+}
+
+
+#
 # @brief main function 
 # 
 main() {
@@ -2523,13 +2539,8 @@ main() {
     _msg "wywolano o $(date)"
     _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
 
-    _msg "================================================="
-    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
-    _msg "API (napiprojekt-3)"
-    _msg "Jezeli zauwazysz jakies problemy z nowym API"
-    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
-    _msg "starego API korzystajac z opcji --id pynapi"
-    _msg "================================================="
+    # inform about new napiprojekt API
+    print_new_api_info
 
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"

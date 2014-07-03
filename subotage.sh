@@ -743,6 +743,15 @@ NR > 1 {
 
     case "hmsms":
     case "hms":
+        split($2, time_start, ":");
+        split($3, time_stop, ":");
+        printf("{%d}{%d}",
+            (time_start[1]*3600 + time_start[2]*60 + time_start[3])*__fps,
+            (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*__fps);
+        break
+
+    default:
+        exit 1;
         break
     }
     
@@ -754,14 +763,60 @@ EOF
     _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
     _info $LINENO "fps: ${g_outf[$___FPS]}"
 
-    awk -v __fps="${g_outf[$___FPS]}" \
-        "$awk_code" "$in_file_path" > "$out_file_path"
+    if ! awk -v __fps="${g_outf[$___FPS]}" \
+        "$awk_code" "$in_file_path" > "$out_file_path"; then
+        _error "nie mozna przekonwertowac formatu uniw. do microdvd"
+        return $RET_FAIL;
+    fi
 
     return $RET_OK
 }
 
 
 write_format_mpl2() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+
+read -d "" awk_code << 'EOF'
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+
+    switch(time_type) {
+    case "secs":
+        printf("[%d][%d]", 
+            $2*10,
+            $3*10);
+        break
+
+    case "hmsms":
+    case "hms":
+        split($2, time_start, ":");
+        split($3, time_stop, ":");
+        printf("[%d][%d]",
+            (time_start[1]*3600 + time_start[2]*60 + time_start[3])*10,
+            (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*10);
+        break
+
+    default:
+        exit 1;
+        break
+    }
+    
+    for (i=4; i<=NF; i++) printf("%s ", $i);
+    printf("\\n");
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
+
+    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+        _error "nie mozna przekonwertowac formatu uniw. do mpl2"
+        return $RET_FAIL;
+    fi
     return $RET_OK
 }
 
@@ -852,12 +907,133 @@ EOF
 
 
 write_format_subviewer2() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+
+read -d "" awk_code << 'EOF'
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+
+    switch(time_type) {
+    case "secs":
+        sh = $2/3600;
+        sm = ($2/60)%60;
+        ss = $2%60;
+        sc = int( ($2 - int($2))*100 );
+
+        eh = $3/3600;
+        em = ($3/60)%60;
+        es = $3%60;
+        ec = int( ($3 - int($3))*100 );
+        break
+
+    case "hmsms":
+    case "hms":
+        split($2, time_start, ":");
+        split($3, time_stop, ":");
+
+        sh = time_start[1];
+        sm = time_start[2];
+        ss = time_start[3];
+        sc = 0;
+
+        eh = time_stop[1];
+        em = time_stop[2];
+        es = time_stop[3];
+        ec = 0;
+
+        if (time_type == "hmsms") {
+            sc = int( (time_start[3] - int(time_start[3]))*100 );
+            ec = int( (time_stop[3] - int(time_stop[3]))*100 );
+        }
+        break
+
+    default:
+        exit 1;
+        break
+    }
+    
+    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\\n",
+        sh, sm, ss, sc,
+        eh, em, es, ec);
+
+    for (i=4; i<=NF; i++) printf("%s ", $i);
+    printf("\\n\\n");
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
+    _info $LINENO "fps: ${g_outf[$___FPS]}"
+
+    echo    "[INFORMATION]" > "$out_file_path"  
+    echo    "[TITLE] none" >> "$out_file_path"  
+    echo    "[AUTHOR] none" >> "$out_file_path" 
+    echo    "[SOURCE]" >> "$out_file_path"  
+    echo    "[FILEPATH]Media" >> "$out_file_path"
+    echo    "[DELAY]0" >> "$out_file_path"
+    echo    "[COMMENT] Created using subotage - universal subtitle converter for bash" >> "$out_file_path"
+    echo    "[END INFORMATION]" >> "$out_file_path" 
+    echo    "[SUBTITLE]" >> "$out_file_path"
+    echo    "[COLF]&HFFFFFF,[STYLE]bd,[SIZE]18,[FONT]Arial" >> "$out_file_path"
+
+    if ! awk -v "$awk_code" "$in_file_path" >> "$out_file_path"; then
+        _error "nie mozna przekonwertowac formatu uniw. do subviewer2"
+        return $RET_FAIL;
+    fi
+
     return $RET_OK
 }
 
 
 write_format_tmplayer() {
+    local in_file_path="$1"
+    local out_file_path="$2"
+    local awk_code=''
+
+read -d "" awk_code << 'EOF'
+NR == 1 {
+    time_type=$0;
+}
+
+NR > 1 {
+
+    switch(time_type) {
+    case "secs":
+        sh = $2/3600;
+        sm = ($2/60)%60;
+        ss = $2%60;
+        printf("%02d:%02d:02d:", sh, sm, ss);
+        break
+
+    case "hmsms":
+    case "hms":
+        # just strip the fractional part
+        printf("%s:", substr($2, 0, index($2, ".")));
+        break
+
+    default:
+        exit 1;
+        break
+    }
+    
+    for (i=4; i<=NF; i++) printf("%s ", $i);
+    printf("\\n");
+}
+EOF
+
+    _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
+
+    if ! awk -v "$awk_code" "$in_file_path" > "$out_file_path"; then
+        _error "nie mozna przekonwertowac formatu uniw. do tmplayer"
+        return $RET_FAIL
+    fi
+
     return $RET_OK
+
 }
 
 ###############################################################################
