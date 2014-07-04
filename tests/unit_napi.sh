@@ -450,133 +450,163 @@ test_verify_encoding() {
 }
 
 
-# #
-# # test the id verification routine
-# #
-# test_verify_id() {
-#     local status=0
-#     declare -a cp_g_tools=( ${g_tools[@]} )
-# 	declare -a cp_g_system=( ${g_system[@]} )
-# 
-#     g_system[2]='pynapi'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'success for pynapi' $RET_OK $status
-# 
-#     g_system[2]='NapiProjekt'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'failure for NapiProjekt - no 7z' $RET_UNAV $status
-# 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
-# 
-#     g_system[2]='NapiProjektPython'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'failure for NapiProjektPython - no 7z' $RET_UNAV $status
-# 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
-# 
-#     g_system[2]='other'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'other - failure 7z marked as absent' $RET_UNAV $status
-# 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
-# 
-#     # faking 7z presence
-#     g_tools=( 7z=1 )
-# 	g_cmd_7z='7z'
-#     g_system[2]='other'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'other - failure 7z marked as present' $RET_OK $status
-# 	assertEquals 'checking for id' 'other' ${g_system[2]}
-# 
-#     g_system[2]='NapiProjektPython'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_UNAV $status
-# 
-#     g_tools=( 7z=1 base64=1 awk=1 )
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'success for NapiProjektPython - 7z & base64 & awk' $RET_OK $status
-# 
-#     g_system[2]='unknown_system'
-#     verify_id 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'unknown_system - failure' $RET_PARAM $status
-# 
-#     g_tools=( ${cp_g_tools[@]} )
-# 	g_system=( ${cp_g_system[@]} )
-# }
-# 
-# 
-# #
-# # test format verification routine
-# #
-# test_verify_format() {
-#     local status=0
-#     declare -a cp_g_tools=( ${g_tools[@]} )
-#     local cp_g_sub_format=$g_sub_format
-# 
-#     # verify default format
-#     verify_format
-#     status=$?
-#     assertEquals 'success for format default' $RET_OK $status
-#     
-#     # format ok - no subotage.sh
-#     g_sub_format='subrip'
-#     verify_format 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'failure due to lack of subotage.sh' $RET_PARAM $status
-# 
-#     g_tools=( subotage.sh=1 )
-#     g_sub_format='subrip'
-#     verify_format 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'format ok, subotage present' $RET_OK $status
-# 
-#     g_sub_format='bogus_format'
-#     verify_format 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'format unknown, subotage present' $RET_PARAM $status
-# 
-#     g_tools=( ${cp_g_tools[@]} )
-#     g_sub_format=$cp_g_sub_format
-# }
-# 
-# 
-# #
-# # fps tool verification
-# #
-# test_verify_fps_tool() {
-#     local status=0
-#     declare -a cp_g_tools=( ${g_tools[@]} )
-# 
-#     verify_fps_tool
-#     status=$?
-#     assertEquals 'no tools available, tool = default' $RET_OK $status
-#     
-#     g_fps_tool='unsupported_tool'
-#     verify_fps_tool 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'checking unsupported tool' $RET_PARAM $status
-# 
-#     g_fps_tool='mediainfo'
-#     verify_fps_tool 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'checking supported, absent tool' $RET_PARAM $status
-# 
-#     g_tools=( mediainfo=1 )
-#     verify_fps_tool 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'checking supported, present tool' $RET_OK $status
-#     
-#     # restore original values
-#     g_tools=( ${cp_g_tools[@]} )
-#     g_fps_tool='default'
-# }
-# 
-# 
+#
+# test the id verification routine
+#
+test_verify_id() {
+    local status=0
+    declare -a cp_g_tools=( ${g_tools[@]} )
+	declare -a cp_g_system=( ${g_system[@]} )
+
+    g_system[2]='pynapi'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'success for pynapi' $RET_OK $status
+
+    g_system[2]='NapiProjekt'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjekt - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
+
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no 7z' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
+
+    g_system[2]='other'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'other - failure 7z marked as absent' $RET_UNAV $status
+	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
+
+    # faking 7z presence
+    g_tools=( 7z=1 )
+	g_cmd_7z='7z'
+    g_system[2]='other'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'other - success 7z marked as present' $RET_OK $status
+	assertEquals 'checking for id' 'other' ${g_system[2]}
+
+    g_system[2]='NapiProjektPython'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_UNAV $status
+
+    g_tools=( 7z=1 base64=1 awk=1 )
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'success for NapiProjektPython - 7z & base64 & awk' $RET_OK $status
+
+    g_system[2]='unknown_system'
+    verify_id 2>&1 > /dev/null
+    status=$?
+    assertEquals 'unknown_system - failure' $RET_PARAM $status
+
+    g_tools=( ${cp_g_tools[@]} )
+	g_system=( ${cp_g_system[@]} )
+}
+
+
+#
+# test format verification routine
+#
+test_verify_format() {
+    local status=0
+    declare -a cp_g_tools=( ${g_tools[@]} )
+    local cp_g_sub_format=$g_sub_format
+
+    # verify default format
+    verify_format
+    status=$?
+    assertEquals 'success for format default' $RET_OK $status
+    
+    # format ok - no subotage.sh
+    g_sub_format='subrip'
+    verify_format 2>&1 > /dev/null
+    status=$?
+    assertEquals 'failure due to lack of subotage.sh' $RET_PARAM $status
+
+    g_tools=( subotage.sh=1 )
+    g_sub_format='subrip'
+    verify_format 2>&1 > /dev/null
+    status=$?
+    assertEquals 'format ok, subotage present' $RET_OK $status
+
+    g_sub_format='bogus_format'
+    verify_format 2>&1 > /dev/null
+    status=$?
+    assertEquals 'format unknown, subotage present' $RET_PARAM $status
+
+    g_tools=( ${cp_g_tools[@]} )
+    g_sub_format=$cp_g_sub_format
+}
+
+
+#
+# fps tool verification
+#
+test_verify_fps_tool() {
+    local status=0
+    declare -a cp_g_tools=( ${g_tools[@]} )
+
+    verify_fps_tool
+    status=$?
+    assertEquals 'no tools available, tool = default' $RET_OK $status
+    
+    g_fps_tool='unsupported_tool'
+    verify_fps_tool 2>&1 > /dev/null
+    status=$?
+    assertEquals 'checking unsupported tool' $RET_PARAM $status
+
+    g_fps_tool='mediainfo'
+    verify_fps_tool 2>&1 > /dev/null
+    status=$?
+    assertEquals 'checking supported, absent tool' $RET_PARAM $status
+
+    g_tools=( mediainfo=1 )
+    verify_fps_tool 2>&1 > /dev/null
+    status=$?
+    assertEquals 'checking supported, present tool' $RET_OK $status
+    
+    # restore original values
+    g_tools=( ${cp_g_tools[@]} )
+    g_fps_tool='default'
+}
+
+
+#
+# test the 7z detection/verification routine
+#
+test_verify_7z() {
+    declare -a cp_g_tools=( ${g_tools[@]} )
+	local cp_g_cmd_7z=$g_cmd_7z
+	local status=0
+
+	verify_7z
+	status=$?
+	assertEquals "checking for failure - no 7z" $RET_FAIL "$status"
+
+	g_tools=( '7z=1' '7za=1' )
+	verify_7z
+	status=$?
+	assertEquals "checking for success" $RET_OK "$status"
+	assertEquals "7za has priority" "7za" "$g_cmd_7z"
+	
+	g_tools=( '7z=1' '7za=0' )
+	verify_7z
+	status=$?
+	assertEquals "checking for success" $RET_OK "$status"
+	assertEquals "7z presence" "7z" "$g_cmd_7z"
+
+
+	g_cmd_7z=$cp_g_cmd_7z
+    g_tools=( ${cp_g_tools[@]} )
+}
+
+
 # #
 # # test verify argv routine
 # #
