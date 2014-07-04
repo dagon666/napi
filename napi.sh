@@ -3,11 +3,6 @@
 # force indendation settings
 # vim: ts=4 shiftwidth=4 expandtab
 
-#
-# script version
-#
-declare -r g_revision="v1.3.1"
-
 ########################################################################
 ########################################################################
 ########################################################################
@@ -35,6 +30,22 @@ declare -r g_revision="v1.3.1"
 ########################################################################
 ########################################################################
 ########################################################################
+
+# verify presence of the napi_common library
+declare -r NAPI_COMMON_PATH=
+if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
+    echo
+	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
+	echo "uzyj skryptu install.sh (install.sh --help - pomoc)"
+	echo "aby zainstalowac napi.sh w wybranym katalogu"
+    echo
+	exit -1
+fi
+
+# source the common routines
+. "${NAPI_COMMON_PATH}/"napi_common.sh
+
+################################################################################
 
 #
 # @brief abbreviation 
@@ -64,10 +75,7 @@ declare g_orig_prefix='ORIG_'
 # - NapiProjektPython - uses new napiprojekt3 API - NapiProjektPython
 # - NapiProjekt - uses new napiprojekt3 API - NapiProjekt
 #
-# 3 - fork id
-# 4 - msg counter
-#
-declare -a g_system=( 'linux' '1' 'NapiProjektPython' 0 1 )
+declare -a g_system=( 'linux' '1' 'NapiProjektPython' )
 
 #
 # @brief minimum size of files to be processed
@@ -132,25 +140,6 @@ declare g_hook='none'
 declare -a g_cred=( '' '' )
 
 #
-# verbosity (kept outside of g_settings to be more flexible)
-# - 0 - be quiet (prints only errors)
-# - 1 - standard level (prints errors, warnings, statuses & msg)
-# - 2 - info level (prints errors, warnings, statuses, msg & info's)
-# - 3 - debug level (prints errors, warnings, statuses, msg, info's and debugs)
-#
-declare g_verbosity=1 
-
-#
-# @brief the name of the file containing the output
-#
-declare g_logfile='none'
-
-#
-# @brief whether to overwrite the log or not
-#
-declare g_logoverwrite=0
-
-#
 # global paths list
 #
 declare -a g_paths=()
@@ -211,259 +200,6 @@ g_cmd_md5='md5sum'
 g_cmd_cp='cp'
 g_cmd_unlink='unlink'
 g_cmd_7z=''
-
-################################## RETVAL ######################################
-
-# success
-declare -r RET_OK=0
-
-# function failed
-declare -r RET_FAIL=255
-
-# parameter error
-declare -r RET_PARAM=254
-
-# parameter/result will cause the script to break
-declare -r RET_BREAK=253
-
-# resource unavailable
-declare -r RET_UNAV=252
-
-# no action taken
-declare -r RET_NOACT=251
-
-################################## STDOUT ######################################
-
-#
-# @brief produce output
-#
-_blit() {
-    printf "#%02d:%04d %s\n" ${g_system[3]} ${g_system[4]} "$*"
-    g_system[4]=$(( g_system[4] + 1 ))
-}
-
-
-#
-# @brief print a debug verbose information
-#
-_debug() {
-    local line=${1:-0} && shift
-    [ $g_verbosity -ge 3 ] && _blit "--- $line: $*"
-    return $RET_OK
-}
-
-
-#
-# @brief print information 
-#
-_info() {
-    local line=${1:-0} && shift
-    [ $g_verbosity -ge 2 ] && _blit "-- $line: $*"
-    return $RET_OK
-}
-
-
-#
-# @brief print warning 
-#
-_warning() {
-    _status "WARNING" "$*"
-    return $RET_OK
-}
-
-
-#
-# @brief print error message
-#
-_error() {
-    local tmp=$g_verbosity
-    g_verbosity=1
-    _status "ERROR" "$*" | to_stderr
-    g_verbosity=$tmp
-    return $RET_OK
-}
-
-
-#
-# @brief print standard message
-#
-_msg() {
-    [ $g_verbosity -ge 1 ] && _blit "- $*"
-    return $RET_OK
-}
-
-
-#
-# @brief print status type message
-#
-_status() {
-    [ $g_verbosity -ge 1 ] && _blit "$1 -> $2"
-    return $RET_OK
-}
-
-
-#
-# @brief redirect errors to standard error output
-#
-to_stderr() {
-    if [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ]; then
-        cat > /dev/stderr
-    else
-        cat
-    fi
-}
-
-
-#
-# @brief redirect stdout to logfile
-#
-redirect_to_logfile() {
-    [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 3>&1 1> "$g_logfile"
-}
-
-
-#
-# @brief redirect output to stdout
-#
-redirect_to_stdout() {
-    [ -n "$g_logfile" ] && [ "$g_logfile" != "none" ] && exec 1>&3 3>&-
-}
-
-################################### misc #######################################
-
-#
-# @brief count the number of lines in a file
-#
-count_lines() {
-
-    # it is being executed in a subshell to strip any leading white spaces
-    # which some of the wc versions produce
-
-    # shellcheck disable=SC2046
-    # shellcheck disable=SC2005
-    echo $(wc -l)
-}
-
-
-#
-# @brief lowercase the input
-#
-lcase() {
-    # some old busybox implementations have problems with locales
-    # which renders that syntax unusable
-    # tr '[:upper:]' '[:lower:]'
-
-    # deliberately reverted to old syntax
-    # shellcheck disable=SC2021
-    tr '[A-Z]' '[a-z]'
-}
-
-
-#
-# @brief get the extension of the input
-#
-get_ext() {
-    echo "${1##*.}"
-}
-
-
-#
-# @brief strip the extension of the input
-#
-strip_ext() {
-    echo "${1%.*}"
-}
-
-
-#
-# @brief get the value from strings like key=value
-#
-get_value() {
-    echo "${1##*=}"
-}
-
-
-#
-# @brief get the key from strings like key=value
-#
-get_key() {
-    echo "${1%=*}"
-}
-
-#
-# @brief search for specified key and return it's value
-# @param key
-# @param array
-#
-lookup_value() {
-    local i=''
-    local rv=$RET_FAIL
-    local key="$1" && shift
-    local tk=''
-
-    # using $* is deliberate to allow parsing either array or space delimited strings
-
-    # shellcheck disable=SC2048
-    for i in $*; do
-        tk=$(get_key "$i")
-        if [ "$tk"  = "$key" ]; then
-            get_value "$i"
-            rv=$RET_OK
-            break
-        fi
-    done
-    return $rv
-}
-
-
-#
-# @brief lookup index in the array for given value
-# returns the index of the value and 0 on success
-#
-lookup_key() {
-    local i=''
-    local idx=0
-    local rv=$RET_FAIL
-    local key="$1" 
-
-    shift
-
-    for i in "$@"; do
-        [ "$i" = "$key" ] && rv=$RET_OK && break
-        idx=$(( idx + 1 ))
-    done
-
-    echo $idx
-    return $rv
-}
-
-
-#
-# @brief modify value in the array (it will be added if the key doesn't exist)
-# @param key
-# @param value
-# @param array
-#
-modify_value() {
-    local key=$1 && shift
-    local value=$1 && shift
-    
-    local i=0
-    local k=''
-    declare -a rv=()
-
-    # shellcheck disable=SC2048
-    for i in $*; do
-        k=$(get_key "$i")
-        # unfortunately old shells don't support rv+=( "$i" )
-        [ "$i" != "$key" ] && rv=( "${rv[@]}" "$i" )
-    done
-
-    rv=( "${rv[@]}" "$key=$value" )
-    echo ${rv[*]}
-
-    return $RET_OK
-}
 
 ################################ languages #####################################
 
@@ -544,41 +280,6 @@ normalize_language() {
 }
 
 #################################### ENV #######################################
-
-#
-# @brief checks if the tool is available in the PATH
-#
-verify_tool_presence() {
-    local tool=$(builtin type -p "$1")
-    local rv=$RET_UNAV
-
-    # make sure it's really there
-    if [ -z "$tool" ]; then
-        type "$1" > /dev/null 2>&1
-        rv=$?
-    else
-        rv=$RET_OK
-    fi
-
-    return $rv
-}
-
-
-#
-# determines number of available cpu's in the system
-#
-get_cores() {
-    grep -i processor /proc/cpuinfo | count_lines
-}
-
-
-#
-# @brief detects running system type
-#
-get_system() {
-    uname | lcase
-}
-
 
 #
 # @brief configure external commands
@@ -787,7 +488,7 @@ parse_argv() {
             # skip flag
             "-s" | "--skip") g_skip=1 ;;
             # log overwrite option
-            "-lo" | "--log-overwrite") g_logoverwrite=1 ;;
+            "-lo" | "--log-overwrite") g_output[$___LOG_OWR]=1 ;;
 
             # stats flag
             "--stats") g_stats_print=1 ;;
@@ -811,7 +512,7 @@ parse_argv() {
             ;;
 
             # logfile
-            "-l" | "--log") varname="g_logfile"
+            "-l" | "--log") varname="g_output[$___LOG]"
             msg="nie podano nazwy pliku loga"
             ;;
 
@@ -836,7 +537,7 @@ parse_argv() {
             ;;
 
             # verbosity
-            "-v" | "--verbosity") varname="g_verbosity"
+            "-v" | "--verbosity") varname="g_output[$___VERBOSITY]"
             msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy)"
             ;;
             
@@ -1095,7 +796,7 @@ verify_argv() {
     local status=0
 
     # make sure first that the printing functions will work
-    case "$g_verbosity" in
+    case "${g_output[$___VERBOSITY]}" in
         0 | 1 | 2 | 3 ) 
             ;;
         *)
@@ -1115,7 +816,7 @@ verify_argv() {
     # make sure we have a number here
     _debug $LINENO 'normalizacja parametrow numerycznych'
     g_min_size=$(( g_min_size + 0 ))
-    g_verbosity=$(( g_verbosity + 0 ))
+    g_output[$___VERBOSITY]=$(( g_output[$___VERBOSITY] + 0 ))
     g_system[1]=$(( g_system[1] + 0 ))
 
 
@@ -1155,10 +856,11 @@ verify_argv() {
 
     # logfile verification  
     _debug $LINENO 'sprawdzam logfile'
-    if [ -e "$g_logfile" ]; then
+    if [ -e "${g_output[$___LOG]}" ] && 
+       [ "${g_output[$___LOG]}" != "none" ]; then
 
         # whether to fail or not ?
-        if [ "$g_logoverwrite" = 0 ]; then
+        if [ "${g_output[$___LOG_OWR]}" -eq 0 ]; then
             _error "plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych"
             return $RET_BREAK
         else
@@ -1239,14 +941,6 @@ f() {
 
     echo "$b"
     return $RET_OK
-}
-
-
-#
-# @brief extracts http status from the http headers
-#
-get_http_status() {
-    grep -o "HTTP/[\.0-9]* [0-9]*"
 }
 
 
@@ -2220,7 +1914,6 @@ prepare_filenames() {
 # @param filename for converted subtitles
 #
 convert_format() {
-
     local media_path="$1"
     local input="$2"
     local orig="$3"
@@ -2268,19 +1961,33 @@ convert_format() {
 
     _msg "wolam subotage.sh"
 
+    # create ipc file to update the message counter
+    local ipc_file="$(mktemp ipc.XXXXXXXX)"
+    local msg_counter=0
+
     # fps_opt must be expanded for the subotage call
     # shellcheck disable=SC2086
-    sb_data=$(subotage.sh -i "$path/$input" -of $g_sub_format -o "$path/$conv" $fps_opt)
+    subotage.sh -v "${g_output[$___VERBOSITY]}" \
+        -i "$path/$input" \
+        -of $g_sub_format \
+        -t "${g_output[$___FORK]}" \
+        -m "${g_output[$___CNT]}" \
+        --ipc-file "$ipc_file" \
+        -o "$path/$conv" $fps_opt
     status=$?
 
-    # subotage output only on demand
-    _debug $LINENO "$sb_data"
+    # update the message counter
+    read msg_counter < "$ipc_file"
+    g_output[$___CNT]=$msg_counter
+
+    # get rid of the ipc file
+    [ -e "$ipc_file" ] && $g_cmd_unlink "$ipc_file"
 
     # remove the old format if conversion was successful
     if [ $status -eq $RET_OK ]; then
         _msg "pomyslnie przekonwertowano do $g_sub_format"
         [ "$input" != "$conv" ] &&
-            _msg "usuwam oryginalny plik" &&
+            _info $LINENO "usuwam oryginalny plik" &&
             $g_cmd_unlink "$path/$input"
 
     elif [ $status -eq $RET_NOACT ]; then
@@ -2618,15 +2325,15 @@ spawn_forks() {
 
         _debug $LINENO "tworze fork #$(( c + 1 )), przetwarzajacy od $c z incrementem ${g_system[1]}"
 
-        g_system[3]=$(( c + 1 ))
-        old_msg_cnt=${g_system[4]}
-        g_system[4]=1 # reset message counter
+        g_output[$___FORK]=$(( c + 1 ))
+        old_msg_cnt=${g_output[$___CNT]}
+        g_output[$___CNT]=1 # reset message counter
         process_files $c ${g_system[1]} &
 
         # restore original values
-        g_system[4]=$old_msg_cnt
-        c=${g_system[3]}
-        g_system[3]=0
+        g_output[$___CNT]=$old_msg_cnt
+        c=${g_output[$___FORK]}
+        g_output[$___FORK]=0
 
     done
     
@@ -2642,7 +2349,7 @@ spawn_forks() {
     fi
 
     # restore main fork id
-    g_system[3]=0
+    g_output[$___FORK]=0
 
     return $RET_OK
 }
@@ -2778,6 +2485,22 @@ usage() {
 ################################################################################
 
 #
+# @brief inform that we're using new API now
+#
+print_new_api_info() {
+    _msg "================================================="
+    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
+    _msg "API (napiprojekt-3)"
+    _msg "Jezeli zauwazysz jakies problemy z nowym API"
+    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
+    _msg "starego API korzystajac z opcji --id pynapi"
+    _msg "================================================="
+
+    return $RET_OK
+}
+
+
+#
 # @brief main function 
 # 
 main() {
@@ -2838,13 +2561,8 @@ main() {
     _msg "wywolano o $(date)"
     _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
 
-    _msg "================================================="
-    _msg "napi.sh od wersji 1.3.1 domyslnie uzywa nowego"
-    _msg "API (napiprojekt-3)"
-    _msg "Jezeli zauwazysz jakies problemy z nowym API"
-    _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
-    _msg "starego API korzystajac z opcji --id pynapi"
-    _msg "================================================="
+    # inform about new napiprojekt API
+    print_new_api_info
 
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"
@@ -2866,37 +2584,3 @@ main() {
 [ "${SHUNIT_TESTS:-0}" -eq 0 ] && main "$@"
 
 # EOF
-######################################################################## 
-######################################################################## 
-
-
-############################## DB ######################################
-
-# that was an experiment which I decided to drop after all. 
-# those functions provide a mechanism to generate consistently names global vars
-# i.e. _db_set "abc" 1 will create glob. var ___g_db___abc=1
-# left as a reference - do not use it
-
-## #
-## # @global prefix for the global variables generation
-## #
-## g_GlobalPrefix="___g_db___"
-## 
-## 
-## #
-## # @brief get variable from the db
-## #
-## _db_get() {
-##  eval "echo \$${g_GlobalPrefix}_$1"  
-## }
-## 
-## 
-## #
-## # @brief set variable in the db
-## #
-## _db_set() {
-##  eval "${g_GlobalPrefix}_${1/./_}=\$2"
-## }
-
-######################################################################## 
-
