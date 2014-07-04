@@ -601,286 +601,275 @@ test_verify_7z() {
 	assertEquals "checking for success" $RET_OK "$status"
 	assertEquals "7z presence" "7z" "$g_cmd_7z"
 
-
 	g_cmd_7z=$cp_g_cmd_7z
     g_tools=( ${cp_g_tools[@]} )
 }
 
 
-# #
-# # test verify argv routine
-# #
-# test_verify_argv() {
-#     local status=0
-#     local cp_g_charset=$g_charset
-#     local cp_g_fps_tool=$g_fps_tool
-#     local cp_g_sub_format=$g_sub_format
-#     declare -a cp_g_cred=( ${g_cred[@]} )
-# 
-#     g_cred[0]='user_no_password'
-#     verify_argv 2>&1 > /dev/null
-#     assertNull 'empty username' "${g_cred[0]}"
-#     assertNull 'empty password' "${g_cred[1]}"
-#     
-#     g_min_size='abc'
-#     verify_argv 2>&1 > /dev/null
-#     assertEquals 'checking g_min_size resetted to zero' 0 $g_min_size
-# 
-#     g_min_size=666
-#     verify_argv 2>&1 > /dev/null
-#     assertEquals 'checking g_min_size value' 666 $g_min_size
-# 
-#     g_charset='bogus'
-#     verify_argv 2>&1 > /dev/null
-#     assertEquals 'checking default encoding' 'default' $g_charset
-# 
-#     g_charset='utf8'
-#     verify_argv 2>&1 > /dev/null
-#     assertEquals 'checking encoding value' 'utf8' $g_charset
-#     g_charset=$cp_g_charset
-# 
-#     g_system[2]='bogus_id'
-#     verify_argv 2>&1 > /dev/null
-#     assertEquals 'checking incorrect id' 'pynapi' ${g_system[2]}
-# 
-#     g_system[2]='other'
-#     verify_argv 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'checking failure due to lack of 7z' $RET_BREAK $status
-#     g_system[2]='pynapi'
-# 
-#     local logfile=$(mktemp -t logfile.XXXX)
-#     g_logfile="$logfile"
-#     local output=$(verify_argv | grep "istnieje" | wc -l)
-#     assertEquals 'warning on existing logfile' 1 $output
-#     unlink "$logfile"
-# 
-#     g_lang='XXX'
-#     verify_argv 2>&1 > /dev/null
-#     status=$?
-#     assertEquals 'checking status - unknown language' $RET_OK $status
-#     assertEquals 'checking language - unknown language' 'PL' $g_lang
-# 
-#     g_lang='list'
-#     output=$(verify_argv)
-#     status=$?
-#     output=$(echo $output | grep "PL" | wc -l)
-#     assertEquals 'checking status - list languages' $RET_BREAK $status
-#     assertEquals 'checking for list' 1 $output
-#     g_lang='PL'
-# 
-#     g_sub_format='bogus'
-#     verify_argv 2> /dev/null
-#     status=$?
-#     assertEquals 'checking status - bogus subs format' $RET_PARAM $status
-#     g_sub_format=$cp_g_sub_format
-# 
-#     g_fps_tool='bogus'
-#     verify_argv 2> /dev/null
-#     status=$?
-#     assertEquals 'checking status - bogus fps tool' $RET_PARAM $status
-#     g_fps_tool=$cp_g_fps_tool
-# 
-#     g_hook='not_existing_script.sh'
-#     verify_argv 2>/dev/null
-#     status=$?
-#     assertEquals 'non-existing external script' $RET_PARAM $status
-#     g_hook='none'
-# 
-#     local hook=$(mktemp -t hook.XXXX)
-#     chmod +x "$hook"
-#     g_hook="$hook"
-#     verify_argv 2> /dev/null
-#     status=$?
-#     assertEquals 'existing external script' $RET_OK $status
-#     g_hook='none'
-#     unlink "$hook"
-# }
-# 
-# 
-# #
-# # test download function
-# #
-# test_download_url() {
-#     local status=0
-# 	declare -a cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
-# 
-#     g_cmd_wget[0]="mocks/wget_log 127 none"
-#     download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
-#     status=$?
-#     assertEquals 'check failure status' $RET_FAIL $status
-# 
-#     g_cmd_wget[0]="mocks/wget_log 0 none"
-#     local output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
-#     status=$?
-#     assertEquals 'check success status' $RET_OK $status
-#     assertEquals 'check unknown http code' "unknown" $output
-# 
-#     g_cmd_wget[0]="mocks/wget_log 0 301_200"
-#     output=0
-#     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
-#     status=$?
-#     assertEquals 'check success status' $RET_OK $status
-#     assertEquals 'check 200 http code' "301 200" "$output"
-# 
-#     g_cmd_wget[0]="mocks/wget_log 0 404"
-#     output=0
-#     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
-#     status=$?
-#     assertEquals 'check success status' $RET_FAIL $status
-#     assertEquals 'check 404 http code' "404" "$output"
-# 
-# 	# test post request
-#     g_cmd_wget[0]="mocks/wget_log 0 301_200"
-# 	g_cmd_wget[1]=0
-#     output=0
-#     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
-#     status=$?
-#     assertEquals 'check post failure status' $RET_FAIL $status
-# 
-#     g_cmd_wget[0]="mocks/wget_log 0 301_200"
-# 	g_cmd_wget[1]=1
-#     output=0
-#     output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
-#     status=$?
-#     assertEquals 'check post success status' $RET_OK $status
-#     assertEquals 'check 200 http code' "301 200" "$output"
-# 
-# 	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
-# }
-# 
-# 
-# #
-# # test the awk code execution wrapper
-# #
-# test_run_awk_script() {
-# 
-# 	local code='{ print $2 }'
-# 	local status=0
-# 	local output=''
-# 	declare -a cp_g_tools=( ${g_tools[@]} )
-# 
-# 	echo "col1 col2 col3" | run_awk_script "$code"
-# 	status=$?
-# 	assertEquals "awk failure - awk marked as absent" $RET_FAIL $status
-# 	
-# 	g_tools=( awk=1 )
-# 	output=$(echo "col1 col2 col3" | run_awk_script "$code")
-# 	status=$?
-# 	assertEquals "awk success - marked as present" $RET_OK $status
-# 	assertEquals "checking result of the stream processing" "col2" "$output"
-# 	
-# 	local tmpf=$(mktemp -t tmp.awk.XXXXXXXX)
-# 
-# 	echo "col1 col2 col3" > "$tmpf"
-# 	output=$(run_awk_script "$code" "$tmpf")
-# 	status=$?
-# 	assertEquals "awk success - marked as present" $RET_OK $status
-# 	assertEquals "checking result of the file processing" "col2" "$output"
-# 
-# 	unlink "$tmpf"
-# 	g_tools=( ${cp_g_tools[@]} )
-# }
-# 
-# 
-# #
-# # xml single tag extraction check
-# #
-# test_extract_xml_tag() {
-# 	declare -a cp_g_tools=( ${g_tools[@]} )
-# 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
-# 	local data=''
-# 	local output=''
-# 
-# 	g_tools=( awk=1 )
-# 	data='<taga><nested><x>data</x></nested></taga>'
-# 	output=$(echo "$data" | extract_xml_tag 'x')
-# 	assertEquals "checking for extracted tag" "<x>data</x>" "$output"
-# 
-# 	echo "$data" > "$tmpf"
-# 	output=$(extract_xml_tag 'x' "$tmpf")
-# 	assertEquals "checking for extracted tag from file" "<x>data</x>" "$output"
-# 
-# 	unlink "$tmpf"
-# 	g_tools=( ${cp_g_tools[@]} )
-# }
-# 
-# 
-# #
-# # xml cdata tag extraction check
-# #
-# test_extract_cdata_tag() {
-# 	declare -a cp_g_tools=( ${g_tools[@]} )
-# 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
-# 	local data=''
-# 	local output=''
-# 
-# 	g_tools=( awk=1 )
-# 	data='<taga><![CDATA[some_data]]></taga>'
-# 	output=$(echo "$data" | extract_cdata_tag)
-# 	assertEquals "checking for extracted data" "some_data" "$output"
-# 
-# 	echo "$data" > "$tmpf"
-# 	output=$(extract_cdata_tag "$tmpf")
-# 	assertEquals "checking for extracted data from file" "some_data" "$output"
-# 
-# 	unlink "$tmpf"
-# 	g_tools=( ${cp_g_tools[@]} )
-# }
-# 
-# 
-# #
-# # xml tag strip check
-# #
-# test_strip_xml_tag() {
-# 	declare -a cp_g_tools=( ${g_tools[@]} )
-# 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
-# 	local data=''
-# 	local output=''
-# 
-# 	g_tools=( awk=1 )
-# 	data='<taga>data</taga>'
-# 	output=$(echo "$data" | strip_xml_tag 'taga')
-# 	assertEquals "checking for bare data" "data" "$output"
-# 
-# 	echo "$data" > "$tmpf"
-# 	output=$(strip_xml_tag 'taga' "$tmpf")
-# 	assertEquals "checking for bare data from file" "data" "$output"
-# 
-# 	unlink "$tmpf"
-# 	g_tools=( ${cp_g_tools[@]} )
-# }
-# 
-# 
-# #
-# # test 7z verification function
-# #
-# test_verify_7z() {
-# 	declare -a cp_g_tools=( ${g_tools[@]} )
-# 	local status=0
-# 
-# 	g_tools=(  )
-# 	verify_7z
-# 	status=$?
-# 	assertEquals 'No 7z found' $RET_FAIL $status
-# 	assertTrue 'empty g_cmd_7z' "[ -z \"$g_cmd_7z\" ]"
-# 
-# 	g_tools=( 7za=1 )
-# 	verify_7z
-# 	status=$?
-# 	assertEquals '7za found' $RET_OK $status
-# 	assertEquals 'g_cmd_7z = 7za' '7za' "$g_cmd_7z"
-# 
-# 	g_tools=( 7z=1 7za=1 )
-# 	verify_7z
-# 	status=$?
-# 	assertEquals '7z found' $RET_OK $status
-# 	assertEquals 'g_cmd_7z = 7z' '7z' "$g_cmd_7z"
-# 
-# 	g_tools=( ${cp_g_tools[@]} )
-# }
-# 
-# 
+#
+# test verify argv routine
+#
+test_verify_argv() {
+    local status=0
+    local cp_g_charset=$g_charset
+    local cp_g_fps_tool=$g_fps_tool
+    local cp_g_sub_format=$g_sub_format
+
+    declare -a cp_g_cred=( ${g_cred[@]} )
+	declare -a cp_g_output=( ${g_output[@]} )
+
+    g_cred[0]='user_no_password'
+    verify_argv 2>&1 > /dev/null
+    assertNull 'empty username' "${g_cred[0]}"
+    assertNull 'empty password' "${g_cred[1]}"
+    
+    g_min_size='abc'
+    verify_argv 2>&1 > /dev/null
+    assertEquals 'checking g_min_size resetted to zero' 0 $g_min_size
+
+    g_min_size=666
+    verify_argv 2>&1 > /dev/null
+    assertEquals 'checking g_min_size value' 666 $g_min_size
+
+    g_charset='bogus'
+    verify_argv 2>&1 > /dev/null
+    assertEquals 'checking default encoding' 'default' $g_charset
+
+    g_charset='utf8'
+    verify_argv 2>&1 > /dev/null
+    assertEquals 'checking encoding value' 'utf8' $g_charset
+    g_charset=$cp_g_charset
+
+    g_system[2]='bogus_id'
+    verify_argv 2>&1 > /dev/null
+    assertEquals 'checking incorrect id' 'pynapi' ${g_system[2]}
+
+    local logfile=$(mktemp -t logfile.XXXX)
+    g_output[$___LOG]="$logfile"
+    local output=$(verify_argv 2>&1 | grep "istnieje" | wc -l)
+    assertEquals 'failure on existing logfile' 1 $output
+
+	g_output[$___LOG_OWR]=1
+    local output=$(verify_argv | grep "nadpisany" | wc -l)
+    assertEquals 'warning on existing logfile' 1 $output
+    unlink "$logfile"
+
+    g_lang='XXX'
+    verify_argv 2>&1 > /dev/null
+    status=$?
+    assertEquals 'checking status - unknown language' $RET_OK $status
+    assertEquals 'checking language - unknown language' 'PL' $g_lang
+
+    g_lang='list'
+    output=$(verify_argv)
+    status=$?
+    output=$(echo $output | grep "PL" | wc -l)
+    assertEquals 'checking status - list languages' $RET_BREAK $status
+    assertEquals 'checking for list' 1 $output
+    g_lang='PL'
+
+    g_sub_format='bogus'
+    verify_argv 2> /dev/null
+    status=$?
+    assertEquals 'checking status - bogus subs format' $RET_PARAM $status
+    g_sub_format=$cp_g_sub_format
+
+    g_fps_tool='bogus'
+    verify_argv 2> /dev/null
+    status=$?
+    assertEquals 'checking status - bogus fps tool' $RET_PARAM $status
+    g_fps_tool=$cp_g_fps_tool
+
+    g_hook='not_existing_script.sh'
+    verify_argv 2>/dev/null
+    status=$?
+    assertEquals 'non-existing external script' $RET_PARAM $status
+    g_hook='none'
+
+    local hook=$(mktemp -t hook.XXXX)
+    chmod +x "$hook"
+    g_hook="$hook"
+    verify_argv 2> /dev/null
+    status=$?
+    assertEquals 'existing external script' $RET_OK $status
+    g_hook='none'
+    unlink "$hook"
+
+    g_charset=$cp_g_charset
+    g_fps_tool=$cp_g_fps_tool
+    g_sub_format=$cp_g_sub_format
+
+    g_cred=( ${cp_g_cred[@]} )
+	g_output=( ${cp_g_output[@]} )
+}
+
+
+#
+# @brief verify the f hashing function
+#
+test_f() {
+	local sum="91a929824737bbdd98c41e17d7f9630c"
+	local hash="ae34b"
+	local output=''
+
+	output=$(f "$sum")
+	assertEquals "verifying hash" "$hash" "$output"
+}
+
+
+#
+# test download function
+#
+test_download_url() {
+    local status=0
+	declare -a cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
+
+    g_cmd_wget[0]="mocks/wget_log 127 none"
+    download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
+    status=$?
+    assertEquals 'check failure status' $RET_FAIL $status
+
+    g_cmd_wget[0]="mocks/wget_log 0 none"
+    local output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
+    status=$?
+    assertEquals 'check success status' $RET_OK $status
+    assertEquals 'check unknown http code' "unknown" $output
+
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
+    status=$?
+    assertEquals 'check success status' $RET_OK $status
+    assertEquals 'check 200 http code' "301 200" "$output"
+
+    g_cmd_wget[0]="mocks/wget_log 0 404"
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" )
+    status=$?
+    assertEquals 'check success status' $RET_FAIL $status
+    assertEquals 'check 404 http code' "404" "$output"
+
+	# test post request
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=0
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post failure status' $RET_FAIL $status
+
+    g_cmd_wget[0]="mocks/wget_log 0 301_200"
+	g_cmd_wget[1]=1
+    output=0
+    output=$(download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" "some post data")
+    status=$?
+    assertEquals 'check post success status' $RET_OK $status
+    assertEquals 'check 200 http code' "301 200" "$output"
+
+	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
+}
+
+
+#
+# test the awk code execution wrapper
+#
+test_run_awk_script() {
+	local code='{ print $2 }'
+	local status=0
+	local output=''
+	declare -a cp_g_tools=( ${g_tools[@]} )
+
+	echo "col1 col2 col3" | run_awk_script "$code"
+	status=$?
+	assertEquals "awk failure - awk marked as absent" $RET_FAIL $status
+	
+	g_tools=( awk=1 )
+	output=$(echo "col1 col2 col3" | run_awk_script "$code")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the stream processing" "col2" "$output"
+	
+	local tmpf=$(mktemp -t tmp.awk.XXXXXXXX)
+
+	echo "col1 col2 col3" > "$tmpf"
+	output=$(run_awk_script "$code" "$tmpf")
+	status=$?
+	assertEquals "awk success - marked as present" $RET_OK $status
+	assertEquals "checking result of the file processing" "col2" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml single tag extraction check
+#
+test_extract_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><nested><x>data</x></nested></taga>'
+	output=$(echo "$data" | extract_xml_tag 'x')
+	assertEquals "checking for extracted tag" "<x>data</x>" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_xml_tag 'x' "$tmpf")
+	assertEquals "checking for extracted tag from file" "<x>data</x>" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml cdata tag extraction check
+#
+test_extract_cdata_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga><![CDATA[some_data]]></taga>'
+	output=$(echo "$data" | extract_cdata_tag)
+	assertEquals "checking for extracted data" "some_data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(extract_cdata_tag "$tmpf")
+	assertEquals "checking for extracted data from file" "some_data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
+#
+# xml tag strip check
+#
+test_strip_xml_tag() {
+	declare -a cp_g_tools=( ${g_tools[@]} )
+	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
+	local data=''
+	local output=''
+
+	g_tools=( awk=1 )
+	data='<taga>data</taga>'
+	output=$(echo "$data" | strip_xml_tag 'taga')
+	assertEquals "checking for bare data" "data" "$output"
+
+	echo "$data" > "$tmpf"
+	output=$(strip_xml_tag 'taga' "$tmpf")
+	assertEquals "checking for bare data from file" "data" "$output"
+
+	unlink "$tmpf"
+	g_tools=( ${cp_g_tools[@]} )
+}
+
+
 # #
 # # test xml download data function
 # #

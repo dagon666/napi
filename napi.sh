@@ -976,7 +976,12 @@ download_url() {
         # check the headers
         if [ -n "$headers" ]; then
             rv=$RET_FAIL
-            code=$(echo "$headers" | get_http_status | cut -d ' ' -f 2)
+            code=$(echo "$headers" | \
+                get_http_status | \
+                cut -d ' ' -f 2)
+
+            # do that to force the shell to get rid of new lines and spaces
+            code=$(echo $code)
 
             # shellcheck disable=SC2143
             # shellcheck disable=SC2086

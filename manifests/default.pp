@@ -105,24 +105,28 @@ file { "/home/vagrant/napi_bin":
 file { "/home/vagrant/bin/sh":
 	ensure => "link",
 	target => "/bin/busybox",
+	require => File['/home/vagrant/bin']
 }
 
 
 exec { "install napi":
 	command => "/vagrant/install.sh --bindir /home/vagrant/napi_bin --shareddir /home/vagrant/napi_bin",
 	cwd => "/vagrant",
-	creates => "/home/vagrant/napi_bin/napi.sh"
+	creates => "/home/vagrant/napi_bin/napi.sh",
+	require => File['/home/vagrant/napi_bin']
 }
 
 
 file { "/home/vagrant/bin/subotage.sh":
 	ensure => "link",
     target => "/home/vagrant/napi_bin/subotage.sh",
+	require => Exec["install napi"]
 }
 
 
 file { "/home/vagrant/bin/napi.sh":
 	ensure => "link",
     target => "/home/vagrant/napi_bin/napi.sh",
+	require => Exec["install napi"]
 }
 
