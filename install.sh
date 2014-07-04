@@ -16,7 +16,7 @@ replace_path() {
 	local token='NAPI_COMMON_PATH'
 	local replacement="${token}=\"$path\""
 
-	sed -i~ "s|${token}=|${replacement}|" "$file"
+	sed -i~ "s|${token}=|${replacement}|" "$file"	
 }
 
 
@@ -41,6 +41,7 @@ check_dirs() {
 	for d in "${dirs[@]}"; do
 		if ! is_writable "$d"; then
 			echo "katalog [$d] niedostepny do zapisu - okresl inny"
+			usage
 			exit -1
 		fi
 	done
@@ -51,9 +52,8 @@ check_dirs() {
 # print help
 #
 usage() {
-
-	echo "install.sh [<opcje>]"
 	echo
+	echo "install.sh [<opcje>]"
 	echo "opcje:"
 	echo
 	echo -e "\t --bindir - kat. w ktorym zostana zainst. pliki wykonywalne (dom. $BIN_dir)"
@@ -98,7 +98,7 @@ echo "BIN_dir : [$BIN_dir]"
 echo "SHARED_dir : [$SHARED_dir]"
 
 # check dirs
-check_dirs
+check_dirs 
 
 # install shared first
 mkdir -p "$SHARED_dir/napi"
@@ -110,10 +110,8 @@ done
 for f in "${bin_files[@]}"; do
 	replace_path "$f" "$SHARED_dir/napi"
 	cp -v "$f" "$BIN_dir"
+
+	# restore original files if we've got backups
+	[ -e "${f}~" ] && mv -v "${f}~" "$f"
 done
-
-
-
-
-# replace_path "subotage.sh" "/tmp"
 

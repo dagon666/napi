@@ -32,7 +32,7 @@
 #
 # source the code of the original script
 #
-. ../napi_common.sh 2>&1 > /dev/null
+. "$g_install_path/napi/napi_common.sh" 2>&1 > /dev/null
 
 ################################################################################
 
@@ -400,6 +400,19 @@ test_verify_function_presence() {
 }
 
 
+#
+# test system specific functions
+#
+test_system_tools() {
+    local system=$(uname | tr '[A-Z]' '[a-z]')
+    local cores=$(lscpu | grep "^CPU(s)" | rev | cut -d ' ' -f 1)
+
+    local ds=$(get_system)
+    local dc=$(get_cores)
+
+    assertEquals 'check the system detection routine' $system $ds
+    assertEquals 'check the system core counting routine' $cores $dc
+}
 
 
 # shunit call

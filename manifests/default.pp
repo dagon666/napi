@@ -87,10 +87,18 @@ package { "libwww-perl":
     require => Exec["apt-get update"],
 }
 
+
 file { "/home/vagrant/bin":
   ensure  => "directory",
   owner => "vagrant",
   mode => 750
+}
+
+
+file { "/home/vagrant/napi_bin":
+	ensure => "directory",
+   	owner => "vagrant",
+  	mode => 750
 }
 
 
@@ -100,14 +108,21 @@ file { "/home/vagrant/bin/sh":
 }
 
 
-file { "/home/vagrant/bin/napi.sh":
-	ensure => "link",
-	target => "/vagrant/napi.sh",
+exec { "install napi":
+	command => "/vagrant/install.sh --bindir /home/vagrant/napi_bin --shareddir /home/vagrant/napi_bin",
+	cwd => "/vagrant",
+	creates => "/home/vagrant/napi_bin/napi.sh"
 }
 
 
 file { "/home/vagrant/bin/subotage.sh":
 	ensure => "link",
-    target => "/vagrant/subotage.sh",
+    target => "/home/vagrant/napi_bin/subotage.sh",
+}
+
+
+file { "/home/vagrant/bin/napi.sh":
+	ensure => "link",
+    target => "/home/vagrant/napi_bin/napi.sh",
 }
 

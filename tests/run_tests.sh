@@ -8,17 +8,29 @@ vagrant up
 time vagrant ssh -c "/vagrant/tests/prepare_gcc3.sh $path_root"
 time vagrant ssh -c "cd /vagrant/tests && ./prepare.pl $path_root"
 
-# run unit tests
-vagrant ssh -c "cd /vagrant/tests && ./unit_napi.sh $path_root"
-uni_status=$?
 
-if [ $uni_status -ne 0 ]; then
+# run unit tests
+declare -a utests=( 'unit_napi_common.sh' 'unit_napi.sh' )
+for s in "${utests[@]}"; do
+
 	echo '==========================================='
-	echo 'NAPI.SH - UNIT TESTY NIE POMYSLNE !!!'
-	echo 'SYSTEM TESTY NIE ZOSTANA PRZEPROWADZONE !!!'
+	echo "$s"
 	echo '==========================================='
-	exit -1
-fi
+
+	vagrant ssh -c "cd /vagrant/tests && ./$s $path_root"
+	uni_status=$?
+
+	if [ $uni_status -ne 0 ]; then
+		echo "==========================================="
+		echo "$s - UNIT TESTY NIE POMYSLNE !!!"
+		echo "SYSTEM TESTY NIE ZOSTANA PRZEPROWADZONE !!!"
+		echo "==========================================="
+		exit -1
+	fi
+done
+
+# TODO REMOVE ME - ONLY TEMPORARY
+exit
 
 # run system tests with the following shells
 declare -a shells=( 'bash-2.04' 'bash-2.05' 'bash-2.05a' 'bash-2.05b' 'bash-3.0' 'bash-3.1' 'bash-3.2' 'bash-3.2.48' 'bash-4.0' 'bash-4.1' 'bash-4.2' 'bash-4.3' )

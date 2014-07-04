@@ -10,6 +10,10 @@ declare -r SHUNIT_TESTS=1
 declare -r g_assets_path="${1:-/home/vagrant}"
 shift
 
+#
+# installation directory of the napi bundle
+#
+declare -r g_install_path="$g_assets_path/napi_bin"
 
 #
 # unit test environment root
@@ -26,6 +30,7 @@ _prepare_env() {
 
 	export PATH="$g_assets_path/$g_ut_root/bin:$PATH"
 }
+
 
 _purge_env() {
     # clear the env
