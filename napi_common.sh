@@ -216,7 +216,7 @@ modify_value() {
     for i in $*; do
         k=$(get_key "$i")
         # unfortunately old shells don't support rv+=( "$i" )
-        [ "$i" != "$key" ] && rv=( "${rv[@]}" "$i" )
+        [ "$k" != "$key" ] && rv=( "${rv[@]}" "$i" )
     done
 
     rv=( "${rv[@]}" "$key=$value" )
@@ -403,12 +403,13 @@ verify_tool_presence() {
 verify_function_presence() {
     local tool=$(builtin type -t "$1")
     local rv=$RET_UNAV
+    local status=0
 
     # make sure it's really there
     if [ -z "$tool" ]; then
         type "$1" > /dev/null 2>&1;
-        rv=$?
-        [ "$rv" -ne $RET_OK ] && tool='empty'
+        status=$?
+        [ "$status" -ne $RET_OK ] && tool='empty'
     fi
         
     # check the output
