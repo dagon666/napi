@@ -870,37 +870,37 @@ test_strip_xml_tag() {
 }
 
 
-# #
-# # test xml download data function
-# #
-# test_download_data_xml() {
-# 	local status=0
-# 
-# 	(
-# 		retval=$RET_OK
-# 
-# 		download_url() {
-# 			return $retval
-# 		}
-# 		export -f download_url
-# 
-# 		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass'
-# 		status=$?
-# 		assertEquals 'checking success download status' $RET_OK $status
-# 
-# 		retval=$RET_FAIL
-# 		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' 2>&1 > /dev/null
-# 		status=$?
-# 		assertEquals 'checking failure download status' $RET_FAIL $status
-# 	)
-# 
-# 	return 0
-# }
-# 
-# 
-# #
-# # test get_xml wrapper
-# #
+#
+# test xml download data function
+#
+test_download_data_xml() {
+	local status=0
+
+	(
+		retval=$RET_OK
+
+		download_url() {
+			return $retval
+		}
+		export -f download_url
+
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass'
+		status=$?
+		assertEquals 'checking success download status' $RET_OK $status
+
+		retval=$RET_FAIL
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' 2>&1 > /dev/null
+		status=$?
+		assertEquals 'checking failure download status' $RET_FAIL $status
+	)
+
+	return 0
+}
+
+
+#
+# test get_xml wrapper
+#
 # test_get_xml() {
 # 
 # 	local xmltmp=$(mktemp tmp.xml.XXXXXXXX)
@@ -932,8 +932,8 @@ test_strip_xml_tag() {
 # 	unlink "$xmltmp"
 # 	return 0
 # }
-# 
-# 
+
+
 # #
 # # test xml cleanup routine
 # #
