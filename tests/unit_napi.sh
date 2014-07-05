@@ -47,6 +47,9 @@ oneTimeSetUp() {
     cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/av1 file.avi"
     cp -v "$g_assets_path/napi_test_files/av2.dat" "$g_assets_path/$g_ut_root/av2 file.avi"
     cp -v "$g_assets_path/napi_test_files/av1.dat" "$g_assets_path/$g_ut_root/sub dir/av3 file.avi"
+
+	# copy the example xml
+    cp -v "$g_assets_path/napi_test_files/example.xml" "$g_assets_path/$g_ut_root/example.xml"
 }
 
 
@@ -58,7 +61,6 @@ oneTimeTearDown() {
 }
 
 ################################################################################
-
 
 #
 # test the language listing routine
@@ -873,29 +875,115 @@ test_get_xml() {
 }
 
 
-# #
-# # test xml cleanup routine
-# #
-# test_cleanup_xml() {
-# 	local media_path="$g_assets_path/$g_ut_root/av1 file.avi"
-# 	local xml_path="$g_assets_path/$g_ut_root/av1 file.xml"
-# 	declare -a cp_g_system=( ${g_system[@]} )
-# 
-# 	touch "$xml_path"
-# 	echo "bogus data" > "$xml_path"
-# 
-# 	g_system[2]='pynapi'
-# 	cleanup_xml "$media_path"
-# 	assertTrue 'checking file existence' "[ -e \"$xml_path\" ]"
-# 
-# 	g_system[2]='NapiProjektPython'
-# 	cleanup_xml "$media_path"
-# 	assertFalse 'checking file absence' "[ -e \"$xml_path\" ]"
-# 
-# 	g_system=( ${cp_g_system[@]} )
-# 	[ -e "$xml_path" ] && unlink "$xml_path"
-# 	return 0
-# }
+#
+# test subs xml extraction
+#
+test_extract_subs_xml() {
+	local bogus_file=$(mktemp -t bogus.xml.XXXXXXXX)
+	local subs="$g_assets_path/$g_ut_root/subs.txt"
+	local status=0
+
+	_save_globs
+
+	extract_subs_xml "$bogus_file" "$subs" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for success status - failure" $RET_UNAV "$status"
+
+	g_cmd_7z="false"
+	g_tools=( 'awk=1' )
+	extract_subs_xml "$g_assets_path/$g_ut_root/example.xml" "$subs" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for 7z failure" $RET_FAIL "$status"
+
+	g_cmd_7z="7za"
+	extract_subs_xml "$g_assets_path/$g_ut_root/example.xml" "$subs"
+	status=$?
+	assertEquals "checking for 7z success" $RET_OK "$status"
+	assertTrue "checking the subs file" "[ -e \"$subs\" ]"
+
+	unlink "$subs"
+	unlink "$bogus_file"
+	_restore_globs
+}
+
+
+#
+# test nfo xml extraction
+#
+test_extract_nfo_xml() {
+	local bogus_file=$(mktemp -t bogus.xml.XXXXXXXX)
+	local nfo="$g_assets_path/$g_ut_root/info.nfo"
+	local status=0
+
+	_save_globs
+
+	extract_nfo_xml "$bogus_file" "$nfo" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for success status - failure" $RET_UNAV "$status"
+
+	g_tools=( 'awk=1' )
+	extract_nfo_xml "$g_assets_path/$g_ut_root/example.xml" "$nfo"
+	status=$?
+	assertEquals "checking for success" $RET_OK "$status"
+	assertTrue "checking the nfo file" "[ -s \"$nfo\" ]"
+
+	unlink "$nfo"
+	unlink "$bogus_file"
+	_restore_globs
+	return 0
+}
+
+
+#
+# test cover xml extraction
+#
+test_extract_cover_xml() {
+	local bogus_file=$(mktemp -t bogus.xml.XXXXXXXX)
+	local cover="$g_assets_path/$g_ut_root/cover.jpg"
+	local status=0
+
+	_save_globs
+
+	extract_nfo_xml "$bogus_file" "$cover" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking for success status - failure" $RET_UNAV "$status"
+
+	g_tools=( 'awk=1' )
+	extract_nfo_xml "$g_assets_path/$g_ut_root/example.xml" "$cover"
+	status=$?
+	assertEquals "checking for success" $RET_OK "$status"
+	assertTrue "checking the nfo file" "[ -s \"$cover\" ]"
+
+	unlink "$cover"
+	unlink "$bogus_file"
+	_restore_globs
+	return 0
+}
+
+
+#
+# test xml cleanup routine
+#
+test_cleanup_xml() {
+	local media_path="$g_assets_path/$g_ut_root/av1 file.avi"
+	local xml_path="$g_assets_path/$g_ut_root/av1 file.xml"
+	declare -a cp_g_system=( ${g_system[@]} )
+
+	touch "$xml_path"
+	echo "bogus data" > "$xml_path"
+
+	g_system[2]='pynapi'
+	cleanup_xml "$media_path"
+	assertTrue 'checking file existence' "[ -e \"$xml_path\" ]"
+
+	g_system[2]='NapiProjektPython'
+	cleanup_xml "$media_path"
+	assertFalse 'checking file absence' "[ -e \"$xml_path\" ]"
+
+	g_system=( ${cp_g_system[@]} )
+	[ -e "$xml_path" ] && unlink "$xml_path"
+	return 0
+}
 # 
 # # TODO VERIFIED UP TO HERE =================================================
 # 
