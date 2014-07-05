@@ -263,9 +263,9 @@ check_format_subviewer2() {
 read -d "" match_ts << 'EOF'
 {
     match_group="[0-9]+:[0-9]+:[0-9]+\.[0-9]+"
-    reg = "^" match_group "," match_group "[:space:]*[\\r\\n]*$"
-    where = match($0, reg);
-    print where;
+    reg = "^" match_group "," match_group "\ *[\\r\\n]*$"
+    where = match($0, reg)
+    print where
 }
 EOF
 
@@ -319,26 +319,26 @@ read -d "" generic_check << 'EOF'
 {
     # 1 - multiline check regexp (length: 10/11)
     # 2 - non-multiline regexp (length: 8/9)
-    reg[1] = "^[0-9]{1,2}:[0-9]{2}:[0-9]{2},[0-9]{1}[:;=,]{1}";
-    reg[2] = "^[0-9]{1,2}:[0-9]{2}:[0-9]{2}[:;=,]{1}";
+    reg[1] = "^[0-9]+:[0-9]+:[0-9]+,[0-9]+[:;=,]+"
+    reg[2] = "^[0-9]+:[0-9]+:[0-9]+[:;=,]+"
     result=-1
 
     for (i in reg) {
-        where = match($0, reg[i]);
+        where = match($0, reg[i])
         if (where) {
-            result = i " " RLENGTH;
-            break;
+            result = i " " RLENGTH
+            break
         }
     }
 
-    print result;
+    print result
 }
 EOF
 
 
 read -d "" extract_delim << 'EOF'
 {
-    print substr($0, match_len, 1);
+    print substr($0, match_len, 1)
 }
 EOF
 
@@ -415,38 +415,36 @@ read_format_subviewer2() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="\\n";
-    RS=""; # blank line as record separator
-    lines_processed=1;
+    FS="\\n"
+    RS="" # blank line as record separator
+    lines_processed=1
 }
 
 {
     if (lines_processed == 1) {
-        rec = __start_line;
+        rec = __start_line
     }
     else {
-        rec = 1;
+        rec = 1
     }
 
-    line_data = rec + 1;
-    split($rec, start, ",");
-    split(start[1], tm_start, ":");
-    split(start[2], tm_stop, ":");
+    line_data = rec + 1
+    split($rec, start, ",")
+    split(start[1], tm_start, ":")
+    split(start[2], tm_stop, ":")
 
-    time_start = ( tm_start[1]*3600 + tm_start[2]*60 + tm_start[3] + tm_start[4]/100 );
-    time_stop = ( tm_stop[1]*3600 + tm_stop[2]*60 + tm_stop[3] + tm_stop[4]/100 );
+    time_start = ( tm_start[1]*3600 + tm_start[2]*60 + tm_start[3] + tm_start[4]/100 )
+    time_stop = ( tm_stop[1]*3600 + tm_stop[2]*60 + tm_stop[3] + tm_stop[4]/100 )
 
-    printf("%d %s %s ", lines_processed,
-        time_start,
-        time_stop );
+    printf("%d %s %s ", lines_processed, time_start, time_stop )
 
     for (i=line_data; i<=NF; i++) {
-        if (i>line_data) printf(\"|\");
-        printf("%s", $i);                        
+        if (i>line_data) printf(\"|\")
+        printf("%s", $i);                       
     }
 
-    lines_processed++;
-    printf("\\n");
+    lines_processed++
+    printf("\\n")
 }
 EOF
 
@@ -472,89 +470,89 @@ read_format_tmplayer() {
 # match="tmplayer $first_line $hour_digits $multiline $delim"
 read -d "" awk_code << 'EOF'
 BEGIN {
-    lines_processed = 1;
-    prev_time_start = 0;
-    __last_time = __last_time / 1000;
+    lines_processed = 1
+    prev_time_start = 0
+    __last_time = __last_time / 1000
 }
 
 /^[:space:]*$/ {
-    next;
+    next
 }
 
 length($0) && NR >= __start_line {
     
     if (FS == ":") {
         if (__multiline) {
-            split($3, ts, ",");
-            hours=$1;
-            minutes=$2;
-            seconds=ts[1];
+            split($3, ts, ",")
+            hours=$1
+            minutes=$2
+            seconds=ts[1]
         }
         else {
-            hours=$1;
-            minutes=$2;
-            seconds=$3;
+            hours=$1
+            minutes=$2
+            seconds=$3
         }
 
-        line_start = 4;
+        line_start = 4
     }
     else {
         if (__multiline) {
-            split($1, ts, "[:,]");
+            split($1, ts, "[:,]")
         }
         else {
-            split($1, ts, ":");
+            split($1, ts, ":")
         }
 
-        hours = ts[1];
-        minutes = ts[2];
-        seconds = ts[3];
-        line_start = 2;
+        hours = ts[1]
+        minutes = ts[2]
+        seconds = ts[3]
+        line_start = 2
     }
     
-    time_start = hours*3600 + minutes*60 + seconds;
-    time_end = (time_start + __last_time);
+    time_start = hours*3600 + minutes*60 + seconds
+    time_end = (time_start + __last_time)
 
     if (__multiline) {
         if (time_start == prev_time_start && NR > 1) {
-            printf("|");
+            printf("|")
         }
         else {
             if (NR > 1) {
-                printf("\\n");    
-                lines_processed++;
+                printf("\\n");   
+                lines_processed++
             }
 
-            printf("%d %02d:%02d:%02d %02d:%02d:%02d ",
-                lines_processed,
-                hours,
-                minutes,
-                seconds,
-                (time_end/3600),
-                ((time_end/60)%60),
-                (time_end%60));
+            printf("%d %02d:%02d:%02d %02d:%02d:%02d ", \
+                lines_processed, \
+                hours, \
+                minutes, \
+                seconds, \
+                (time_end/3600), \
+                ((time_end/60)%60), \
+                (time_end%60))
             }
 
     } # __multiline
     else {
-        printf("%d %02d:%02d:%02d %02d:%02d:%02d ",
-            lines_processed++,
-            hours,
-            minutes,
-            seconds,
-            (time_end/3600),
-            ((time_end/60)%60),
-            (time_end%60));
+        printf("%d %02d:%02d:%02d %02d:%02d:%02d ", \
+            lines_processed++, \
+            hours, \
+            minutes, \
+            seconds, \
+            (time_end/3600), \
+            ((time_end/60)%60), \
+            (time_end%60))
     }
 
     # display the line data
-    for (i=line_start; i<=NF; i++) printf("%s", $i);
+    for (i=line_start; i<=NF; i++) printf("%s", $i)
 
     if (__multiline) {
-        prev_time_start = time_start;
+        prev_time_start = time_start
     }
     else {
-        printf "\\n";     
+        printf "\\n"
     }
 }
 EOF
@@ -583,35 +581,31 @@ read_format_microdvd() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[}{]";
-    lines_processed=0;
-    __last_time = __last_time / 1000;
+    FS="[}{]"
+    lines_processed=0
+    __last_time = __last_time / 1000
 }
 /^[:space:]*$/ {
-    next;
+    next
 }
 NR >= __start_line {
-    frame_start=$2;
-    frame_end=$4;
-    line_data=5;
+    frame_start=$2
+    frame_end=$4
+    line_data=5
 
     if (!($4 + 0)) {
-        frame_end=$2 + __last_time*__fps;        
+        frame_end=$2 + __last_time*__fps
     }
 
-    printf("%d %s %s ", lines_processed, 
-        (frame_start/__fps),
-        (frame_end/__fps));
-
-    lines_processed++;
+    printf("%d %s %s ", lines_processed, (frame_start/__fps), (frame_end/__fps))
+    lines_processed++
 
     for (i=line_data; i<=NF; i++) {
         # strip control codes - comment this out if you want to keep'em
-        gsub( /[yYfFsScCP]{1}:.*/, "", $i );
-
-        printf("%s", $i);   
+        gsub( /[yYfFsScCP]{1}:.*/, "", $i )
+        printf("%s", $i)
     }
-    printf("\\n");
+    printf("\\n")
 }
 EOF
     
@@ -635,31 +629,31 @@ read_format_mpl2() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[\]\[]";
-    lines_processed = 1;    
-    __last_time = __last_time / 100;
+    FS="[\]\[]"
+    lines_processed = 1;   
+    __last_time = __last_time / 100
 }
 
 /^[:space:]*$/ {
-    next;
+    next
 }
 
 length($0) && NR >= __start_line {
 
-    frame_start=$2;
-    frame_end=$4;
+    frame_start=$2
+    frame_end=$4
 
     if (!($4 + 0)) {
-        frame_end=$2 + __last_time;        
+        frame_end=$2 + __last_time
     }
 
-    printf("%s %s %s ",
-        lines_processed++,
-        (frame_start/10),
-        (frame_end/10));
+    printf("%s %s %s ", \
+        lines_processed++, \
+        (frame_start/10), \
+        (frame_end/10))
 
-    for (i=5; i<=NF; i++) printf("%s", $i);
-    printf("\\n");
+    for (i=5; i<=NF; i++) printf("%s", $i)
+    printf("\\n")
 }
 EOF
     
@@ -682,9 +676,9 @@ read_format_subrip() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    FS="\\n";
-    RS="";
-    lines_processed = 1;
+    FS="\\n"
+    RS=""
+    lines_processed = 1
 }
 
 length($0) {
@@ -955,7 +949,7 @@ NR > 1 {
     
     printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\\n", \
         sh, sm, ss, sc, \
-        eh, em, es, ec);
+        eh, em, es, ec)
 
     for (i=4; i<=NF; i++) {
         tmp = sprintf("%s ", $i)
@@ -1431,8 +1425,9 @@ BEGIN {
 
 {
     # regular expressions to match the fps data
-    regs[1]="[0-9]{2}[\.0-9]{2,}[:space:]*(fps)*"
-    regs[2]="[0-9]{2}+[:space:]*(fps)*"
+    regs[1]="[0-9]+\\.[0-9]+\\ *(fps)*"
+    regs[2]="[0-9]+\\ *(fps)+"
+    regs[3]="[0-9]+\\ *$"
 
     # execute regexp each by each and seek for a match
     for (r in regs) {
@@ -1563,7 +1558,7 @@ convert_formats() {
     fi
 
     # get rid of the temporary file
-    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
+    [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 
@@ -1628,7 +1623,7 @@ process_file() {
     fwriter="write_format_${g_outf[$___FORMAT]}"
     if ! verify_function_presence "$freader"; then
         _error "funkcja piszaca do formatu [$freader] nie istnieje"
-        # return $RET_BREAK # TODO - REMOVE THIS - DISABLED THAT TEMPORARILY
+        return $RET_BREAK 
     fi
     
     convert_formats "$freader" "$fwriter"

@@ -1934,13 +1934,13 @@ convert_format() {
     local fps_opt=''
     local rv=$RET_OK
 
-    # for the backup
-    local tmp="$(mktemp napi.XXXXXXXX)"
-
     # verify original file existence before proceeding further
     ! [ -e "$path/$input" ] &&
         _error "oryginalny plik nie istnieje" &&
         return $RET_FAIL
+
+    # for the backup
+    local tmp="$(mktemp napi.XXXXXXXX)"
 
     # create backup
     _debug $LINENO "backupuje oryginalny plik jako $tmp"

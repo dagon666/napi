@@ -62,43 +62,6 @@ oneTimeTearDown() {
 
 ################################################################################
 
-#
-# test the conversion routine
-#
-test_convert_format() {
-	local status=0
-
-	_save_globs
-
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-	status=$?
-	assertEquals 'failure on non existing subs' $RET_FAIL $status
-
-	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
-	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
-	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
-	
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-	status=$?
-	assertEquals 'failure on default subs format' $RET_FAIL $status
-
-	g_delete_orig=1
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-	status=$?
-	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
-
-	g_sub_format='subrip'
-	g_output[$___VERBOSITY]=3
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt"
-	status=$?
-	# assertEquals 'success on subrip subs format' $RET_OK $status
-	# assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
-	# assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
-    
-	_restore_globs
-    return 0
-}
-
 
 #
 # test the language listing routine
@@ -1418,6 +1381,43 @@ test_check_subs_presence() {
 	g_sub_format='default'
 	g_pf=()
     return 0    
+}
+
+
+#
+# test the conversion routine
+#
+test_convert_format() {
+	local status=0
+
+	_save_globs
+
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on non existing subs' $RET_FAIL $status
+
+	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
+	
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on default subs format' $RET_FAIL $status
+
+	g_delete_orig=1
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+
+	g_sub_format='subrip'
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'success on subrip subs format' $RET_OK $status
+	assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+	assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
+    
+	_restore_globs
+    return 0
 }
 
 
