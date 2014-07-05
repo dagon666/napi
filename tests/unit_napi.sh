@@ -62,6 +62,7 @@ oneTimeTearDown() {
 
 ################################################################################
 
+
 #
 # test the language listing routine
 #
@@ -1033,32 +1034,33 @@ test_download_item_xml() {
 #
 test_download_subs_classic() {
     local status=0
-    local cp_g_cmd_wget="$g_cmd_wget"
 	local output_file="$g_assets_path/$g_ut_root/output file" 
 
-    g_cmd_wget="mocks/wget_log 127 none"
+	_save_globs
+
+    g_cmd_wget[0]="mocks/wget_log 127 none"
     download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying wget error' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 404"
+    g_cmd_wget[0]="mocks/wget_log 0 404"
     download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying error when 404' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 200"
+    g_cmd_wget[0]="mocks/wget_log 0 200"
     download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
     status=$?
     assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 200"
+    g_cmd_wget[0]="mocks/wget_log 0 200"
     echo test > "$output_file"
     download_subs_classic 123 123 "$output_file" PL pynapi "" ""
     status=$?
     assertEquals 'verifying small file' $RET_FAIL $status
     assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
 
-    g_cmd_wget="mocks/wget_log 0 200"
+    g_cmd_wget[0]="mocks/wget_log 0 200"
     echo line1 > "$output_file"
     echo line2 >> "$output_file"
     echo line3 >> "$output_file"
@@ -1070,7 +1072,7 @@ test_download_subs_classic() {
     assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
     unlink "$output_file"
 
-    g_cmd_wget="$g_cmd_wget"
+	_restore_globs
 }
 
 
@@ -1079,187 +1081,261 @@ test_download_subs_classic() {
 #
 test_download_cover_classic() {
     local status=0  
-    local cp_g_cmd_wget="$g_cmd_wget"
 	local output_file="$g_assets_path/$g_ut_root/output file" 
 
-    g_cmd_wget="mocks/wget_log 255 none"
+	_save_globs
+
+    g_cmd_wget[0]="mocks/wget_log 255 none"
     download_cover_classic 123 "$output_file"
     status=$?
     assertEquals 'wget failure' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 404"
+    g_cmd_wget[0]="mocks/wget_log 0 404"
     download_cover_classic 123 "$output_file"
     status=$?
     assertEquals 'wget 404' $RET_FAIL $status
 
-    g_cmd_wget="mocks/wget_log 0 200"
+    g_cmd_wget[0]="mocks/wget_log 0 200"
     download_cover_classic 123 "$output_file"
     status=$?
     assertEquals 'file doesnt exist' $RET_UNAV $status
 
-    g_cmd_wget="mocks/wget_log 0 200"
+    g_cmd_wget[0]="mocks/wget_log 0 200"
     echo test > "$output_file"
     download_cover_classic 123 "$output_file"
     status=$?
     assertEquals 'file exists' $RET_OK $status
     unlink "$output_file"
 
-    g_cmd_wget="$g_cmd_wget"
+	_restore_globs
 }
 
-# TODO VERIFIED UP TO HERE =================================================
 
-# #
-# # test get subtitles wrapper routine
-# #
-# test_get_subtitles() {
-#     local status=0  
-#     local cp_g_cmd_wget="$g_cmd_wget"
-# 	local media=''
-# 	local output_file="$g_assets_path/$g_ut_root/subs.txt" 
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     echo line1 > "$output_file"
-#     echo line2 >> "$output_file"
-#     echo line3 >> "$output_file"
-#     echo line4 >> "$output_file"
-#     echo line5 >> "$output_file"
-# 	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
-#     status=$?
-#     assertEquals 'download subs success' $RET_OK $status
-# 
-# 	unlink "$output_file"
-# 	g_cmd_wget="$g_cmd_wget"
-# }
-# 
-# 
-# #
-# # test get cover wrapper routine
-# #
-# test_get_cover() {
-#     local status=0  
-#     local cp_g_cmd_wget="$g_cmd_wget"
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-# 	echo cover_data > "$g_assets_path/$g_ut_root/av1 file.jpg"
-# 	get_cover "$g_assets_path/$g_ut_root/av1 file.avi" 
-# 	status=$?
-# 	assertEquals 'checking the cover' $RET_OK $status
-# 
-# 	unlink "$g_assets_path/$g_ut_root/av1 file.jpg"
-# 	g_cmd_wget="$g_cmd_wget"
-# }
-# 
-# 
-# #
-# # test get charset routine
-# #
-# test_get_charset() {
-#     local output=''
-#     declare -a tmp=( ${g_tools[@]} )
-# 	local output_file="$g_assets_path/$g_ut_root/test_file" 
-# 
-# 	LANG=C echo test_file > "$output_file"
-# 	output=$(get_charset "$output_file")
-# 	assertEquals 'checking default charset when file=0' 'WINDOWS-1250' "$output"
-# 	
-# 	g_tools=( file=1 )
-# 	output=$(get_charset "$output_file")
-# 	assertEquals 'checking default charset when file=0' 'US-ASCII' "$output"
-# 
-# 	unlink "$output_file"
-#     g_tools=( ${tmp[@]} )
-# }
-# 
-# 
-# #
-# # test convert charset routine
-# #
-# test_convert_charset() {
-#     local status=0
-#     declare -a tmp=( ${g_tools[@]} )
-# 	local output_file="$g_assets_path/$g_ut_root/test_file" 
-# 
-# 	LANG=C echo "znaki specjalne ęóąśżźćń" > "$output_file"
-# 	g_tools=( file=1 )
-# 	convert_charset "$output_file" 'utf8'
-# 	status=$?
-# 	assertEquals 'checking return value' $RET_OK $status
-# 
-# 	output=$(get_charset "$output_file")
-# 	assertEquals 'checking converted charset' 'UTF8' $output
-# 
-# 	unlink "$output_file"
-#     g_tools=( ${tmp[@]} )
-# }
-# 
-# 
-# #
-# # test verify_extension routine
-# #
-# test_verify_extension() {
-#     local output=''
-#     output=$(verify_extension 'plik.txt')
-#     assertEquals 'verify txt ext' 0 $output
-#     
-#     output=$(verify_extension 'plik ze spacja.dat')
-#     assertEquals 'verify dat ext' 0 $output
-# 
-#     output=$(verify_extension 'plik ze spacja.avi')
-#     assertEquals 'verify dat ext' 1 $output
-# }
-# 
-# 
-# #
-# # test prepare_file_list
-# #
-# test_prepare_file_list() {
-#     declare -a cp_g_files=( ${g_files[@]} )
-# 
-#     prepare_file_list 0 "$g_assets_path/$g_ut_root"
-#     assertEquals 'number of elements' 3 ${#g_files[@]}
-# 
-#     g_files=()
-#     prepare_file_list 20 "$g_assets_path/$g_ut_root"
-#     assertEquals 'number of elements (min_size: 20)' 0 ${#g_files[@]}
-# 
-#     g_files=( ${cp_g_files[@]} )
-# }
-# 
-# 
-# #
-# # test prepare_filenames
-# #
-# test_prepare_filenames() {
-#     declare -a cp_g_abbrev=( ${g_abbrev[@]} )
-# 
-#     prepare_filenames 'file.avi'
-# 
-#     assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
-#     assertEquals 'checking 1' 'file.txt' ${g_pf[1]}
-#     assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
-#     assertEquals 'checking 3' 'ORIG_file.txt' ${g_pf[3]}
-#     assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
-#     assertEquals 'checking 5' 'file.txt' ${g_pf[5]}
-#     assertEquals 'checking 6' 'file.txt' ${g_pf[6]}
-#     assertEquals 'checking 7' 'file.txt' ${g_pf[7]}
-# 
-#     g_abbrev=( 'AB' 'CAB' )
-#     prepare_filenames 'file.avi'
-# 
-#     assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
-#     assertEquals 'checking 1' 'file.AB.txt' ${g_pf[1]}
-#     assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
-#     assertEquals 'checking 3' 'ORIG_file.AB.txt' ${g_pf[3]}
-#     assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
-#     assertEquals 'checking 5' 'file.AB.txt' ${g_pf[5]}
-#     assertEquals 'checking 6' 'file.CAB.txt' ${g_pf[6]}
-#     assertEquals 'checking 7' 'file.AB.CAB.txt' ${g_pf[7]}
-# 
-#     g_abbrev=( ${cp_g_abbrev[@]} )
-# }
-# 
-# 
+#
+# test get subtitles wrapper routine
+#
+test_get_subtitles() {
+    local status=0  
+	local media=''
+	local output_file="$g_assets_path/$g_ut_root/subs.txt" 
+
+	_save_globs
+
+	g_system[2]='pynapi'
+    g_cmd_wget[0]="mocks/wget_log 0 200"
+    echo line1 > "$output_file"
+    echo line2 >> "$output_file"
+    echo line3 >> "$output_file"
+    echo line4 >> "$output_file"
+    echo line5 >> "$output_file"
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
+    status=$?
+    assertEquals 'download subs success' $RET_OK $status
+
+	(
+	retval=$RET_FAIL
+	download_item_xml() {
+		return $retval
+	}
+	export -f download_item_xml
+
+	g_system[2]='NapiProjekt'
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
+    status=$?
+    assertEquals 'download subs failure' $RET_FAIL $status
+
+	retval=$RET_OK
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
+    status=$?
+    assertEquals 'download subs success' $RET_OK $status
+	)
+
+	unlink "$output_file"
+	_restore_globs
+}
+
+
+#
+# @brief test nfo retrieval wrapper
+#
+test_get_nfo() {
+	local status=0
+	_save_globs
+
+	(
+	retval=$RET_FAIL
+	download_item_xml() {
+		return $retval
+	}
+	export -f download_item_xml
+
+	g_system[2]='pynapi'
+	get_nfo
+	status=$?
+	assertEquals "failure for non API3 id" $RET_FAIL "$status"
+
+	g_system[2]='NapiProjekt'
+	get_nfo
+	status=$?
+	assertEquals "failure for due to download_item_xml fail" $RET_FAIL "$status"
+
+	retval=$RET_OK
+	get_nfo
+	status=$?
+	assertEquals "get_nfo success" $RET_OK "$status"
+	)
+
+	_restore_globs
+}
+
+
+#
+# test get cover wrapper routine
+#
+test_get_cover() {
+    local status=0  
+
+	_save_globs
+
+    g_cmd_wget[0]="mocks/wget_log 0 200"
+	g_system[2]='pynapi'
+	echo "cover_data" > "$g_assets_path/$g_ut_root/av1 file.jpg"
+	get_cover "$g_assets_path/$g_ut_root/av1 file.avi" 
+	status=$?
+	assertEquals 'checking the cover' $RET_OK $status
+
+	(
+	retval=$RET_FAIL
+	download_item_xml() {
+		return $retval
+	}
+	export -f download_item_xml
+
+	g_system[2]='NapiProjekt'
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
+    status=$?
+    assertEquals 'download cover failure' $RET_FAIL $status
+
+	retval=$RET_OK
+	get_subtitles "$g_assets_path/$g_ut_root/av1 file.avi" "$output_file" "PL"
+    status=$?
+    assertEquals 'download cover success' $RET_OK $status
+	)
+
+	unlink "$g_assets_path/$g_ut_root/av1 file.jpg"
+	_restore_globs
+}
+
+
+#
+# test get charset routine
+#
+test_get_charset() {
+    local output=''
+    declare -a tmp=( ${g_tools[@]} )
+	local output_file="$g_assets_path/$g_ut_root/test_file" 
+
+	LANG=C echo test_file > "$output_file"
+	output=$(get_charset "$output_file")
+	assertEquals 'checking default charset when file=0' 'WINDOWS-1250' "$output"
+	
+	g_tools=( file=1 )
+	output=$(get_charset "$output_file")
+	assertEquals 'checking default charset when file=0' 'US-ASCII' "$output"
+
+	unlink "$output_file"
+    g_tools=( ${tmp[@]} )
+}
+
+
+#
+# test convert charset routine
+#
+test_convert_charset() {
+    local status=0
+    declare -a tmp=( ${g_tools[@]} )
+	local output_file="$g_assets_path/$g_ut_root/test_file" 
+
+	LANG=C echo "znaki specjalne ęóąśżźćń" > "$output_file"
+	g_tools=( file=1 )
+	convert_charset "$output_file" 'utf8'
+	status=$?
+	assertEquals 'checking return value' $RET_OK $status
+
+	output=$(get_charset "$output_file")
+	assertEquals 'checking converted charset' 'UTF8' $output
+
+	unlink "$output_file"
+    g_tools=( ${tmp[@]} )
+}
+
+
+#
+# test verify_extension routine
+#
+test_verify_extension() {
+    local output=''
+    output=$(verify_extension 'plik.txt')
+    assertEquals 'verify txt ext' 0 $output
+    
+    output=$(verify_extension 'plik ze spacja.dat')
+    assertEquals 'verify dat ext' 0 $output
+
+    output=$(verify_extension 'plik ze spacja.avi')
+    assertEquals 'verify dat ext' 1 $output
+}
+
+
+#
+# test prepare_file_list
+#
+test_prepare_file_list() {
+    declare -a cp_g_files=( ${g_files[@]} )
+
+    prepare_file_list 0 "$g_assets_path/$g_ut_root"
+    assertEquals 'number of elements' 3 ${#g_files[@]}
+
+    g_files=()
+    prepare_file_list 20 "$g_assets_path/$g_ut_root"
+    assertEquals 'number of elements (min_size: 20)' 0 ${#g_files[@]}
+
+    g_files=( ${cp_g_files[@]} )
+}
+
+
+#
+# test prepare_filenames
+#
+test_prepare_filenames() {
+    declare -a cp_g_abbrev=( ${g_abbrev[@]} )
+
+    prepare_filenames 'file.avi'
+
+    assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
+    assertEquals 'checking 1' 'file.txt' ${g_pf[1]}
+    assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
+    assertEquals 'checking 3' 'ORIG_file.txt' ${g_pf[3]}
+    assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
+    assertEquals 'checking 5' 'file.txt' ${g_pf[5]}
+    assertEquals 'checking 6' 'file.txt' ${g_pf[6]}
+    assertEquals 'checking 7' 'file.txt' ${g_pf[7]}
+
+    g_abbrev=( 'AB' 'CAB' )
+    prepare_filenames 'file.avi'
+
+    assertEquals 'checking 0' 'file.txt' ${g_pf[0]}
+    assertEquals 'checking 1' 'file.AB.txt' ${g_pf[1]}
+    assertEquals 'checking 2' 'ORIG_file.txt' ${g_pf[2]}
+    assertEquals 'checking 3' 'ORIG_file.AB.txt' ${g_pf[3]}
+    assertEquals 'checking 4' 'file.txt' ${g_pf[4]}
+    assertEquals 'checking 5' 'file.AB.txt' ${g_pf[5]}
+    assertEquals 'checking 6' 'file.CAB.txt' ${g_pf[6]}
+    assertEquals 'checking 7' 'file.AB.CAB.txt' ${g_pf[7]}
+
+    g_abbrev=( ${cp_g_abbrev[@]} )
+}
+
+
 # #
 # # test the conversion routine
 # #
