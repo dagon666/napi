@@ -36,6 +36,140 @@
 
 ################################################################################
 
+test_check_format_microdvd() {
+	return 0
+}
+
+test_check_format_mpl2() {
+	return 0
+}
+
+test_check_format_subrip() {
+	return 0
+}
+
+test_check_format_subviewer2() {
+	return 0
+}
+
+test_check_format_tmplayer() {
+	return 0
+}
+
+test_read_format_subviewer2() {
+	return 0
+}
+
+test_read_format_tmplayer() {
+	return 0
+}
+
+test_read_format_microdvd() {
+	return 0
+}
+
+test_read_format_mpl2() {
+	return 0
+}
+
+test_read_format_subrip() {
+	return 0
+}
+
+test_write_format_subviewer2() {
+	return 0
+}
+
+test_write_format_tmplayer() {
+	return 0
+}
+
+test_write_format_microdvd() {
+	return 0
+}
+
+test_write_format_mpl2() {
+	return 0
+}
+
+test_write_format_subrip() {
+	return 0
+}
+
+test_guess_format() {
+	
+	return 0
+}
+
+test_correct_overlaps() {
+
+	return 0
+}
+
+test_list_formats() {
+	
+	return 0
+}
+
+test_usage() {
+
+	return 0
+}
+
+test_parse_argv() {
+	
+	return 0
+}
+
+test_verify_format() {
+
+	return 0
+}
+
+test_verify_fps() {
+	
+	return 0
+}
+
+test_verify_argv() {
+
+	return 0
+}
+
+test_detect_microdvd_fps() {
+	
+	return 0
+}
+
+test_correct_fps() {
+
+	return 0
+}
+
+test_check_if_conv_needed() {
+	
+	return 0
+}
+
+test_print_format_summary() {
+
+	return 0
+}
+
+test_convert_formats() {
+	
+	return 0
+}
+
+test_process_file() {
+
+	return 0
+}
+
+test_create_output_summary() {
+	
+	return 0
+}
 
 # shunit call
 . shunit2
