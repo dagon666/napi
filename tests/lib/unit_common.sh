@@ -38,3 +38,89 @@ _purge_env() {
 }
 
 ################################################################################
+
+declare -a _cp_g_output=()
+declare -a _cp_g_abbrev=()
+declare -a _cp_g_system=()
+declare -a _cp_g_cred=()
+declare -a _cp_g_paths=()
+declare -a _cp_g_files=()
+declare -a _cp_g_pf=()
+declare -a _cp_g_stats=()
+declare -a _cp_g_tools=()
+declare -a _cp_g_tools_fps=()
+declare -a _cp_g_cmd_wget=()
+
+_save_globs() {
+	# save arrays
+	_cp_g_output=( "${g_output[@]}" )
+	_cp_g_abbrev=( "${g_abbrev[@]}" )
+	_cp_g_system=( "${g_system[@]}" )
+	_cp_g_cred=( "${g_cred[@]}" )
+	_cp_g_paths=( "${g_paths[@]}" )
+	_cp_g_files=( "${g_files[@]}" )
+	_cp_g_pf=( "${g_pf[@]}" )
+	_cp_g_stats=( "${g_stats[@]}" )
+	_cp_g_tools=( "${g_tools[@]}" )
+	_cp_g_tools_fps=( "${g_tools_fps[@]}" )
+	_cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
+
+	# save variables
+	_cp_g_orig_prefix="$g_orig_prefix"
+	_cp_g_min_size="$g_min_size"
+	_cp_g_cover="$g_cover"
+	_cp_g_nfo="$g_nfo"
+	_cp_g_skip="$g_skip"
+	_cp_g_delete_orig="$g_delete_orig"
+	_cp_g_charset="$g_charset"
+	_cp_g_lang="$g_lang"
+	_cp_g_default_ext="$g_default_ext"
+	_cp_g_sub_format="$g_sub_format"
+	_cp_g_fps_tool="$g_fps_tool"
+	_cp_g_hook="$g_hook"
+	_cp_g_stats_print="$g_stats_print"
+	_cp_g_cmd_stat="$g_cmd_stat"
+	_cp_g_cmd_md5="$g_cmd_md5"
+	_cp_g_cmd_cp="$g_cmd_cp"
+	_cp_g_cmd_unlink="$g_cmd_unlink"
+	_cp_g_cmd_7z="$g_cmd_7z"
+}
+
+_restore_globs() {
+	# save arrays
+	g_output=( "${_cp_g_output[@]}" )
+	g_abbrev=( "${_cp_g_abbrev[@]}" )
+	g_system=( "${_cp_g_system[@]}" )
+	g_cred=( "${_cp_g_cred[@]}" )
+	g_paths=( "${_cp_g_paths[@]}" )
+	g_files=( "${_cp_g_files[@]}" )
+	g_pf=( "${_cp_g_pf[@]}" )
+	g_stats=( "${_cp_g_stats[@]}" )
+	g_tools=( "${_cp_g_tools[@]}" )
+	g_tools_fps=( "${_cp_g_tools_fps[@]}" )
+	g_cmd_wget=( "${_cp_g_cmd_wget[@]}" )
+
+	# save variables
+	g_orig_prefix="$_cp_g_orig_prefix"
+	g_min_size="$_cp_g_min_size"
+	g_cover="$_cp_g_cover"
+	g_nfo="$_cp_g_nfo"
+	g_skip="$_cp_g_skip"
+	g_delete_orig="$_cp_g_delete_orig"
+	g_charset="$_cp_g_charset"
+	g_lang="$_cp_g_lang"
+	g_default_ext="$_cp_g_default_ext"
+	g_sub_format="$_cp_g_sub_format"
+	g_fps_tool="$_cp_g_fps_tool"
+	g_hook="$_cp_g_hook"
+	g_stats_print="$_cp_g_stats_print"
+	g_cmd_stat="$_cp_g_cmd_stat"
+	g_cmd_md5="$_cp_g_cmd_md5"
+	g_cmd_cp="$_cp_g_cmd_cp"
+	g_cmd_unlink="$_cp_g_cmd_unlink"
+	g_cmd_7z="$_cp_g_cmd_7z"
+}
+
+
+################################################################################
+

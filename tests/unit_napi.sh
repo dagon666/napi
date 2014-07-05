@@ -118,6 +118,8 @@ test_normalize_lang() {
 #
 test_configure_cmds() {
 
+	_save_globs
+
 	# let's prepare wget mock
     ln -sf "/vagrant/tests/mocks/wget_help" "$g_assets_path/$g_ut_root/bin/wget"
 	export SUPPORT_S=0
@@ -162,14 +164,10 @@ test_configure_cmds() {
 	assertEquals "3 wget check for lack of -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
 	assertEquals "3 wget no post support" 1 ${g_cmd_wget[1]}
 
-	local cp_g_cmd_unlink="$g_cmd_unlink"
-	declare -a cp_g_tools=( "$g_tools[@]" )
-
 	g_tools=( 'unlink=0' )
 	assertEquals "checking if unlink is rm -rf" "rm -rf" "$g_cmd_unlink"
 
-	g_cmd_unlink="$cp_g_cmd_unlink"
-	g_tools=( "${cp_g_tools[@]}" )
+	_restore_globs
 }
 
 
@@ -203,7 +201,6 @@ test_verify_tools() {
 # check the get extension routine
 #
 test_get_sub_ext() {
-
     local ext=''
 
     ext=$(get_sub_ext 'subrip')
@@ -219,6 +216,7 @@ test_get_sub_ext() {
 #
 test_count_fps_detectors() {
     local c=0
+	_save_globs
 
     declare -a tmp=( ${g_tools[@]} )
 
@@ -229,7 +227,7 @@ test_count_fps_detectors() {
     c=$(count_fps_detectors)
     assertEquals 'no of fps detectors' 1 $c
 
-    g_tools=( ${tmp[@]} )
+	_restore_globs
 }
 
 
@@ -241,7 +239,7 @@ test_get_fps() {
     fps=$(get_fps 'doesnt_matter' 'doesnt_matter.avi')
     assertEquals 'get fps without tools' 0 $fps
 
-    declare -a tmp=( ${g_tools[@]} )
+	_save_globs
 
     if [ -n "$(builtin type -P mediainfo)" ]; then
         g_tools=( $(modify_value 'mediainfo' 1 ${g_tools[@]}) )
@@ -273,8 +271,7 @@ test_get_fps() {
         assertNotEquals 'get fps with ffmpeg' 0 "${fps:-0}"
     fi
 
-
-    g_tools=( ${tmp[@]} )
+	_restore_globs
 }
 
 
@@ -282,9 +279,8 @@ test_get_fps() {
 # test the argument parsing routine
 # 
 test_parse_argv() {
-
     local status=0
-    declare -a cp_g_abbrev=( "${g_abbrev[@]}" )
+	_save_globs
     
     parse_argv -a 2>&1 > /dev/null
     status=$?
@@ -295,35 +291,11 @@ test_parse_argv() {
     assertEquals "checking for success (-a)" $RET_OK $status
     assertEquals "checking for abbreviation" "ABBREV" "${g_abbrev[0]}"
 
-    g_abbrev=( ${cp_g_abbrev[@]} )
-
     parse_argv -b 123 2>&1 > /dev/null
     status=$?
     assertEquals "checking for success (-b)" $RET_OK $status
     assertEquals "checking for size" 123 $g_min_size
     g_min_size=0
-
-    # save original settings
-    local cp_g_cover=$g_cover
-    local cp_g_nfo=$g_nfo
-    local cp_g_delete_orig=$g_delete_orig
-    local cp_g_skip=$g_skip
-    local cp_g_stats_print=$g_stats_print
-    local cp_g_cmd_cp=$g_cmd_cp
-    local cp_g_charset=$g_charset
-    local cp_g_default_ext=$g_default_ext
-    local cp_g_lang=$g_lang
-    local cp_g_hook=$g_hook
-    local cp_g_sub_format=$g_sub_format
-    local cp_g_fps_tool=$g_fps_tool
-    local cp_g_orig_prefix=$g_orig_prefix
-	local cp_g_cmd_cp=$g_cmd_cp
-
-    declare -a cp_g_system=( ${g_system[@]} )
-    declare -a cp_g_cred=( ${g_cred[@]} )
-    declare -a cp_g_abbrev=( ${g_abbrev[@]} )
-	declare -a cp_g_output=( "${g_output[@]}" )
-
 
     # test complex command
     parse_argv -c \
@@ -374,28 +346,7 @@ test_parse_argv() {
     assertEquals 'checking paths' 'file1.avi' ${g_paths[0]}
     assertEquals 'checking log overwrite' 1 ${g_output[$___LOG_OWR]}
 
-
-    # restore default settings
-    g_cover=$cp_g_cover
-    g_nfo=$cp_g_nfo
-    g_delete_orig=$cp_g_delete_orig
-    g_skip=$cp_g_skip
-    g_stats_print=$cp_g_stats_print
-    g_cmd_cp=$cp_g_cmd_cp
-    g_charset=$cp_g_charset
-    g_default_ext=$cp_g_default_ext
-    g_lang=$cp_g_lang
-    g_hook=$cp_g_hook
-    g_sub_format=$cp_g_sub_format
-    g_fps_tool=$cp_g_fps_tool
-    g_orig_prefix=$cp_g_orig_prefix
-	g_cmd_cp=$cp_g_cmd_cp
-
-    g_system=( ${cp_g_system[@]} )
-    g_cred=( ${cp_g_cred[@]} )
-    g_abbrev=( ${cp_g_abbrev[@]} )
-    g_paths=(  )
-	g_output=( "${cp_g_output[@]}" )
+	_restore_globs
 }
 
 
@@ -455,8 +406,7 @@ test_verify_encoding() {
 #
 test_verify_id() {
     local status=0
-    declare -a cp_g_tools=( ${g_tools[@]} )
-	declare -a cp_g_system=( ${g_system[@]} )
+	_save_globs
 
     g_system[2]='pynapi'
     verify_id 2>&1 > /dev/null
@@ -505,8 +455,7 @@ test_verify_id() {
     status=$?
     assertEquals 'unknown_system - failure' $RET_PARAM $status
 
-    g_tools=( ${cp_g_tools[@]} )
-	g_system=( ${cp_g_system[@]} )
+	_restore_globs
 }
 
 
@@ -515,8 +464,7 @@ test_verify_id() {
 #
 test_verify_format() {
     local status=0
-    declare -a cp_g_tools=( ${g_tools[@]} )
-    local cp_g_sub_format=$g_sub_format
+	_save_globs
 
     # verify default format
     verify_format
@@ -540,8 +488,7 @@ test_verify_format() {
     status=$?
     assertEquals 'format unknown, subotage present' $RET_PARAM $status
 
-    g_tools=( ${cp_g_tools[@]} )
-    g_sub_format=$cp_g_sub_format
+	_restore_globs
 }
 
 
@@ -550,7 +497,7 @@ test_verify_format() {
 #
 test_verify_fps_tool() {
     local status=0
-    declare -a cp_g_tools=( ${g_tools[@]} )
+	_save_globs
 
     verify_fps_tool
     status=$?
@@ -571,9 +518,7 @@ test_verify_fps_tool() {
     status=$?
     assertEquals 'checking supported, present tool' $RET_OK $status
     
-    # restore original values
-    g_tools=( ${cp_g_tools[@]} )
-    g_fps_tool='default'
+	_restore_globs
 }
 
 
@@ -581,9 +526,8 @@ test_verify_fps_tool() {
 # test the 7z detection/verification routine
 #
 test_verify_7z() {
-    declare -a cp_g_tools=( ${g_tools[@]} )
-	local cp_g_cmd_7z=$g_cmd_7z
 	local status=0
+	_save_globs
 
 	verify_7z
 	status=$?
@@ -601,8 +545,7 @@ test_verify_7z() {
 	assertEquals "checking for success" $RET_OK "$status"
 	assertEquals "7z presence" "7z" "$g_cmd_7z"
 
-	g_cmd_7z=$cp_g_cmd_7z
-    g_tools=( ${cp_g_tools[@]} )
+	_restore_globs
 }
 
 
@@ -611,12 +554,8 @@ test_verify_7z() {
 #
 test_verify_argv() {
     local status=0
-    local cp_g_charset=$g_charset
-    local cp_g_fps_tool=$g_fps_tool
-    local cp_g_sub_format=$g_sub_format
 
-    declare -a cp_g_cred=( ${g_cred[@]} )
-	declare -a cp_g_output=( ${g_output[@]} )
+	_save_globs
 
     g_cred[0]='user_no_password'
     verify_argv 2>&1 > /dev/null
@@ -638,7 +577,6 @@ test_verify_argv() {
     g_charset='utf8'
     verify_argv 2>&1 > /dev/null
     assertEquals 'checking encoding value' 'utf8' $g_charset
-    g_charset=$cp_g_charset
 
     g_system[2]='bogus_id'
     verify_argv 2>&1 > /dev/null
@@ -672,13 +610,13 @@ test_verify_argv() {
     verify_argv 2> /dev/null
     status=$?
     assertEquals 'checking status - bogus subs format' $RET_PARAM $status
-    g_sub_format=$cp_g_sub_format
+    g_sub_format='default'
 
     g_fps_tool='bogus'
     verify_argv 2> /dev/null
     status=$?
     assertEquals 'checking status - bogus fps tool' $RET_PARAM $status
-    g_fps_tool=$cp_g_fps_tool
+    g_fps_tool=$_cp_g_fps_tool
 
     g_hook='not_existing_script.sh'
     verify_argv 2>/dev/null
@@ -695,12 +633,7 @@ test_verify_argv() {
     g_hook='none'
     unlink "$hook"
 
-    g_charset=$cp_g_charset
-    g_fps_tool=$cp_g_fps_tool
-    g_sub_format=$cp_g_sub_format
-
-    g_cred=( ${cp_g_cred[@]} )
-	g_output=( ${cp_g_output[@]} )
+	_restore_globs
 }
 
 
@@ -722,7 +655,7 @@ test_f() {
 #
 test_download_url() {
     local status=0
-	declare -a cp_g_cmd_wget=( "${g_cmd_wget[@]}" )
+	_save_globs
 
     g_cmd_wget[0]="mocks/wget_log 127 none"
     download_url "test_url.com" "$g_assets_path/$g_ut_root/output file with spaces.dat" > /dev/null
@@ -765,7 +698,7 @@ test_download_url() {
     assertEquals 'check post success status' $RET_OK $status
     assertEquals 'check 200 http code' "301 200" "$output"
 
-	g_cmd_wget=( "${cp_g_cmd_wget[@]}" )
+	_restore_globs
 }
 
 
@@ -776,7 +709,7 @@ test_run_awk_script() {
 	local code='{ print $2 }'
 	local status=0
 	local output=''
-	declare -a cp_g_tools=( ${g_tools[@]} )
+	_save_globs
 
 	echo "col1 col2 col3" | run_awk_script "$code"
 	status=$?
@@ -797,7 +730,7 @@ test_run_awk_script() {
 	assertEquals "checking result of the file processing" "col2" "$output"
 
 	unlink "$tmpf"
-	g_tools=( ${cp_g_tools[@]} )
+	_restore_globs
 }
 
 
@@ -805,10 +738,11 @@ test_run_awk_script() {
 # xml single tag extraction check
 #
 test_extract_xml_tag() {
-	declare -a cp_g_tools=( ${g_tools[@]} )
 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
 	local data=''
 	local output=''
+
+	_save_globs
 
 	g_tools=( awk=1 )
 	data='<taga><nested><x>data</x></nested></taga>'
@@ -820,7 +754,7 @@ test_extract_xml_tag() {
 	assertEquals "checking for extracted tag from file" "<x>data</x>" "$output"
 
 	unlink "$tmpf"
-	g_tools=( ${cp_g_tools[@]} )
+	_restore_globs
 }
 
 
@@ -828,10 +762,11 @@ test_extract_xml_tag() {
 # xml cdata tag extraction check
 #
 test_extract_cdata_tag() {
-	declare -a cp_g_tools=( ${g_tools[@]} )
 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
 	local data=''
 	local output=''
+
+	_save_globs
 
 	g_tools=( awk=1 )
 	data='<taga><![CDATA[some_data]]></taga>'
@@ -843,7 +778,7 @@ test_extract_cdata_tag() {
 	assertEquals "checking for extracted data from file" "some_data" "$output"
 
 	unlink "$tmpf"
-	g_tools=( ${cp_g_tools[@]} )
+	_restore_globs
 }
 
 
@@ -851,10 +786,11 @@ test_extract_cdata_tag() {
 # xml tag strip check
 #
 test_strip_xml_tag() {
-	declare -a cp_g_tools=( ${g_tools[@]} )
 	local tmpf=$(mktemp -t test.xml.XXXXXXXX)
 	local data=''
 	local output=''
+
+	_save_globs
 
 	g_tools=( awk=1 )
 	data='<taga>data</taga>'
@@ -866,7 +802,7 @@ test_strip_xml_tag() {
 	assertEquals "checking for bare data from file" "data" "$output"
 
 	unlink "$tmpf"
-	g_tools=( ${cp_g_tools[@]} )
+	_restore_globs
 }
 
 
@@ -901,37 +837,40 @@ test_download_data_xml() {
 #
 # test get_xml wrapper
 #
-# test_get_xml() {
-# 
-# 	local xmltmp=$(mktemp tmp.xml.XXXXXXXX)
-# 	local status=0
-# 
-# 	(
-# 
-# 	retval=$RET_FAIL
-# 	download_data_xml() {
-# 
-# 		return $retval
-# 	}
-# 
-# 	get_xml 0 'movie.avi' 123 PL 'not_existing.xml'
-# 	status=$?
-# 	assertEquals 'checking failure status' $RET_FAIL $status
-# 
-# 	get_xml 0 'movie.avi' 123 PL "$xmltmp"
-# 	status=$?
-# 	assertEquals 'checking success status xml already exists' $RET_OK $status
-# 
-# 	retval=$RET_OK
-# 	get_xml 0 'movie.avi' 123 PL "not_existing.xml"
-# 	status=$?
-# 	assertEquals 'checking success status download_data_xml is successful' $RET_OK $status
-# 
-# 	)
-# 
-# 	unlink "$xmltmp"
-# 	return 0
-# }
+test_get_xml() {
+	local xmltmp=$(mktemp tmp.xml.XXXXXXXX)
+	local status=0
+	local data="this is some bogus xml data which must be longer than 32 bytes"
+
+	echo "$data" > "$xmltmp"
+
+	(
+
+	retval=$RET_FAIL
+	download_data_xml() {
+		[ "$retval" -eq $RET_OK ] && echo "$data" > "$4"
+		return $retval
+	}
+
+	get_xml 0 'movie.avi' 123 PL 'not_existing.xml'
+	status=$?
+	assertEquals 'checking failure status' $RET_FAIL $status
+
+	get_xml 0 'movie.avi' 123 PL "$xmltmp"
+	status=$?
+	assertEquals 'checking success status xml already exists' $RET_OK $status
+
+	retval=$RET_OK
+	get_xml 0 'movie.avi' 123 PL "will_be_created.xml"
+	status=$?
+	assertEquals 'checking success status download_data_xml is successful' $RET_OK $status
+	[ -e "will_be_created.xml" ] && unlink "will_be_created.xml"
+
+	)
+
+	unlink "$xmltmp"
+	return 0
+}
 
 
 # #

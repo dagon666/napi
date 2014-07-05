@@ -1196,7 +1196,9 @@ get_xml() {
     fi
 
     if [ "$rv" -eq $RET_OK ]; then
-        size=$($g_cmd_stat "$xml_path")
+
+        # just a precaution
+        [ -e "$xml_path" ] && size=$($g_cmd_stat "$xml_path")
 
         # verify the size
         if [ "$size" -lt "$min_size" ]; then
