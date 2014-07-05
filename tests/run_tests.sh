@@ -10,7 +10,7 @@ time vagrant ssh -c "cd /vagrant/tests && ./prepare.pl $path_root"
 
 
 # run unit tests
-declare -a utests=( 'unit_napi_common.sh' 'unit_napi.sh' )
+declare -a utests=( 'unit_napi_common.sh' 'unit_napi.sh' 'unit_subotage.sh' )
 for s in "${utests[@]}"; do
 
 	echo '==========================================='
