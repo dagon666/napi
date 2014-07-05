@@ -1933,7 +1933,6 @@ convert_format() {
     local fps=0
     local fps_opt=''
     local rv=$RET_OK
-    local sb_data=''
 
     # for the backup
     local tmp="$(mktemp napi.XXXXXXXX)"
@@ -1986,7 +1985,7 @@ convert_format() {
     status=$?
 
     # update the message counter
-    read msg_counter < "$ipc_file"
+    [ -s "$ipc_file" ] && read msg_counter < "$ipc_file"
     g_output[$___CNT]=$msg_counter
 
     # get rid of the ipc file

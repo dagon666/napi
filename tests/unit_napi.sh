@@ -62,6 +62,43 @@ oneTimeTearDown() {
 
 ################################################################################
 
+#
+# test the conversion routine
+#
+test_convert_format() {
+	local status=0
+
+	_save_globs
+
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on non existing subs' $RET_FAIL $status
+
+	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
+	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
+	
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertEquals 'failure on default subs format' $RET_FAIL $status
+
+	g_delete_orig=1
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
+	status=$?
+	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+
+	g_sub_format='subrip'
+	g_output[$___VERBOSITY]=3
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt"
+	status=$?
+	# assertEquals 'success on subrip subs format' $RET_OK $status
+	# assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
+	# assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
+    
+	_restore_globs
+    return 0
+}
+
 
 #
 # test the language listing routine
@@ -1039,23 +1076,23 @@ test_download_subs_classic() {
 	_save_globs
 
     g_cmd_wget[0]="mocks/wget_log 127 none"
-    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2>&1 > /dev/null
     status=$?
     assertEquals 'verifying wget error' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 404"
-    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2>&1 > /dev/null
     status=$?
     assertEquals 'verifying error when 404' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 200"
-    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2>&1 > /dev/null
     status=$?
     assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 200"
     echo test > "$output_file"
-    download_subs_classic 123 123 "$output_file" PL pynapi "" ""
+    download_subs_classic 123 123 "$output_file" PL pynapi "" "" 2>&1 > /dev/null
     status=$?
     assertEquals 'verifying small file' $RET_FAIL $status
     assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
@@ -1066,7 +1103,7 @@ test_download_subs_classic() {
     echo line3 >> "$output_file"
     echo line4 >> "$output_file"
     echo line5 >> "$output_file"
-    download_subs_classic 123 123 "$output_file" PL pynapi "" ""
+    download_subs_classic 123 123 "$output_file" PL pynapi "" "" 2>&1 > /dev/null
     status=$?
     assertEquals 'verifying big enough file' $RET_OK $status
     assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
@@ -1170,17 +1207,17 @@ test_get_nfo() {
 	export -f download_item_xml
 
 	g_system[2]='pynapi'
-	get_nfo
+	get_nfo 2>&1 > /dev/null
 	status=$?
 	assertEquals "failure for non API3 id" $RET_FAIL "$status"
 
 	g_system[2]='NapiProjekt'
-	get_nfo
+	get_nfo 2>&1 > /dev/null
 	status=$?
 	assertEquals "failure for due to download_item_xml fail" $RET_FAIL "$status"
 
 	retval=$RET_OK
-	get_nfo
+	get_nfo 2>&1 > /dev/null
 	status=$?
 	assertEquals "get_nfo success" $RET_OK "$status"
 	)
@@ -1336,91 +1373,54 @@ test_prepare_filenames() {
 }
 
 
-# #
-# # test the conversion routine
-# #
-# test_convert_format() {
-#     local cp_g_delete_orig=$g_delete_orig
-# 	local cp_g_sub_format=$g_sub_format
-# 	local status=0
-# 
-# 	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-# 	status=$?
-# 	assertEquals 'failure on non existing subs' $RET_FAIL $status
-# 
-# 	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
-# 	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
-# 	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
-# 	
-# 	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-# 	status=$?
-# 	assertEquals 'failure on default subs format' $RET_FAIL $status
-# 
-# 	g_delete_orig=1
-# 	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-# 	status=$?
-# 	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
-# 
-# 	g_sub_format='subrip'
-# 	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" 2>&1 > /dev/null
-# 	status=$?
-# 	assertEquals 'success on subrip subs format' $RET_OK $status
-# 	assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
-# 	assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
-#     
-#     g_delete_orig=$cp_g_delete_orig
-# 	g_sub_format=$cp_g_sub_format
-#     return 0
-# }
-# 
-# 
-# #
-# # test subs file detection routine
-# #
-# test_check_subs_presence() {
-# 
-# 	local rv=0
-#     
-# 	g_abbrev=( 'AB' 'CAB' )
-# 	prepare_filenames "video.avi"
-# 	g_sub_format='default'
-# 
-# 	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
-# 	rv=$?
-# 	assertEquals 'nothing available' 0 $rv
-# 
-# 	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[0]}"
-# 	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
-# 	rv=$?
-# 	assertEquals '0 available, checking rv' 2 $rv
-# 	assertTrue '0 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[1]}"
-# 
-# 	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[3]}"
-# 	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
-# 	rv=$?
-# 	assertEquals '3 available, checking rv' 2 $rv
-# 	assertTrue '3 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[3]}"
-# 
-# 	g_sub_format='subrip'
-# 	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[6]}"
-# 	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
-# 	rv=$?
-# 	assertEquals '6 available, checking rv' 1 $rv
-# 	assertTrue '6 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[7]}\" ]"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[6]}"
-# 	unlink "$g_assets_path/$g_ut_root/${g_pf[7]}"
-# 
-# 	g_abbrev=()
-# 	g_sub_format='default'
-# 	g_pf=()
-#     return 0    
-# }
-# 
-# 
+
+#
+# test subs file detection routine
+#
+test_check_subs_presence() {
+
+	local rv=0
+    
+	g_abbrev=( 'AB' 'CAB' )
+	prepare_filenames "video.avi"
+	g_sub_format='default'
+
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals 'nothing available' 0 $rv
+
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '0 available, checking rv' 2 $rv
+	assertTrue '0 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[1]}"
+
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[3]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '3 available, checking rv' 2 $rv
+	assertTrue '3 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[3]}"
+
+	g_sub_format='subrip'
+	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[6]}"
+	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root"
+	rv=$?
+	assertEquals '6 available, checking rv' 1 $rv
+	assertTrue '6 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[7]}\" ]"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[6]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[7]}"
+
+	g_abbrev=()
+	g_sub_format='default'
+	g_pf=()
+    return 0    
+}
+
+
 # #
 # # test the statistics printing routine
 # #
@@ -1580,22 +1580,22 @@ test_prepare_filenames() {
 # }
 # 
 # 
-# #
-# # test obtain file routine
-# #
-# test_obtain_file() {
-# 	# empty for now, will be verified with system tests
-#     return 0    
-# }
-# 
-# 
-# #
-# # test process file routine
-# #
-# test_process_file() {
-# 	# empty for now, will be verified with system tests
-#     return 0    
-# }
+#
+# test obtain file routine
+#
+test_obtain_file() {
+	# empty for now, will be verified with system tests
+    return 0    
+}
+
+
+#
+# test process file routine
+#
+test_process_file() {
+	# empty for now, will be verified with system tests
+    return 0    
+}
 
 
 

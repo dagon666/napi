@@ -201,8 +201,8 @@ check_format_subrip() {
 read -d "" match_ts << 'EOF'
 {
     ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\\r\\n]*"
-    full_reg =  "^" prefix ts "$";
-    print match($0, full_reg);
+    full_reg =  "^" prefix ts "$"
+    print match($0, full_reg)
 }
 EOF
 
@@ -691,40 +691,35 @@ length($0) {
     
     # this is to skip initial non subs lines
     if (lines_processed == 1) {
-        rec = __start_line;
+        rec = __start_line
     }
     else {
-        rec = 1;
+        rec = 1
     }
 
-    line_data = rec + 1;
-    gsub("\\r", "");
+    line_data = rec + 1
+    gsub("\\r", "")
 
-    switch(__counter_type) {
-        case "inline":
-            gsub(",", ".", $rec);
-            gsub("--> ", "", $rec);
-            printf("%s ", $rec);
-            break;
-
-        case "newline":
-        default:
-            ts = rec + 1;
-            gsub(",", ".", $ts);
-            gsub("--> ", "", $ts);
-            gsub(" ", "", $rec);
-            printf("%s %s ", $rec, $ts);
-            line_data++;
-            break;
+    if (__counter_type == "inline") {
+        gsub(",", ".", $rec)
+        gsub("--> ", "", $rec)
+        printf("%s ", $rec)
+    else {
+        ts = rec + 1
+        gsub(",", ".", $ts)
+        gsub("--> ", "", $ts)
+        gsub(" ", "", $rec)
+        printf("%s %s ", $rec, $ts)
+        line_data++
     }
 
     for (i = line_data; i<=NF; i++) {
-        if (i > line_data) printf("|");
-        printf("%s", $i);
+        if (i > line_data) printf("|")
+        printf("%s", $i)
     }
-    printf("\\n");
+    printf("\\n")
 
-    lines_processed++;
+    lines_processed++
 }
 EOF
     
@@ -754,34 +749,28 @@ write_format_microdvd() {
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
-    time_type=$0;
+    time_type=$0
 }
 
 NR > 1 {
-
-    switch(time_type) {
-    case "secs":
-        printf("{%d}{%d}", 
-            $2*__fps,
-            $3*__fps);
-        break
-
-    case "hmsms":
-    case "hms":
-        split($2, time_start, ":");
-        split($3, time_stop, ":");
-        printf("{%d}{%d}",
-            (time_start[1]*3600 + time_start[2]*60 + time_start[3])*__fps,
-            (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*__fps);
-        break
-
-    default:
-        exit 1;
-        break
+    if (time_type == "secs") {
+        printf("{%d}{%d}", $2*__fps, $3*__fps)
     }
-    
-    for (i=4; i<=NF; i++) printf("%s ", $i);
-    printf("\\n");
+    else if (time_type == "hmsms" || time_type == "hms") {
+        split($2, time_start, ":")
+        split($3, time_stop, ":")
+
+        start = (time_start[1]*3600 + time_start[2]*60 + time_start[3])*__fps
+        stop = (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*__fps
+
+        printf("{%d}{%d}", start, stop)
+    }
+    else {
+        exit 1
+    }
+
+    for (i=4; i<=NF; i++) printf("%s ", $i)
+    printf("\\n")
 }
 EOF
 
@@ -805,34 +794,28 @@ write_format_mpl2() {
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
-    time_type=$0;
+    time_type=$0
 }
 
 NR > 1 {
+    if (time_type == "secs") {
+        printf("[%d][%d]", $2*10, $3*10)
+    }
+    else if (time_type == "hmsms" || time_type == "hms") {
+        split($2, time_start, ":")
+        split($3, time_stop, ":")
 
-    switch(time_type) {
-    case "secs":
-        printf("[%d][%d]", 
-            $2*10,
-            $3*10);
-        break
+        start = (time_start[1]*3600 + time_start[2]*60 + time_start[3])*10
+        stop = (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*10
 
-    case "hmsms":
-    case "hms":
-        split($2, time_start, ":");
-        split($3, time_stop, ":");
-        printf("[%d][%d]",
-            (time_start[1]*3600 + time_start[2]*60 + time_start[3])*10,
-            (time_stop[1]*3600 + time_stop[2]*60 + time_stop[3])*10);
-        break
-
-    default:
-        exit 1;
-        break
+        printf("[%d][%d]", start, stop)
+    }
+    else {
+        exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i);
-    printf("\\n");
+    for (i=4; i<=NF; i++) printf("%s ", $i)
+    printf("\\n")
 }
 EOF
 
@@ -853,73 +836,66 @@ write_format_subrip() {
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
-    time_type=$0;
+    time_type=$0
 }
 
-function print_ts(cnt, 
-            sh, sm, ss, sc,
-            eh, em, es, ec) {
+function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
 
-    printf("%d\\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\\n",
-        cnt,
-        sh,sm,ss,sc,
-        eh,em,es,ec);
+    printf("%d\\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\\n", \
+        cnt, \
+        sh,sm,ss,sc, \
+        eh,em,es,ec)
 }
 
 function print_content() {
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i);
-        gsub(/\\|/, "\\n", tmp);
-        printf ( "%s ", tmp );
+        tmp = sprintf("%s ", $i)
+        gsub(/\\|/, "\\n", tmp)
+        printf ( "%s ", tmp )
     }
 
-    printf("\\n\\n");
+    printf("\\n\\n")
 }
 
 NR > 1 {
-    cnt = $1;
+    cnt = $1
 
-    switch(time_type) {
-    case "secs":
-        sh = $2/3600;
-        sm = $2/60;
-        ss = $2%60;
-        sc = int(($2 - int($2))*1000);
+    if (time_type == "secs") {
+        sh = $2/3600
+        sm = $2/60
+        ss = $2%60
+        sc = int(($2 - int($2))*1000)
 
-        eh = $3/3600;
-        em = $3/60;
-        es = $3%60;
-        ec = int(($3 - int($3))*1000);
-        break
+        eh = $3/3600
+        em = $3/60
+        es = $3%60
+        ec = int(($3 - int($3))*1000)
+    }
+    else if (time_type == "hmsms" || time_type == "hms") {
+        split($2, start, ":")
+        split($3, stop, ":")
 
-    case "hmsms":
-    case "hms":
-        split($2, start, ":");
-        split($3, stop, ":");
+        sh = start[1]
+        sm = start[2]
+        ss = start[3]
+        sc = 0
 
-        sh = start[1];
-        sm = start[2];
-        ss = start[3];
-        sc = 0;
-
-        eh = stop[1];
-        em = stop[2];
-        es = stop[3];
-        ec = 0;
+        eh = stop[1]
+        em = stop[2]
+        es = stop[3]
+        ec = 0
 
         if (time_type == "hmsms") {
-            sc = int((start[3] - int(start[3]))*1000);
-            ec = int((stop[3] - int(stop[3]))*1000);
+            sc = int((start[3] - int(start[3]))*1000)
+            ec = int((stop[3] - int(stop[3]))*1000)
         }
-        break
-
-    default:
-        exit 1;
-        break;
+    }
+    else {
+        exit 1
     }
 
-    print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec);
-    print_content();
+    print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec)
+    print_content()
 }
 EOF
 
@@ -938,61 +914,56 @@ write_format_subviewer2() {
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
-    time_type=$0;
+    time_type=$0
 }
 
 NR > 1 {
 
-    switch(time_type) {
-    case "secs":
-        sh = $2/3600;
-        sm = ($2/60)%60;
-        ss = $2%60;
-        sc = int( ($2 - int($2))*100 );
+    if (time_type == "secs") {
+        sh = $2/3600
+        sm = ($2/60)%60
+        ss = $2%60
+        sc = int( ($2 - int($2))*100 )
 
-        eh = $3/3600;
-        em = ($3/60)%60;
-        es = $3%60;
-        ec = int( ($3 - int($3))*100 );
-        break
+        eh = $3/3600
+        em = ($3/60)%60
+        es = $3%60
+        ec = int( ($3 - int($3))*100 )
+    }
+    else if (time_type == "hmsms" || time_type == "hms") {
+        split($2, time_start, ":")
+        split($3, time_stop, ":")
 
-    case "hmsms":
-    case "hms":
-        split($2, time_start, ":");
-        split($3, time_stop, ":");
+        sh = time_start[1]
+        sm = time_start[2]
+        ss = time_start[3]
+        sc = 0
 
-        sh = time_start[1];
-        sm = time_start[2];
-        ss = time_start[3];
-        sc = 0;
-
-        eh = time_stop[1];
-        em = time_stop[2];
-        es = time_stop[3];
-        ec = 0;
+        eh = time_stop[1]
+        em = time_stop[2]
+        es = time_stop[3]
+        ec = 0
 
         if (time_type == "hmsms") {
-            sc = int( (time_start[3] - int(time_start[3]))*100 );
-            ec = int( (time_stop[3] - int(time_stop[3]))*100 );
+            sc = int( (time_start[3] - int(time_start[3]))*100 )
+            ec = int( (time_stop[3] - int(time_stop[3]))*100 )
         }
-        break
-
-    default:
-        exit 1;
-        break
+    }
+    else {
+        exit 1
     }
     
-    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\\n",
-        sh, sm, ss, sc,
+    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\\n", \
+        sh, sm, ss, sc, \
         eh, em, es, ec);
 
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i);
-        gsub(/\\|/, "\\n", tmp);
-        printf ( "%s ", tmp );
+        tmp = sprintf("%s ", $i)
+        gsub(/\\|/, "\\n", tmp)
+        printf ( "%s ", tmp )
     }
 
-    printf("\\n\\n");
+    printf("\\n\\n")
 }
 EOF
 
@@ -1026,38 +997,34 @@ write_format_tmplayer() {
 
 read -d "" awk_code << 'EOF'
 NR == 1 {
-    time_type=$0;
+    time_type=$0
 }
 
 NR > 1 {
 
-    switch(time_type) {
-    case "secs":
-        sh = $2/3600;
-        sm = ($2/60)%60;
-        ss = $2%60;
-        printf("%02d:%02d:%02d:", sh, sm, ss);
-        break
-
-    case "hmsms":
-    case "hms":
+    if (time_type == "secs") {
+        sh = $2/3600
+        sm = ($2/60)%60
+        ss = $2%60
+        printf("%02d:%02d:%02d:", sh, sm, ss)
+    }
+    else if (time_type == "hmsms" || time_type == "hms") {
         # just strip the fractional part
-        idx = index($2, ".") - 1;
+        idx = index($2, ".") - 1
         if (idx) {
             printf("%s:", substr($2, 0, idx))
         }
         else {
+            # universal format is invalid - failure
             exit 1
         }
-        break
-
-    default:
-        exit 1;
-        break
+    }
+    else {
+        exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i);
-    printf("\\n");
+    for (i=4; i<=NF; i++) printf("%s ", $i)
+    printf("\\n")
 }
 EOF
 
@@ -1118,59 +1085,53 @@ correct_overlaps() {
 
 read -d "" awk_code << 'EOF'
 BEGIN {
-    counter = 0;
-    line_counter = 0;
-    previous_end = 0;
+    counter = 0
+    line_counter = 0
+    previous_end = 0
+    time_type = "unknown"
 }
 
 NR == 1 {
-    time_type=$0;
-    print $0;
+    time_type=$0
+    print $0
 }
 
 NR > 1 {
-
-    switch(time_type) {
-    case "secs":
-        lines[counter,0] = NF;
-        for (i=1; i<=NF; i++) lines[counter,i] = $i;
+    if (time_type == "secs") {
+        lines[counter,0] = NF
+        for (i=1; i<=NF; i++) lines[counter,i] = $i
 
         if (counter == 0) {
-            if ((lines[1,3]+0) > (lines[0,2]+0)) lines[1,3] = lines[0,2];
+            if ((lines[1,3]+0) > (lines[0,2]+0)) lines[1,3] = lines[0,2]
         }
         else {
-            if ((lines[0,3]+0) > (lines[1,2]+0)) lines[0,3] = lines[1,2];
+            if ((lines[0,3]+0) > (lines[1,2]+0)) lines[0,3] = lines[1,2]
         }
         
         # print every second line or if line counter == __num_lines
         # flush'em both at once
         do {
-           line_counter++;
-           counter = (counter + 1) % 2;
+           line_counter++
+           counter = (counter + 1) % 2
 
            if ((line_counter >=2 || line_counter == __num_lines) && 
                lines[counter,0]>0) {
 
-               printf("%s %s %s ", 
-                   lines[counter,1], lines[counter,2], lines[counter,3]);
+               printf("%s %s %s ", lines[counter,1], lines[counter,2], lines[counter,3])
 
                for (i = 4; i<=lines[counter,0]; i++)
-                   printf("%s ", lines[counter,i]);
+                   printf("%s ", lines[counter,i])
 
-               printf("\\n");
+               printf("\\n")
            }
         } while (line_counter == __num_lines)
-        break
-
-    case "hmsms":
-    case "hms":
+    }
+    else if (time_type == "hmsms" || time_type == "hms") {
         # don't do anything for those - at the moment not supported        
-        exit 2;
-        break
-
-    default:
-        exit 1;
-        break
+        exit 2
+    }
+    else {
+        exit 1
     }
 }
 EOF
@@ -1217,11 +1178,11 @@ list_formats() {
     local fmt=''
 
     # description for every supported file format
-    declare -ar desc=( "Format based on frames. Uses given framerate\n\t\t(default is [$g_inf[$___FPS]] fps)" \
+    declare -ar desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [$g_inf[$___FPS]] fps)" \
                        "[start][stop] format. The unit is time based == 0.1 sec" \
                        "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
-                       "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
                        "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
+                       "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
                     ) 
 
     if [ "$long" -eq 1 ]; then
@@ -1470,24 +1431,24 @@ BEGIN {
 
 {
     # regular expressions to match the fps data
-    regs[1]="[0-9]{2}[\.0-9]{2,}[:space:]*(fps)*";
-    regs[2]="[0-9]{2}+[:space:]*(fps)*";
+    regs[1]="[0-9]{2}[\.0-9]{2,}[:space:]*(fps)*"
+    regs[2]="[0-9]{2}+[:space:]*(fps)*"
 
     # execute regexp each by each and seek for a match
     for (r in regs) {
 
-        where = match($3, regs[r]);
+        where = match($3, regs[r])
         if (where) {
-            m = substr($3, where, RLENGTH);
+            m = substr($3, where, RLENGTH)
 
             # extract only numbers
-            print substr(m, match(m, "[\.0-9]+"), RLENGTH);
+            print substr(m, match(m, "[\.0-9]+"), RLENGTH)
 
-            break;
+            break
         }
     }
 
-    exit 1;
+    exit 1
 }
 EOF
 
@@ -1602,7 +1563,7 @@ convert_formats() {
     fi
 
     # get rid of the temporary file
-    [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
+    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 
