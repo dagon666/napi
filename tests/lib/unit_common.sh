@@ -51,6 +51,9 @@ declare -a _cp_g_tools=()
 declare -a _cp_g_tools_fps=()
 declare -a _cp_g_cmd_wget=()
 
+declare -a _cp_g_inf=()
+declare -a _cp_g_outf=()
+
 _save_globs() {
 	# save arrays
 	_cp_g_output=( "${g_output[@]}" )
@@ -121,6 +124,33 @@ _restore_globs() {
 	g_cmd_7z="$_cp_g_cmd_7z"
 }
 
+_save_subotage_globs() {
+	# save arrays
+	_cp_g_output=( "${g_output[@]}" )
+	_cp_g_inf=( "${g_inf[@]}" )
+	_cp_g_outf=( "${g_outf[@]}" )
+
+	_cp_g_getinfo="$g_getinfo"
+	_cp_g_lastingtime="$g_lastingtime"
+	_cp_g_ipc_file="$g_ipc_file"
+	_cp_g_cmd_cp="$g_cmd_cp"
+	_cp_g_cmd_unlink="$g_cmd_unlink"
+	_cp_g_cmd_awk="$g_cmd_awk"
+}
+
+_restore_subotage_globs() {
+	# save arrays
+	g_output=( "${_cp_g_output[@]}" )
+	g_inf=( "${_cp_g_inf[@]}" )
+	g_outf=( "${_cp_g_outf[@]}" )
+
+	g_getinfo="$_cp_g_getinfo"
+	g_lastingtime="$_cp_g_lastingtime"
+	g_ipc_file="$_cp_g_ipc_file"
+	g_cmd_cp="$_cp_g_cmd_cp"
+	g_cmd_unlink="$_cp_g_cmd_unlink"
+	g_cmd_awk="$_cp_g_cmd_awk"
+}
 
 ################################################################################
 

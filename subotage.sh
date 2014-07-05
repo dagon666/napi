@@ -94,6 +94,7 @@ declare -ar g_formats=( "microdvd" "mpl2" "subrip" "subviewer2" "tmplayer" )
 #
 g_cmd_cp='cp'
 g_cmd_unlink='rm -rf'
+g_cmd_awk='awk'
 
 ################################################################################
 
@@ -125,7 +126,7 @@ check_format_microdvd() {
         attempts=$(( attempts - 1 ))       
 
         match_tmp=$(echo "$file_line" | \
-            LANG=C awk '{ gsub("^{[0-9]+}{[0-9]*}.*$", "success"); print }')
+            LANG=C $g_cmd_awk '{ gsub("^{[0-9]+}{[0-9]*}.*$", "success"); print }')
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -169,7 +170,7 @@ check_format_mpl2() {
         attempts=$(( attempts - 1 ))       
 
         match_tmp=$(echo "$file_line" | \
-            LANG=C awk '{ gsub("^\\[[0-9]+\\]\\[[0-9]*\\].*$", "success"); print }')
+            LANG=C $g_cmd_awk '{ gsub("^\\[[0-9]+\\]\\[[0-9]*\\].*$", "success"); print }')
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -212,7 +213,7 @@ EOF
         if [ "$counter_type" = "not_found" ]; then
                 first_line=$(( max_attempts - attempts + 1 ))
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C awk '/^[0-9]+[\r\n]*$/')
+                    LANG=C $g_cmd_awk '/^[0-9]+[\r\n]*$/')
 
                 if [ -n "$match_tmp" ]; then
                     counter_type="newline"
@@ -221,7 +222,7 @@ EOF
 
                 # check for inline counter
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C awk -v prefix="[0-9]+ " "$match_ts")
+                    LANG=C $g_cmd_awk -v prefix="[0-9]+ " "$match_ts")
 
                 if [ "$match_tmp" -ne 0 ]; then
                     counter_type="inline"
@@ -232,7 +233,7 @@ EOF
         elif [ "$counter_type" = "newline" ]; then
                 # check for the time signature
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C awk -v prefix="" "$match_ts")
+                    LANG=C $g_cmd_awk -v prefix="" "$match_ts")
 
                 if [ "$match_tmp" -ne 0 ]; then
                     counter_type="newline"
@@ -283,7 +284,7 @@ EOF
         fi
 
         match_tmp=$(echo "$file_line" | \
-            LANG=C awk "$match_ts")
+            LANG=C $g_cmd_awk "$match_ts")
 
         # we've got a match
         if [ "$match_tmp" -ne 0 ]; then
@@ -348,7 +349,7 @@ EOF
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match_tmp=$(echo "$file_line" | LANG=C awk "$generic_check")
+        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$generic_check")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -365,7 +366,7 @@ EOF
 
             # extract delimiter
             delim=$(echo "$file_line" | \
-                LANG=C awk -v match_len="${tmp_data[1]}" "$extract_delim")
+                LANG=C $g_cmd_awk -v match_len="${tmp_data[1]}" "$extract_delim")
 
             # is it a multiline format (hh:mm:ss,LINENO=)?
             [ "${tmp_data[0]}" -eq 1 ] && multiline=1
@@ -451,7 +452,7 @@ EOF
     _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
 
     echo "secs" > "$out_file_path"
-    awk -v __start_line="${details[1]}" \
+    $g_cmd_awk -v __start_line="${details[1]}" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
 
     return $RET_OK
@@ -564,7 +565,7 @@ EOF
     _info $LINENO "delimiter [$delimiter]"
 
     echo "hms" > "$out_file_path"
-    awk -F "$delimiter" -v __start_line="${details[1]}" \
+    $g_cmd_awk -F "$delimiter" -v __start_line="${details[1]}" \
         -v __last_time="$g_lastingtime" \
         -v __multiline="${details[3]}" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
@@ -612,7 +613,7 @@ EOF
     _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
 
     echo "secs" > "$out_file_path"
-    awk -v __start_line="${details[1]}" \
+    $g_cmd_awk -v __start_line="${details[1]}" \
         -v __last_time="$g_lastingtime" \
         -v __fps="${g_inf[$___FPS]}" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
@@ -660,7 +661,7 @@ EOF
     _info $LINENO "szczegoly formatu: ${g_inf[$___DETAILS]}"
 
     echo "secs" > "$out_file_path"
-    awk -v __start_line="${details[1]}" \
+    $g_cmd_awk -v __start_line="${details[1]}" \
         -v __last_time="$g_lastingtime" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
 
@@ -721,7 +722,7 @@ EOF
     _debug $LINENO "licznik: ${details[2]}"
 
     echo "hmsms" > "$out_file_path"
-    awk -v __start_line="${details[1]}" \
+    $g_cmd_awk -v __start_line="${details[1]}" \
         -v __counter_type="${details[2]}" \
         "$awk_code" "$in_file_path" >> "$out_file_path"
 
@@ -771,7 +772,7 @@ EOF
     _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
     _info $LINENO "fps: ${g_outf[$___FPS]}"
 
-    if ! awk -v __fps="${g_outf[$___FPS]}" \
+    if ! $g_cmd_awk -v __fps="${g_outf[$___FPS]}" \
         "$awk_code" "$in_file_path" > "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do microdvd"
         return $RET_FAIL;
@@ -815,7 +816,7 @@ EOF
 
     _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
 
-    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do mpl2"
         return $RET_FAIL;
     fi
@@ -894,7 +895,7 @@ NR > 1 {
 EOF
 
     # use the AWK force :)
-    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         return $RET_FAIL;
     fi
     return $RET_OK
@@ -975,7 +976,7 @@ EOF
     echo    "[SUBTITLE]" >> "$out_file_path"
     echo    "[COLF]&HFFFFFF,[STYLE]bd,[SIZE]18,[FONT]Arial" >> "$out_file_path"
 
-    if ! awk "$awk_code" "$in_file_path" >> "$out_file_path"; then
+    if ! $g_cmd_awk "$awk_code" "$in_file_path" >> "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do subviewer2"
         return $RET_FAIL;
     fi
@@ -1024,7 +1025,7 @@ EOF
 
     _info $LINENO "szczegoly formatu: ${g_outf[$___DETAILS]}"
 
-    if ! awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         _error "nie mozna przekonwertowac formatu uniw. do tmplayer"
         return $RET_FAIL
     fi
@@ -1134,7 +1135,7 @@ EOF
     num_lines=$(cat "$file_path" | count_lines)
     num_lines=$(( num_lines - 1 ))
 
-    awk -v __num_lines="$num_lines" \
+    $g_cmd_awk -v __num_lines="$num_lines" \
         "$awk_code" "$file_path" > "$tmp_file"; 
     status=$?
 
@@ -1447,7 +1448,7 @@ BEGIN {
 }
 EOF
 
-    if ! LANG=C awk "$awk_code"; then
+    if ! LANG=C $g_cmd_awk "$awk_code"; then
         return $RET_FAIL
     fi
 
