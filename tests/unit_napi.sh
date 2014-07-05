@@ -967,7 +967,8 @@ test_extract_cover_xml() {
 test_cleanup_xml() {
 	local media_path="$g_assets_path/$g_ut_root/av1 file.avi"
 	local xml_path="$g_assets_path/$g_ut_root/av1 file.xml"
-	declare -a cp_g_system=( ${g_system[@]} )
+
+	_save_globs
 
 	touch "$xml_path"
 	echo "bogus data" > "$xml_path"
@@ -980,93 +981,134 @@ test_cleanup_xml() {
 	cleanup_xml "$media_path"
 	assertFalse 'checking file absence' "[ -e \"$xml_path\" ]"
 
-	g_system=( ${cp_g_system[@]} )
+	_restore_globs
 	[ -e "$xml_path" ] && unlink "$xml_path"
 	return 0
 }
-# 
-# # TODO VERIFIED UP TO HERE =================================================
-# 
-# #
-# # test download subs routine
-# #
-# test_download_subs() {
-#     local status=0
-#     local cp_g_cmd_wget="$g_cmd_wget"
-# 	local output_file="$g_assets_path/$g_ut_root/output file" 
-# 
-#     g_cmd_wget="mocks/wget_log 127 none"
-#     download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
-#     status=$?
-#     assertEquals 'verifying wget error' $RET_FAIL $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 404"
-#     download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
-#     status=$?
-#     assertEquals 'verifying error when 404' $RET_FAIL $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     download_subs 123 123 "$output_file" PL other "" "" 2> /dev/null
-#     status=$?
-#     assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     echo test > "$output_file"
-#     download_subs 123 123 "$output_file" PL pynapi "" ""
-#     status=$?
-#     assertEquals 'verifying small file' $RET_FAIL $status
-#     assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     echo line1 > "$output_file"
-#     echo line2 >> "$output_file"
-#     echo line3 >> "$output_file"
-#     echo line4 >> "$output_file"
-#     echo line5 >> "$output_file"
-#     download_subs 123 123 "$output_file" PL pynapi "" ""
-#     status=$?
-#     assertEquals 'verifying big enough file' $RET_OK $status
-#     assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
-#     unlink "$output_file"
-# 
-#     g_cmd_wget="$g_cmd_wget"
-# }
-# 
-# 
-# #
-# # test download cover routine
-# #
-# test_download_cover() {
-#     local status=0  
-#     local cp_g_cmd_wget="$g_cmd_wget"
-# 	local output_file="$g_assets_path/$g_ut_root/output file" 
-# 
-#     g_cmd_wget="mocks/wget_log 255 none"
-#     download_cover 123 "$output_file"
-#     status=$?
-#     assertEquals 'wget failure' $RET_FAIL $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 404"
-#     download_cover 123 "$output_file"
-#     status=$?
-#     assertEquals 'wget 404' $RET_FAIL $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     download_cover 123 "$output_file"
-#     status=$?
-#     assertEquals 'file doesnt exist' $RET_UNAV $status
-# 
-#     g_cmd_wget="mocks/wget_log 0 200"
-#     echo test > "$output_file"
-#     download_cover 123 "$output_file"
-#     status=$?
-#     assertEquals 'file exists' $RET_OK $status
-#     unlink "$output_file"
-# 
-#     g_cmd_wget="$g_cmd_wget"
-# }
-# 
-# 
+
+
+test_download_item_xml() {
+	local status=0
+	local moviepath="$g_assets_path/$g_ut_root/example.avi"
+
+	download_item_xml "unsupported" 2>&1 > /dev/null
+	status=$?
+	assertEquals "failure for unsupported item" $RET_BREAK "$status"
+
+	(
+	retval1=$RET_FAIL
+	retval2=$RET_FAIL
+
+	get_xml() {
+		return $retval1
+	}
+	export -f get_xml
+
+	extract_subs_xml() {
+		return $retval2
+	}
+	export -f extract_subs_xml
+
+	download_item_xml "subs" 2>&1 > /dev/null
+	status=$?
+	assertEquals "failure for supported item but get_xml failure" $RET_FAIL "$status"
+
+	retval1=$RET_OK	
+	download_item_xml "subs" 0 "$moviepath" 2>&1 > /dev/null
+	status=$?
+	assertEquals "failure for supported item but extract_item failure" $RET_FAIL "$status"
+
+	retval2=$RET_OK	
+	download_item_xml "subs" 0 "$moviepath" 2>&1 > /dev/null
+	status=$?
+	assertEquals "success for supported item but extract_item failure" $RET_OK "$status"
+	)
+
+	return 0
+}
+
+
+#
+# test download subs routine
+#
+test_download_subs_classic() {
+    local status=0
+    local cp_g_cmd_wget="$g_cmd_wget"
+	local output_file="$g_assets_path/$g_ut_root/output file" 
+
+    g_cmd_wget="mocks/wget_log 127 none"
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    status=$?
+    assertEquals 'verifying wget error' $RET_FAIL $status
+
+    g_cmd_wget="mocks/wget_log 0 404"
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    status=$?
+    assertEquals 'verifying error when 404' $RET_FAIL $status
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    download_subs_classic 123 123 "$output_file" PL other "" "" 2> /dev/null
+    status=$?
+    assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    echo test > "$output_file"
+    download_subs_classic 123 123 "$output_file" PL pynapi "" ""
+    status=$?
+    assertEquals 'verifying small file' $RET_FAIL $status
+    assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    echo line1 > "$output_file"
+    echo line2 >> "$output_file"
+    echo line3 >> "$output_file"
+    echo line4 >> "$output_file"
+    echo line5 >> "$output_file"
+    download_subs_classic 123 123 "$output_file" PL pynapi "" ""
+    status=$?
+    assertEquals 'verifying big enough file' $RET_OK $status
+    assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
+    unlink "$output_file"
+
+    g_cmd_wget="$g_cmd_wget"
+}
+
+
+#
+# test download cover routine
+#
+test_download_cover_classic() {
+    local status=0  
+    local cp_g_cmd_wget="$g_cmd_wget"
+	local output_file="$g_assets_path/$g_ut_root/output file" 
+
+    g_cmd_wget="mocks/wget_log 255 none"
+    download_cover_classic 123 "$output_file"
+    status=$?
+    assertEquals 'wget failure' $RET_FAIL $status
+
+    g_cmd_wget="mocks/wget_log 0 404"
+    download_cover_classic 123 "$output_file"
+    status=$?
+    assertEquals 'wget 404' $RET_FAIL $status
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    download_cover_classic 123 "$output_file"
+    status=$?
+    assertEquals 'file doesnt exist' $RET_UNAV $status
+
+    g_cmd_wget="mocks/wget_log 0 200"
+    echo test > "$output_file"
+    download_cover_classic 123 "$output_file"
+    status=$?
+    assertEquals 'file exists' $RET_OK $status
+    unlink "$output_file"
+
+    g_cmd_wget="$g_cmd_wget"
+}
+
+# TODO VERIFIED UP TO HERE =================================================
+
 # #
 # # test get subtitles wrapper routine
 # #

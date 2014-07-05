@@ -1429,7 +1429,9 @@ download_item_xml() {
     local movie_file=$(basename "$movie_path")
     local noext=$(strip_ext "$movie_file")
     local xml_path="$path/${noext}.xml"
-    local byte_size=$($g_cmd_stat "$movie_path")
+    local byte_size=0
+    
+    [ -e "$movie_path" ] && $($g_cmd_stat "$movie_path")
 
     # xml extract function name
     local func_name="extract_${item}_xml"
