@@ -198,19 +198,34 @@ test_check_if_conv_needed() {
 
 
 test_print_format_summary() {
-	local present=0
-	present=$(print_format_summary "PREFIX_" "some_file" | grep -c "PREFIX_")
-	assertEquals "checking summary prefix" 1 "$prefix"
+	local presence=0
+	_save_subotage_globs
+
+	presence=$(print_format_summary "PREFIX_" "some_file" | grep -c "PREFIX_")
+	assertEquals "checking summary prefix" 0 "$presence"
+
+	g_output[$___VERBOSIRTY]=2
+	presence=$(print_format_summary "PREFIX_" "some_file" | grep -c "PREFIX_")
+	assertTrue "checking summary prefix" "[ $presence -gt 0 ]"
+
+	g_output[$___VERBOSIRTY]=1
+	g_getinfo=1
+	presence=$(print_format_summary "PREFIX_" "some_file" | grep -c "PREFIX_")
+	assertTrue "checking summary prefix" "[ $presence -gt 0 ]"
+
+	_restore_subotage_globs
 	return 0
 }
+
 
 test_convert_formats() {
 	
 	return 0
 }
 
-test_process_file() {
 
+test_process_file() {
+	# empty this will be verified with system tests
 	return 0
 }
 
