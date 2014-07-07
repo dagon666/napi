@@ -143,7 +143,20 @@ test_detect_microdvd_fps() {
 }
 
 test_correct_fps() {
+	_save_subotage_globs
 
+	g_inf[$___FPS]=25
+	g_outf[$___FPS]=0
+	correct_fps
+	assertEquals "checking if fps has been synced" "${g_inf[$___FPS]}" "${g_outf[$___FPS]}"
+
+
+	g_inf[$___FPS]=25
+	g_outf[$___FPS]=23
+	correct_fps
+	assertEquals "checking if fps has not been synced" 23 "${g_outf[$___FPS]}"
+
+	_restore_subotage_globs
 	return 0
 }
 
@@ -183,8 +196,11 @@ test_check_if_conv_needed() {
 	return 0
 }
 
-test_print_format_summary() {
 
+test_print_format_summary() {
+	local present=0
+	present=$(print_format_summary "PREFIX_" "some_file" | grep -c "PREFIX_")
+	assertEquals "checking summary prefix" 1 "$prefix"
 	return 0
 }
 
