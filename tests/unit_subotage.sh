@@ -37,6 +37,7 @@
 ################################################################################
 
 test_check_format_microdvd() {
+
 	return 0
 }
 
@@ -147,7 +148,38 @@ test_correct_fps() {
 }
 
 test_check_if_conv_needed() {
+	local status=0
+
+	_save_subotage_globs
+
+	g_inf[$___FORMAT]="subrip"
+	g_outf[$___FORMAT]="SUBRIP"
+	check_if_conv_needed
+	status=$?
+	assertEquals "conversion not needed rv check" $RET_NOACT "$status"
+
+	g_inf[$___FORMAT]="subrip"
+	g_outf[$___FORMAT]="mpl2"
+	check_if_conv_needed
+	status=$?
+	assertEquals "conversion needed rv check" $RET_OK "$status"
+
+	g_inf[$___FORMAT]="microdvd"
+	g_outf[$___FORMAT]="microdvd"
+
+	g_inf[$___FPS]="23.456"
+	g_outf[$___FPS]="23.456"
+	check_if_conv_needed 2>&1 > /dev/null
+	status=$?
+	assertEquals "conversion not needed udvd same fps" $RET_NOACT "$status"
 	
+	g_inf[$___FPS]="23.456"
+	g_outf[$___FPS]="29.756"
+	check_if_conv_needed
+	status=$?
+	assertEquals "conversion needed udvd != fps" $RET_OK "$status"
+
+	_restore_subotage_globs
 	return 0
 }
 
@@ -166,8 +198,21 @@ test_process_file() {
 	return 0
 }
 
+
 test_create_output_summary() {
-	
+	local tmp=$(mktemp ipc.XXXXXXXX)
+	local data=''
+	_save_subotage_globs
+
+	g_ipc_file="$tmp"
+	g_output[$___CNT]=666
+	create_output_summary
+	read data < "$tmp"
+
+	assertEquals "comparing cnt values" 666 "$data"
+
+	unlink "$tmp"
+	_restore_subotage_globs
 	return 0
 }
 
