@@ -36,13 +36,106 @@
 
 ################################################################################
 
-test_check_format_microdvd() {
+#
+# tests env setup
+#
+oneTimeSetUp() {
+	_prepare_env
+    cp -rv "$g_assets_path/napi_test_files/subtitles" "$g_assets_path/$g_ut_root/"
+}
 
+
+#
+# tests env tear down
+#
+oneTimeTearDown() {
+	_purge_env
+}
+
+################################################################################
+
+test_check_format_microdvd() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local match=''
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "{123}{456}first line" >> "$tmp"
+	echo "{123}{456}second line" >> "$tmp"
+
+	match=$(check_format_microdvd "$tmp")
+	assertEquals "checking the first line" "microdvd 2" "$match"
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+	echo "junk" >> "$tmp"
+	echo "junk" >> "$tmp"
+	match=$(check_format_microdvd "$tmp")
+	assertEquals "checking the first line" "not_detected" "$match"
+
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
+	assertEquals "checking the first line and fps from real file" "microdvd 1 23.976" "$match"
+
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/2_microdvd.txt")
+	assertEquals "checking the first line" "microdvd 1" "$match"
+
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/3_microdvd.txt")
+	assertEquals "checking the first line" "microdvd 1 23.976" "$match"
+
+	# try with other formats to make sure it doesn't catch any
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
+	assertEquals "checking subrip no detection" "not_detected" "$match"
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
+	assertEquals "checking tmplayer no detection" "not_detected" "$match"
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
+	assertEquals "checking subviewer2 no detection" "not_detected" "$match"
+	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
+	assertEquals "checking mpl2 no detection" "not_detected" "$match"
+
+	unlink "$tmp"
+	_restore_subotage_globs
 	return 0
 }
 
 test_check_format_mpl2() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local match=''
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "[123][456]first line" >> "$tmp"
+	echo "[123][456]second line" >> "$tmp"
+
+	match=$(check_format_mpl2 "$tmp")
+	assertEquals "checking the first line" "mpl2 2" "$match"
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+	echo "junk" >> "$tmp"
+	echo "junk" >> "$tmp"
+	match=$(check_format_mpl2 "$tmp")
+	assertEquals "checking the first line" "not_detected" "$match"
+
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
+	assertEquals "checking the first line and fps from real file" "mpl2 1" "$match"
+
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/2_mpl2.txt")
+	assertEquals "checking the first line 2_mpl2.txt" "mpl2 1" "$match"
+
+	# try with other formats to make sure it doesn't catch any
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
+	assertEquals "checking subrip no detection" "not_detected" "$match"
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
+	assertEquals "checking tmplayer no detection" "not_detected" "$match"
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
+	assertEquals "checking subviewer2 no detection" "not_detected" "$match"
+	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
+	assertEquals "checking microdvd no detection" "not_detected" "$match"
+
+	unlink "$tmp"
+	_restore_subotage_globs
 	return 0
+
 }
 
 test_check_format_subrip() {

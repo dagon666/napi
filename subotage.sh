@@ -119,14 +119,22 @@ check_format_microdvd() {
     local match="not_detected"
     local match_tmp=""
     local fps_detected=''
+    local awk_code=''
+
+read -r -d "" awk_code << 'EOF'
+{
+    gsub("^\\{[0-9]+\\}\\{[0-9]*\\}.*$", "success")
+    print
+}
+EOF
     
     while read file_line; do
         [ "$attempts" -eq 0 ] && break
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match_tmp=$(echo "$file_line" | \
-            LANG=C $g_cmd_awk '{ gsub("^{[0-9]+}{[0-9]*}.*$", "success"); print }')
+        # match the format
+        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$awk_code")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -163,14 +171,21 @@ check_format_mpl2() {
     local first_line=1
     local match="not_detected"
     local match_tmp=""
+    local awk_code=''
+
+read -r -d "" awk_code << 'EOF'
+{
+    gsub("^\\[[0-9]+\\]\\[[0-9]*\\].*$", "success")
+    print 
+}
+EOF
 
     while read file_line; do
         [ "$attempts" -eq 0 ] && break
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match_tmp=$(echo "$file_line" | \
-            LANG=C $g_cmd_awk '{ gsub("^\\[[0-9]+\\]\\[[0-9]*\\].*$", "success"); print }')
+        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$awk_code")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -199,9 +214,9 @@ check_format_subrip() {
     local match_tmp=''
     local match_ts=''
 
-read -d "" match_ts << 'EOF'
+read -r -d "" match_ts << 'EOF'
 {
-    ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\\r\\n]*"
+    ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*"
     full_reg =  "^" prefix ts "$"
     print match($0, full_reg)
 }
@@ -1419,7 +1434,7 @@ detect_microdvd_fps() {
     local awk_code=''
 
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
     FS="}"
 }
@@ -1438,7 +1453,7 @@ BEGIN {
             m = substr($3, where, RLENGTH)
 
             # extract only numbers
-            print substr(m, match(m, "[\.0-9]+"), RLENGTH)
+            print substr(m, match(m, "[\\.0-9]+"), RLENGTH)
 
             break
         }
