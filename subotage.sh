@@ -647,7 +647,7 @@ read_format_mpl2() {
 
 read -r -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[\]\[]"
+    FS="[][]"
     lines_processed = 1;   
     __last_time = __last_time / 100
 }

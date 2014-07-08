@@ -561,25 +561,151 @@ test_read_format_subrip() {
 }
 
 
+test_write_format_microdvd() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local out=$(mktemp out.XXXXXXXX)
+	local status=0
+	local data=''
+
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+
+	g_outf[$___FPS]=25
+	write_format_microdvd "$tmp" "$out" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking return value" "$RET_FAIL" "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 22 25 line2" >> "$tmp"
+
+	write_format_microdvd "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{250}{500}line1")
+	assertTrue "checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{550}{625}line2")
+	assertTrue "checking output 2" "[ \"$data\" -ge 1 ]"
+
+	echo "hms" > "$tmp"
+	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
+	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
+
+	write_format_microdvd "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{250}{500}line1")
+	assertTrue "checking output 3" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{550}{625}line2")
+	assertTrue "checking output 4" "[ \"$data\" -ge 1 ]"
+
+	echo "hmsms" > "$tmp"
+	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
+	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
+
+	g_outf[$___FPS]=30
+	write_format_microdvd "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{315}{615}line1")
+	assertTrue "checking output 5" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{675}{765}line2")
+	assertTrue "checking output 6" "[ \"$data\" -ge 1 ]"
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
+	return 0
+}
+
+
+test_write_format_mpl2() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local out=$(mktemp out.XXXXXXXX)
+	local status=0
+	local data=''
+
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+
+	write_format_mpl2 "$tmp" "$out" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking return value" "$RET_FAIL" "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 22 25 line2" >> "$tmp"
+
+	write_format_mpl2 "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[100\]\[200\]line1")
+	assertTrue "mpl2 checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[220\]\[250\]line2")
+	assertTrue "mpl2 checking output 2" "[ \"$data\" -ge 1 ]"
+
+	echo "hms" > "$tmp"
+	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
+	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
+
+	write_format_mpl2 "$tmp" "$out"
+	status=$?
+	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[100\]\[200\]line1")
+	assertTrue "mpl2 checking output 3" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[220\]\[250\]line2")
+	assertTrue "mpl2 checking output 4" "[ \"$data\" -ge 1 ]"
+
+	echo "hmsms" > "$tmp"
+	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
+	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
+
+	write_format_mpl2 "$tmp" "$out"
+	status=$?
+	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[105\]\[205\]line1")
+	assertTrue "mpl2 checking output 5" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[225\]\[255\]line2")
+	assertTrue "mpl2 checking output 6" "[ \"$data\" -ge 1 ]"
+
+	unlink "$tmp"
+	# unlink "$out"
+	_restore_subotage_globs
+	return 0
+
+}
+
+
 test_write_format_subviewer2() {
 	return 0
 }
+
 
 test_write_format_tmplayer() {
 	return 0
 }
 
-test_write_format_microdvd() {
-	return 0
-}
-
-test_write_format_mpl2() {
-	return 0
-}
 
 test_write_format_subrip() {
 	return 0
 }
+
 
 test_guess_format() {
 	
@@ -596,10 +722,12 @@ test_list_formats() {
 	return 0
 }
 
-test_usage() {
 
+test_usage() {
+	# no need to test that
 	return 0
 }
+
 
 test_parse_argv() {
 	
