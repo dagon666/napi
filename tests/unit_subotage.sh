@@ -762,6 +762,74 @@ test_write_format_tmplayer() {
 
 
 test_write_format_subrip() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local out=$(mktemp out.XXXXXXXX)
+	local status=0
+	local data=''
+
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+
+	write_format_subrip "$tmp" "$out" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking return value" "$RET_FAIL" "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 22 25 line2" >> "$tmp"
+
+	write_format_subrip "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
+	assertEquals "subrip checking output 1" 1 "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,000 --> 00:00:20,000")
+	assertTrue "subrip checking output 2" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
+	assertTrue "subrip checking output 3" "[ \"$data\" -ge 1 ]"
+
+	echo "hms" > "$tmp"
+	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
+	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
+    
+	write_format_subrip "$tmp" "$out"
+	status=$?
+	assertEquals "subrip checking return value" "$RET_OK" "$status"
+    
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
+	assertEquals "subrip checking output 4" 1 "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,000 --> 00:00:20,000")
+	assertTrue "subrip checking output 5" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
+	assertTrue "subrip checking output 6" "[ \"$data\" -ge 1 ]"
+
+	echo "hmsms" > "$tmp"
+	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
+	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
+    
+	write_format_subrip "$tmp" "$out"
+	status=$?
+	assertEquals "subrip checking return value" "$RET_OK" "$status"
+    
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
+	assertEquals "subrip checking output 7" 1 "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,500 --> 00:00:20,500")
+	assertTrue "subrip checking output 8" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
+	assertTrue "subrip checking output 9" "[ \"$data\" -ge 1 ]"
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
 
