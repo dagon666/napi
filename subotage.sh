@@ -760,7 +760,7 @@ write_format_microdvd() {
     local out_file_path="$2"
     local awk_code=''
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
 }
@@ -783,7 +783,7 @@ NR > 1 {
     }
 
     for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\\n")
+    printf("\n")
 }
 EOF
 
@@ -805,7 +805,7 @@ write_format_mpl2() {
     local out_file_path="$2"
     local awk_code=''
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
 }
@@ -828,7 +828,7 @@ NR > 1 {
     }
     
     for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\\n")
+    printf("\n")
 }
 EOF
 
@@ -847,14 +847,14 @@ write_format_subrip() {
     local out_file_path="$2"
     local awk_code=''
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
 }
 
 function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
 
-    printf("%d\\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\\n", \
+    printf("%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n", \
         cnt, \
         sh,sm,ss,sc, \
         eh,em,es,ec)
@@ -863,11 +863,11 @@ function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
 function print_content() {
     for (i=4; i<=NF; i++) {
         tmp = sprintf("%s ", $i)
-        gsub(/\\|/, "\\n", tmp)
+        gsub(/\|/, "\n", tmp)
         printf ( "%s ", tmp )
     }
 
-    printf("\\n\\n")
+    printf("\n\n")
 }
 
 NR > 1 {
@@ -925,7 +925,7 @@ write_format_subviewer2() {
     local out_file_path="$2"
     local awk_code=''
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
 }
@@ -966,17 +966,17 @@ NR > 1 {
         exit 1
     }
     
-    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\\n", \
+    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\n", \
         sh, sm, ss, sc, \
         eh, em, es, ec)
 
     for (i=4; i<=NF; i++) {
         tmp = sprintf("%s ", $i)
-        gsub(/\\|/, "\\n", tmp)
+        gsub(/\|/, "\n", tmp)
         printf ( "%s ", tmp )
     }
 
-    printf("\\n\\n")
+    printf("\n\n")
 }
 EOF
 
@@ -1008,7 +1008,7 @@ write_format_tmplayer() {
     local out_file_path="$2"
     local awk_code=''
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
 }
@@ -1037,7 +1037,7 @@ NR > 1 {
     }
     
     for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\\n")
+    printf("\n")
 }
 EOF
 
@@ -1096,7 +1096,7 @@ correct_overlaps() {
     local num_lines=0
     local status=0
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
     counter = 0
     line_counter = 0
@@ -1135,7 +1135,7 @@ NR > 1 {
                for (i = 4; i<=lines[counter,0]; i++)
                    printf("%s ", lines[counter,i])
 
-               printf("\\n")
+               printf("\n")
            }
         } while (line_counter == __num_lines)
     }
@@ -1444,9 +1444,9 @@ BEGIN {
 
 {
     # regular expressions to match the fps data
-    regs[1]="[0-9]+\\.[0-9]+\\ *(fps)*"
-    regs[2]="[0-9]+\\ *(fps)+"
-    regs[3]="[0-9]+\\ *$"
+    regs[1]="[0-9]+\\.[0-9]+ *(fps)*"
+    regs[2]="[0-9]+ *(fps)+"
+    regs[3]="[0-9]+ *$"
 
     # execute regexp each by each and seek for a match
     for (r in regs) {
