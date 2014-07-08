@@ -620,7 +620,7 @@ NR >= __start_line {
 
     for (i=line_data; i<=NF; i++) {
         # strip control codes - comment this out if you want to keep'em
-        gsub( /[yYfFsScCP]{1}:.*/, "", $i )
+        gsub( /[yYfFsScCP]+:.*/, "", $i )
         printf("%s", $i)
     }
     printf("\n")
@@ -966,7 +966,7 @@ NR > 1 {
         exit 1
     }
     
-    printf("%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\n", \
+    printf("%02d:%02d:%02d.%02d,%02d:%02d:%02d.%02d\n", \
         sh, sm, ss, sc, \
         eh, em, es, ec)
 

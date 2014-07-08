@@ -685,7 +685,7 @@ test_write_format_mpl2() {
 	assertTrue "mpl2 checking output 6" "[ \"$data\" -ge 1 ]"
 
 	unlink "$tmp"
-	# unlink "$out"
+	unlink "$out"
 	_restore_subotage_globs
 	return 0
 
@@ -693,6 +693,65 @@ test_write_format_mpl2() {
 
 
 test_write_format_subviewer2() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local out=$(mktemp out.XXXXXXXX)
+	local status=0
+	local data=''
+
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+
+	write_format_subviewer2 "$tmp" "$out" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking return value" "$RET_FAIL" "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 22 25 line2" >> "$tmp"
+
+	write_format_subviewer2 "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.00,00:00:20\.00")
+	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.00,00:00:25\.00")
+	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
+
+	echo "hms" > "$tmp"
+	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
+	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
+    
+	write_format_subviewer2 "$tmp" "$out"
+	status=$?
+	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
+    
+	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.00,00:00:20\.00")
+	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.00,00:00:25\.00")
+	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
+
+	echo "hmsms" > "$tmp"
+	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
+	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
+    
+	write_format_subviewer2 "$tmp" "$out"
+	status=$?
+	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
+    
+	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.50,00:00:20\.50")
+	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.50,00:00:25\.50")
+	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
+    
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
 
