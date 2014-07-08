@@ -285,24 +285,281 @@ test_check_format_tmplayer() {
 
 
 test_read_format_subviewer2() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local out=$(mktemp output.XXXXXXXX)
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
+
+	echo "00:00:02.123,00:00:12.234" > "$tmp"
+	echo "some subs line" >> "$tmp"
+	echo "" >> "$tmp"
+	echo "00:00:03.123,00:00:10.234" >> "$tmp"
+	echo "some subs line2" >> "$tmp"
+
+	g_inf[$___DETAILS]="subviewer2 1 0"
+	read_format_subviewer2 "$tmp" "$out"
+
+	data=$(head -n 1 "$out" | tail -n 1)
+	assertEquals 'check for file type' "secs" "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "2.123" "${adata[1]}"
+	assertEquals 'check end_time' "12.234" "${adata[2]}"
+	assertEquals 'check content' "some" "${adata[3]}"
+
+	# now let's try with a real file
+	g_inf[$___DETAILS]="subviewer2 11 1"
+	read_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub" "$out"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "60.1" "${adata[1]}"
+	assertEquals 'check end_time' "120.2" "${adata[2]}"
+	assertEquals 'check content' "Oh," "${adata[3]}"
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
+
 
 test_read_format_tmplayer() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local out=$(mktemp output.XXXXXXXX)
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
+
+	echo "00:10:12=line1" > "$tmp"
+	echo "00:10:20=line2" >> "$tmp"
+
+	g_inf[$___DETAILS]="tmplayer 1 2 0 ="
+	read_format_tmplayer "$tmp" "$out"
+
+	data=$(head -n 1 "$out" | tail -n 1)
+	assertEquals 'check for file type' "hms" "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "00:10:12" "${adata[1]}"
+	assertEquals 'check end_time' "00:10:15" "${adata[2]}"
+	assertEquals 'check content' "line1" "${adata[3]}"
+
+	declare -a file_details=( "tmplayer 1 2 0 :" \
+		"tmplayer 1 1 0 :" \
+		"tmplayer 1 2 1 :" \
+		"tmplayer 1 2 1 =" )
+
+	local idx=1
+
+	# now let's try with real files
+	for i in "${file_details[@]}"; do
+		g_inf[$___DETAILS]="$i"
+		read_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/${idx}_tmplayer.txt" "$out"
+
+		data=$(head -n 2 "$out" | tail -n 1)
+		adata=( $data )
+		assertEquals 'check counter' 1 "${adata[0]}"
+		assertEquals 'check start_time' "00:03:46" "${adata[1]}"
+		assertEquals 'check end_time' "00:03:49" "${adata[2]}"
+		assertEquals 'check content' "Nic.|Od" "${adata[3]}"
+
+		idx=$(( idx + 1 ))
+	done
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
+
 }
+
 
 test_read_format_microdvd() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local out=$(mktemp output.XXXXXXXX)
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
+
+	echo "{100}{200}line1" > "$tmp"
+	echo "{100}{200}line2" >> "$tmp"
+
+	g_inf[$___DETAILS]="microdvd 1"
+	g_inf[$___FPS]="25"
+	read_format_microdvd "$tmp" "$out"
+
+	data=$(head -n 1 "$out" | tail -n 1)
+	assertEquals 'check for file type' "secs" "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "4" "${adata[1]}"
+	assertEquals 'check end_time' "8" "${adata[2]}"
+	assertEquals 'check content' "line1" "${adata[3]}"
+
+	declare -a file_starts=( "padding" \
+		"1" \
+		"1219" \
+		"1" )
+
+	declare -a file_ends=( "padding" \
+		"1" \
+		"1421" \
+		"72"
+			)
+
+	declare -a file_data=( "padding" \
+		"23.976" \
+		"prawie" \
+		"movie"
+		)
+
+	g_inf[$___DETAILS]="microdvd 1"
+
+	# now let's try with real files
+	for i in {1..3}; do
+		g_inf[$___FPS]=1
+		read_format_microdvd "$g_assets_path/$g_ut_root/subtitles/${i}_microdvd.txt" "$out"
+
+		data=$(head -n 2 "$out" | tail -n 1 | strip_newline)
+		adata=( $data )
+		assertEquals 'check counter' 1 "${adata[0]}"
+		assertEquals 'check start_time' "${file_starts[$i]}" "${adata[1]}"
+		assertEquals 'check end_time' "${file_ends[$i]}" "${adata[2]}"
+		assertEquals 'check content' "${file_data[$i]}" "${adata[3]}"
+	done
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
+
 
 test_read_format_mpl2() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local out=$(mktemp output.XXXXXXXX)
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
+
+	echo "[100][200]line1" > "$tmp"
+	echo "[100][200]line2" >> "$tmp"
+
+	g_inf[$___DETAILS]="mpl2 1"
+	read_format_mpl2 "$tmp" "$out"
+
+	data=$(head -n 1 "$out" | tail -n 1)
+	assertEquals 'check for file type' "secs" "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "10" "${adata[1]}"
+	assertEquals 'check end_time' "20" "${adata[2]}"
+	assertEquals 'check content' "line1" "${adata[3]}"
+
+	declare -a file_starts=( "padding" \
+		"100" \
+		"46.1" )
+
+	declare -a file_ends=( "padding" \
+		"104.8" \
+		"51" )
+
+	declare -a file_data=( "padding" \
+		"Aktualny" \
+		"/Zaledwie" )
+
+	g_inf[$___DETAILS]="mpl2 1"
+
+	# now let's try with real files
+	for i in {1..2}; do
+		read_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/${i}_mpl2.txt" "$out"
+
+		data=$(head -n 2 "$out" | tail -n 1 | strip_newline)
+		adata=( $data )
+		assertEquals 'check counter' 1 "${adata[0]}"
+		assertEquals 'check start_time' "${file_starts[$i]}" "${adata[1]}"
+		assertEquals 'check end_time' "${file_ends[$i]}" "${adata[2]}"
+		assertEquals 'check content' "${file_data[$i]}" "${adata[3]}"
+	done
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
 
+
 test_read_format_subrip() {
+	local tmp=$(mktemp test.XXXXXXXX)
+	local out=$(mktemp output.XXXXXXXX)
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
+
+	echo "1 00:00:02,123 --> 00:00:12,234" > "$tmp"
+	echo "some subs line" >> "$tmp"
+
+	g_inf[$___DETAILS]="subrip 1 inline"
+	read_format_subrip "$tmp" "$out"
+
+	data=$(head -n 1 "$out" | tail -n 1)
+	assertEquals 'check for file type' "hmsms" "$data"
+
+	data=$(head -n 2 "$out" | tail -n 1)
+	adata=( $data )
+	assertEquals 'check counter' 1 "${adata[0]}"
+	assertEquals 'check start_time' "00:00:02.123" "${adata[1]}"
+	assertEquals 'check end_time' "00:00:12.234" "${adata[2]}"
+	assertEquals 'check content' "some" "${adata[3]}"
+
+	# now let's try with real files
+	g_inf[$___DETAILS]="subrip 1 inline"
+	read_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_inline_subrip.txt" "$out"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline)
+	adata=( $data )
+	assertEquals 'inline check counter' 1 "${adata[0]}"
+	assertEquals 'inline check start_time' "00:00:49.216" "${adata[1]}"
+	assertEquals 'inline check end_time' "00:00:53.720" "${adata[2]}"
+	assertEquals 'inline check content' "Panie" "${adata[3]}"
+
+	g_inf[$___DETAILS]="subrip 1 newline"
+	read_format_subrip "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt" "$out"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline)
+	adata=( $data )
+	assertEquals 'newline check counter' 1 "${adata[0]}"
+	assertEquals 'newline check start_time' "00:00:49.216" "${adata[1]}"
+	assertEquals 'newline check end_time' "00:00:53.720" "${adata[2]}"
+	assertEquals 'newline check content' "Panie" "${adata[3]}"
+
+	g_inf[$___DETAILS]="subrip 5 newline"
+	read_format_subrip "$g_assets_path/$g_ut_root/subtitles/3_subrip.txt" "$out"
+    
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline)
+	adata=( $data )
+	assertEquals 'offset check counter' 1 "${adata[0]}"
+	assertEquals 'offset check start_time' "00:00:56.556" "${adata[1]}"
+	assertEquals 'offset check end_time' "00:01:02.062" "${adata[2]}"
+	assertEquals 'offset check content' "Pod" "${adata[3]}"
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
 	return 0
 }
+
 
 test_write_format_subviewer2() {
 	return 0

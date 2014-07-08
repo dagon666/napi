@@ -429,9 +429,9 @@ read_format_subviewer2() {
     local awk_code=''
     declare -a details=( ${g_inf[$___DETAILS]} )
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
-    FS="\\n"
+    FS="\n"
     RS="" # blank line as record separator
     lines_processed=1
 }
@@ -455,12 +455,12 @@ BEGIN {
     printf("%d %s %s ", lines_processed, time_start, time_stop )
 
     for (i=line_data; i<=NF; i++) {
-        if (i>line_data) printf(\"|\")
+        if (i>line_data) printf("|")
         printf("%s", $i);                       
     }
 
     lines_processed++
-    printf("\\n")
+    printf("\n")
 }
 EOF
 
@@ -484,7 +484,7 @@ read_format_tmplayer() {
 
 
 # match="tmplayer $first_line $hour_digits $multiline $delim"
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
     lines_processed = 1
     prev_time_start = 0
@@ -535,7 +535,7 @@ length($0) && NR >= __start_line {
         }
         else {
             if (NR > 1) {
-                printf("\\n");   
+                printf("\n");   
                 lines_processed++
             }
 
@@ -568,7 +568,7 @@ length($0) && NR >= __start_line {
         prev_time_start = time_start
     }
     else {
-        printf "\\n"
+        printf "\n"
     }
 }
 EOF
@@ -595,15 +595,17 @@ read_format_microdvd() {
     local awk_code=''
     declare -a details=( ${g_inf[$___DETAILS]} )
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
-    FS="[}{]"
-    lines_processed=0
+    FS="[\\}\\{]"
+    lines_processed = 1
     __last_time = __last_time / 1000
 }
+
 /^[:space:]*$/ {
     next
 }
+
 NR >= __start_line {
     frame_start=$2
     frame_end=$4
@@ -621,7 +623,7 @@ NR >= __start_line {
         gsub( /[yYfFsScCP]{1}:.*/, "", $i )
         printf("%s", $i)
     }
-    printf("\\n")
+    printf("\n")
 }
 EOF
     
@@ -643,7 +645,7 @@ read_format_mpl2() {
     local awk_code=''
     declare -a details=( "${g_inf[$___DETAILS]}" )
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
     FS="[\]\[]"
     lines_processed = 1;   
@@ -669,7 +671,7 @@ length($0) && NR >= __start_line {
         (frame_end/10))
 
     for (i=5; i<=NF; i++) printf("%s", $i)
-    printf("\\n")
+    printf("\n")
 }
 EOF
     
@@ -690,9 +692,9 @@ read_format_subrip() {
     local awk_code=''
     declare -a details=( ${g_inf[$___DETAILS]} )
 
-read -d "" awk_code << 'EOF'
+read -r -d "" awk_code << 'EOF'
 BEGIN {
-    FS="\\n"
+    FS="\n"
     RS=""
     lines_processed = 1
 }
@@ -708,12 +710,13 @@ length($0) {
     }
 
     line_data = rec + 1
-    gsub("\\r", "")
+    gsub("\r", "")
 
     if (__counter_type == "inline") {
         gsub(",", ".", $rec)
         gsub("--> ", "", $rec)
         printf("%s ", $rec)
+    }
     else {
         ts = rec + 1
         gsub(",", ".", $ts)
@@ -727,7 +730,7 @@ length($0) {
         if (i > line_data) printf("|")
         printf("%s", $i)
     }
-    printf("\\n")
+    printf("\n")
 
     lines_processed++
 }
