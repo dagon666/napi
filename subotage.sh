@@ -216,7 +216,7 @@ check_format_subrip() {
 
 read -r -d "" match_ts << 'EOF'
 {
-    ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+\ -->\ [0-9]+:[0-9]+:[0-9]+,[0-9]+[\r\n]*"
+    ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[ \r\n]*"
     full_reg =  "^" prefix ts "$"
     print match($0, full_reg)
 }
@@ -276,10 +276,10 @@ check_format_subviewer2() {
     local header_line=0
     local match_ts=''
 
-read -d "" match_ts << 'EOF'
+read -r -d "" match_ts << 'EOF'
 {
-    match_group="[0-9]+:[0-9]+:[0-9]+\.[0-9]+"
-    reg = "^" match_group "," match_group "\ *[\\r\\n]*$"
+    match_group="[0-9]+:[0-9]+:[0-9]+\\.[0-9]+"
+    reg = "^" match_group "," match_group "[ \r\n]*$"
     where = match($0, reg)
     print where
 }
@@ -331,7 +331,7 @@ check_format_tmplayer() {
     local generic_check=''
     local extract_delim=''
 
-read -d "" generic_check << 'EOF'
+read -r -d "" generic_check << 'EOF'
 {
     # 1 - multiline check regexp (length: 10/11)
     # 2 - non-multiline regexp (length: 8/9)
@@ -352,7 +352,7 @@ read -d "" generic_check << 'EOF'
 EOF
 
 
-read -d "" extract_delim << 'EOF'
+read -r -d "" extract_delim << 'EOF'
 {
     print substr($0, match_len, 1)
 }
