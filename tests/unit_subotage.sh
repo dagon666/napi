@@ -845,7 +845,7 @@ test_correct_overlaps() {
 }
 
 test_list_formats() {
-	
+	# no need to test that
 	return 0
 }
 
@@ -861,25 +861,54 @@ test_parse_argv() {
 	return 0
 }
 
-test_verify_format() {
 
+test_verify_format() {
+	local status=0
+
+	verify_format "bogus_format"
+	status=$?
+	assertEquals "failure for bogus format" $RET_PARAM "$status"
+
+	declare -a formats=( "subrip" "microdvd" "subviewer2" "mpl2" "tmplayer" )
+	for i in "${formats[@]}"; do
+		verify_format "$i"
+		status=$?
+		assertEquals "$i format" $RET_OK "$status"
+	done
 	return 0
 }
+
 
 test_verify_fps() {
-	
+	local status=0
+
+	verify_fps "23,456"
+	status=$?
+	assertEquals "fps format with comma" $RET_PARAM "$status"
+
+	verify_fps "23.456"
+	status=$?
+	assertEquals "fps format with period" $RET_OK "$status"
+
+	verify_fps "23"
+	status=$?
+	assertEquals "fps format without period" $RET_OK "$status"
+
 	return 0
 }
+
 
 test_verify_argv() {
 
 	return 0
 }
 
+
 test_detect_microdvd_fps() {
 	
 	return 0
 }
+
 
 test_correct_fps() {
 	_save_subotage_globs
