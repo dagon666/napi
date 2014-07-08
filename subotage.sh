@@ -1021,7 +1021,10 @@ NR > 1 {
         ss = $2%60
         printf("%02d:%02d:%02d:", sh, sm, ss)
     }
-    else if (time_type == "hmsms" || time_type == "hms") {
+    else if (time_type == "hms") {
+        printf("%s:", $2)
+    }
+    else if (time_type == "hmsms") {
         # just strip the fractional part
         idx = index($2, ".") - 1
         if (idx) {

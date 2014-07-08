@@ -692,6 +692,70 @@ test_write_format_mpl2() {
 }
 
 
+test_write_format_tmplayer() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local out=$(mktemp out.XXXXXXXX)
+	local status=0
+	local data=''
+
+	_save_subotage_globs
+
+	echo "junk" > "$tmp"
+	echo "junk" >> "$tmp"
+
+	write_format_tmplayer "$tmp" "$out" 2>&1 > /dev/null
+	status=$?
+	assertEquals "checking return value" "$RET_FAIL" "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 22 25 line2" >> "$tmp"
+
+	write_format_tmplayer "$tmp" "$out"
+	status=$?
+	assertEquals "checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
+	assertTrue "tmplayer checking output 1" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
+	assertTrue "tmplayer checking output 2" "[ \"$data\" -ge 1 ]"
+
+	echo "hms" > "$tmp"
+	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
+	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
+
+	write_format_tmplayer "$tmp" "$out"
+	status=$?
+	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
+	assertTrue "tmplayer checking output 3" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
+	assertTrue "tmplayer checking output 4" "[ \"$data\" -ge 1 ]"
+
+	echo "hmsms" > "$tmp"
+	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
+	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
+
+	write_format_tmplayer "$tmp" "$out"
+	status=$?
+	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
+
+	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
+	assertTrue "tmplayer checking output 5" "[ \"$data\" -ge 1 ]"
+
+	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
+	assertTrue "tmplayer checking output 6" "[ \"$data\" -ge 1 ]"
+
+	unlink "$tmp"
+	unlink "$out"
+	_restore_subotage_globs
+	return 0
+}
+
+
 test_write_format_subviewer2() {
 	local tmp=$(mktemp tmp.XXXXXXXX)
 	local out=$(mktemp out.XXXXXXXX)
@@ -752,11 +816,6 @@ test_write_format_subviewer2() {
 	unlink "$tmp"
 	unlink "$out"
 	_restore_subotage_globs
-	return 0
-}
-
-
-test_write_format_tmplayer() {
 	return 0
 }
 
@@ -861,7 +920,6 @@ test_parse_argv() {
 	return 0
 }
 
-
 test_verify_format() {
 	local status=0
 
@@ -878,7 +936,6 @@ test_verify_format() {
 	return 0
 }
 
-
 test_verify_fps() {
 	local status=0
 
@@ -893,16 +950,13 @@ test_verify_fps() {
 	verify_fps "23"
 	status=$?
 	assertEquals "fps format without period" $RET_OK "$status"
-
 	return 0
 }
-
 
 test_verify_argv() {
 
 	return 0
 }
-
 
 test_detect_microdvd_fps() {
 	local status=0
@@ -930,11 +984,9 @@ test_detect_microdvd_fps() {
 		fps=$(echo "$i" | detect_microdvd_fps)
 		assertEquals "checking fps $idx" "${res[$idx]}" "$fps"
 		idx=$(( idx + 1 ))
-	done
-	
+	done	
 	return 0
 }
-
 
 test_correct_fps() {
 	_save_subotage_globs
