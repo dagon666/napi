@@ -905,6 +905,32 @@ test_verify_argv() {
 
 
 test_detect_microdvd_fps() {
+	local status=0
+
+	declare -a data=( \
+	   "{1}{1}23.976fps" \
+	   "{1}{72}movie info: XVID  720x304 23.976fps 1.4 GB" \
+	   "{1}{72}movie info: XVID  720x304 25.0 1.4 GB" \
+	   "{1}{72}30fps" \
+	   "{1}{72}30" \
+   	   )
+
+	declare -a res=( \
+	   "23.976" \
+	   "23.976" \
+	   "25.0" \
+	   "30" \
+	   "30"
+   	   )
+
+	local idx=0
+	local fps=0
+
+	for i in "${data[@]}"; do
+		fps=$(echo "$i" | detect_microdvd_fps)
+		assertEquals "checking fps $idx" "${res[$idx]}" "$fps"
+		idx=$(( idx + 1 ))
+	done
 	
 	return 0
 }
