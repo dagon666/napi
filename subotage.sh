@@ -1436,7 +1436,7 @@ verify_argv() {
     _debug $LINENO "weryfikuje fps wyjsciowy"
     ! verify_fps "${g_outf[$___FPS]}" && return $RET_PARAM
 
-    return 0
+    return $RET_OK
 }
 
 

@@ -1088,7 +1088,57 @@ test_verify_fps() {
 
 
 test_verify_argv() {
+	local status=0
+	_save_subotage_globs
 
+	g_inf[$___PATH]="none"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect input" $RET_PARAM "$status"
+
+	echo "test" > "input.txt"
+
+	g_inf[$___PATH]="input.txt"
+	g_outf[$___PATH]="none"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect output" $RET_PARAM "$status"
+
+	g_inf[$___PATH]="input.txt"
+	g_outf[$___PATH]="output.txt"
+	g_inf[$___FORMAT]="bogus"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect input format" $RET_PARAM "$status"
+
+	g_inf[$___FORMAT]="microdvd"
+	g_outf[$___FORMAT]="bogus"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect output format" $RET_PARAM "$status"
+
+	g_outf[$___FORMAT]="subrip"
+	g_inf[$___FPS]="25fps"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect input fps" $RET_PARAM "$status"
+
+	g_outf[$___FORMAT]="subrip"
+	g_inf[$___FPS]="25"
+	g_outf[$___FPS]="25fps"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "incorrect output fps" $RET_PARAM "$status"
+
+	g_outf[$___FORMAT]="subrip"
+	g_inf[$___FPS]="25"
+	g_outf[$___FPS]="25"
+	verify_argv 2>&1 > /dev/null
+	status=$?
+	assertEquals "correct settings" $RET_OK "$status"
+
+	unlink "input.txt"
+	_restore_subotage_globs
 	return 0
 }
 
@@ -1202,7 +1252,44 @@ test_print_format_summary() {
 
 
 test_convert_formats() {
+	local status=0
+	_save_subotage_globs
+
+	(
+	reader_rv=$RET_FAIL
+	writer_rv=$RET_FAIL
+
+	_test_reader() {
+		return $reader_rv
+	}
+	export -f _test_reader
+
+	_test_writer() {
+		return $writer_rv
+	}
+	export -f _test_writer
+
+	correct_overlaps() {
+		return 0
+	}
+	export -f correct_overlaps
+
+	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	status=$?
+	assertEquals "reader failure" $RET_FAIL "$status"
+
+	reader_rv=$RET_OK
+	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	status=$?
+	assertEquals "writer failure" $RET_FAIL "$status"
+		
+	writer_rv=$RET_OK
+	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	status=$?
+	assertEquals "all ok" $RET_OK "$status"
+	)
 	
+	_restore_subotage_globs
 	return 0
 }
 
