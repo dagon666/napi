@@ -10,7 +10,13 @@ time vagrant ssh -c "cd /vagrant/tests && ./prepare.pl $path_root"
 
 
 # run unit tests
-declare -a utests=( 'unit_napi_common.sh' 'unit_napi.sh' 'unit_subotage.sh' )
+declare -a utests=( 'unit_napi_common.sh' \
+	'unit_napi.sh' \
+	'unit_subotage_awk.sh' \
+	'unit_subotage_gawk.sh' \
+	'unit_subotage_mawk.sh' \
+   	)
+
 for s in "${utests[@]}"; do
 
 	echo '==========================================='
@@ -33,7 +39,18 @@ done
 exit
 
 # run system tests with the following shells
-declare -a shells=( 'bash-2.04' 'bash-2.05' 'bash-2.05a' 'bash-2.05b' 'bash-3.0' 'bash-3.1' 'bash-3.2' 'bash-3.2.48' 'bash-4.0' 'bash-4.1' 'bash-4.2' 'bash-4.3' )
+declare -a shells=( 'bash-2.04' \
+	'bash-2.05' \
+	'bash-2.05a' \
+	'bash-2.05b' \
+	'bash-3.0' \
+	'bash-3.1' \
+	'bash-3.2' \
+	'bash-3.2.48' \
+	'bash-4.0' \
+	'bash-4.1' \
+	'bash-4.2' \
+	'bash-4.3' )
 
 for s in "${shells[@]}"; do
 	echo '==========================================='
