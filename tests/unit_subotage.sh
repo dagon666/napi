@@ -1019,7 +1019,35 @@ test_usage() {
 
 
 test_parse_argv() {
-	
+	_save_subotage_globs
+
+	parse_argv -i input_file.txt \
+		-o output_file.txt \
+		-if subrip \
+		-of microdvd \
+		-fi 23.976 \
+		-fo 24.123 \
+		-l 5000 \
+		-t 8 \
+		-m 666 \
+		--ipc-file ipc.file \
+		-gi \
+		-v 3 
+
+	assertEquals "checking input file" "input_file.txt" "${g_inf[$___PATH]}"
+	assertEquals "checking output file" "output_file.txt" "${g_outf[$___PATH]}"
+	assertEquals "checking in format" "subrip" "${g_inf[$___FORMAT]}"
+	assertEquals "checking out format" "microdvd" "${g_outf[$___FORMAT]}"
+	assertEquals "checking in fps" "23.976" "${g_inf[$___FPS]}"
+	assertEquals "checking out fps" "24.123" "${g_outf[$___FPS]}"
+	assertEquals "checking lasting time" "5000" "$g_lastingtime"
+	assertEquals "thread cnt" "8" "${g_output[$___FORK]}"
+	assertEquals "msg cnt" "666" "${g_output[$___CNT]}"
+	assertEquals "ipc_file" "ipc.file" "$g_ipc_file"
+	assertEquals "get_info" "1" "$g_getinfo"
+	assertEquals "verbosity" "3" "${g_output[$___VERBOSITY]}"
+
+	_restore_subotage_globs
 	return 0
 }
 
