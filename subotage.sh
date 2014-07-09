@@ -96,6 +96,9 @@ g_cmd_cp='cp'
 g_cmd_unlink='rm -rf'
 g_cmd_awk='awk'
 
+# override awk when unit tests want it
+[ -n "${SHUNIT_TESTS_AWK:-}" ] && g_cmd_awk="${SHUNIT_TESTS_AWK}"
+
 ################################################################################
 
 

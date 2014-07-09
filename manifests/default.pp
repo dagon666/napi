@@ -88,6 +88,24 @@ package { "libwww-perl":
 }
 
 
+package { "original-awk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "mawk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "gawk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
 file { "/home/vagrant/bin":
   ensure  => "directory",
   owner => "vagrant",

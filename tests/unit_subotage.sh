@@ -1317,5 +1317,3 @@ test_create_output_summary() {
 	return 0
 }
 
-# shunit call
-. shunit2
