@@ -374,7 +374,7 @@ verify_tools() {
 #
 get_sub_ext() {
     local status=0
-    declare -a fmte=( 'subrip=srt' 'subviewer=sub' )
+    declare -a fmte=( 'subrip=srt' 'subviewer2=sub' )
 
     # this function can cope with that kind of input
     # shellcheck disable=SC2068
@@ -2549,7 +2549,7 @@ main() {
     # if no arguments are given, then print help and exit
     [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
         usage &&
-        return $RET_BREAK
+        return $RET_OK
 
     # get argv
     if ! parse_argv "$@"; then

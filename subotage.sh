@@ -1692,7 +1692,7 @@ main() {
     # if no arguments are given, then print help and exit
     [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
         usage &&
-        return $RET_BREAK
+        return $RET_OK
 
     # get argv
     if ! parse_argv "$@"; then

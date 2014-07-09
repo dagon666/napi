@@ -6,7 +6,7 @@ echo "====================================="
 echo "subotage unit tests with gawk"
 echo "====================================="
 
-. ./unit_subotage.sh
+. ./unit_subotage_common.sh
 
 suite() {
 	suite_addTest test_check_format_microdvd

@@ -23,6 +23,7 @@ our @EXPORT = qw/
 our $path_root = "/home/vagrant";
 our $testspace = $path_root . '/testspace';
 our $assets = $path_root . '/napi_test_files';
+our $install_path = $path_root . '/napi_bin';
 
 sub prepare_fs {
 
@@ -178,7 +179,7 @@ sub parse_summary {
 	my %output = ();
 	my $input = shift // '';
 
-	($output{lc $_}) = ($input =~ m/#\d?\s*$_\s->\s(\d+)/g) foreach (@strings);
+	($output{lc $_}) = ($input =~ m/#\d+:\d+\s*$_\s->\s(\d+)/g) foreach (@strings);
 	return %output;	
 }
 
@@ -187,7 +188,7 @@ sub qx_tool {
 	my $shell = shift // '/bin/bash';
 	my $tool = shift // 'napi.sh';
 	my $arguments = shift // '';
-	return `$shell /vagrant/$tool $arguments`;
+	return `$shell $install_path/$tool $arguments`;
 }
 
 
@@ -195,7 +196,7 @@ sub system_tool {
 	my $shell = shift // '/bin/bash';
 	my $tool = shift // 'napi.sh';
 	my $arguments = shift // '';
-	return system("$shell /vagrant/$tool $arguments");
+	return system("$shell $install_path/$tool $arguments") >> 8;
 }
 
 
