@@ -16,7 +16,9 @@ replace_path() {
 	local token='NAPI_COMMON_PATH'
 	local replacement="${token}=\"$path\""
 
-	sed -i~ "s|${token}=|${replacement}|" "$file"	
+	# that's because busybox sed doesn't support suffixes
+	cp "$file" "${file}.orig"
+	sed -i "s|${token}=|${replacement}|" "$file"	
 }
 
 
@@ -112,6 +114,6 @@ for f in "${bin_files[@]}"; do
 	cp -v "$f" "$BIN_dir"
 
 	# restore original files if we've got backups
-	[ -e "${f}~" ] && mv -v "${f}~" "$f"
+	[ -e "${f}.orig" ] && mv -v "${f}.orig" "$f"
 done
 
