@@ -894,14 +894,63 @@ test_write_format_subrip() {
 
 
 test_guess_format() {
+
+	declare -a files=( \
+		"1_inline_subrip.txt" \
+		"1_microdvd.txt" \
+		"1_mpl2.txt" \
+		"1_subviewer2.sub" \
+		"1_tmplayer.txt" \
+		"2_microdvd.txt" \
+		"2_mpl2.txt" \
+		"2_newline_subrip.txt" \
+		"2_tmplayer.txt" \
+		"3_microdvd.txt" \
+		"3_subrip.txt" \
+		"3_tmplayer.txt" \
+		"4_tmplayer.txt" \
+	   	)
 	
+	declare -a formats=( \
+		"subrip 1 inline" \
+		"microdvd 1 23.976" \
+		"mpl2 1" \
+		"subviewer2 11 1" \
+		"tmplayer 1 2 0 :" \
+		"microdvd 1" \
+		"mpl2 1" \
+		"subrip 1 newline" \
+		"tmplayer 1 1 0 :" \
+		"microdvd 1 23.976" \
+		"subrip 5 newline" \
+		"tmplayer 1 2 1 :" \
+		"tmplayer 1 2 1 =" \
+		)
+
+	local idx=0
+	local path=''
+	local format=''
+	local status=0
+
+	for i in "${files[@]}"; do
+		path="$g_assets_path/$g_ut_root/subtitles/$i"
+		format=$(guess_format "$path")
+		status=$?
+
+		assertEquals "checking exit code" $RET_OK "$status"
+		assertEquals "checking details for $i" "${formats[$idx]}" "$format"
+
+		idx=$(( idx + 1 ))
+	done
 	return 0
 }
+
 
 test_correct_overlaps() {
 
 	return 0
 }
+
 
 test_list_formats() {
 	# no need to test that
@@ -920,6 +969,7 @@ test_parse_argv() {
 	return 0
 }
 
+
 test_verify_format() {
 	local status=0
 
@@ -935,6 +985,7 @@ test_verify_format() {
 	done
 	return 0
 }
+
 
 test_verify_fps() {
 	local status=0
@@ -953,10 +1004,12 @@ test_verify_fps() {
 	return 0
 }
 
+
 test_verify_argv() {
 
 	return 0
 }
+
 
 test_detect_microdvd_fps() {
 	local status=0
@@ -988,6 +1041,7 @@ test_detect_microdvd_fps() {
 	return 0
 }
 
+
 test_correct_fps() {
 	_save_subotage_globs
 
@@ -1005,6 +1059,7 @@ test_correct_fps() {
 	_restore_subotage_globs
 	return 0
 }
+
 
 test_check_if_conv_needed() {
 	local status=0
