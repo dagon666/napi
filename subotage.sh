@@ -1099,6 +1099,8 @@ correct_overlaps() {
     local num_lines=0
     local status=0
 
+    local rv=$RET_OK
+
 read -r -d "" awk_code << 'EOF'
 BEGIN {
     counter = 0
@@ -1157,18 +1159,23 @@ EOF
     num_lines=$(( num_lines - 1 ))
 
     $g_cmd_awk -v __num_lines="$num_lines" \
-        "$awk_code" "$file_path" > "$tmp_file"; 
+        "$awk_code" "$file_path" > "$tmp_file"
     status=$?
 
     case "$status" in
         1)
             _error "blad przy poprawianiu overlaps. przywracam oryg. pliki"
             $g_cmd_cp "$file_path" "$tmp_file"
+            rv=$RET_FAIL
+            ;;
+
+        2)
+            _warning "brak korekcji nakladajacych sie napisow, dla formatu we."
+            $g_cmd_cp "$file_path" "$tmp_file"
+            rv=$RET_NOACT
             ;;
 
         *)
-            _warning "brak korekcji nakladajacych sie napisow, dla formatu we."
-            $g_cmd_cp "$file_path" "$tmp_file"
             ;;
     esac
 
@@ -1180,7 +1187,7 @@ EOF
         _debug $LINENO "usuwam plik tymczasowy" &&
         $g_cmd_unlink "$tmp_file"
 
-    return $RET_OK
+    return $rv
 }
 
 

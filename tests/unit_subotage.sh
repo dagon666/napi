@@ -894,6 +894,7 @@ test_write_format_subrip() {
 
 
 test_guess_format() {
+	_save_subotage_globs
 
 	declare -a files=( \
 		"1_inline_subrip.txt" \
@@ -942,12 +943,65 @@ test_guess_format() {
 
 		idx=$(( idx + 1 ))
 	done
+	_restore_subotage_globs
 	return 0
 }
 
 
 test_correct_overlaps() {
+	local tmp=$(mktemp tmp.XXXXXXXX)
+	local status=0
+	local data=''
+	declare -a adata=()
+	_save_subotage_globs
 
+	echo "hms" > "$tmp"
+	echo "junk" >> "$tmp"
+	correct_overlaps "$tmp" 2>&1 > /dev/null
+	status=$?
+	assertEquals "hms not supported" $RET_NOACT "$status"
+
+	echo "hmsms" > "$tmp"
+	echo "junk" >> "$tmp"
+	correct_overlaps "$tmp" 2>&1 > /dev/null
+	status=$?
+	assertEquals "hmsms not supported" $RET_NOACT "$status"
+
+	echo "secs" > "$tmp"
+	echo "1 10 20 line1" >> "$tmp"
+	echo "2 18 25 overlap1" >> "$tmp"
+	echo "3 23 28 overlap2" >> "$tmp"
+
+	correct_overlaps "$tmp" 2>&1 > /dev/null
+	status=$?
+	assertEquals "secs status ok" $RET_OK "$status"
+
+	data=$(head -n 1 "$tmp" | tail -n 1)
+	assertEquals 'check for file type' "secs" "$data"
+
+	data=$(head -n 2 "$tmp" | tail -n 1)
+	adata=( $data )
+	assertEquals '1 check counter' 1 "${adata[0]}"
+	assertEquals '1 check start_time' "10" "${adata[1]}"
+	assertEquals '1 check end_time' "18" "${adata[2]}"
+	assertEquals '1 check content' "line1" "${adata[3]}"
+
+	data=$(head -n 3 "$tmp" | tail -n 1)
+	adata=( $data )
+	assertEquals '2 check counter' 2 "${adata[0]}"
+	assertEquals '2 check start_time' "18" "${adata[1]}"
+	assertEquals '2 check end_time' "23" "${adata[2]}"
+	assertEquals '2 check content' "overlap1" "${adata[3]}"
+
+	data=$(head -n 4 "$tmp" | tail -n 1)
+	adata=( $data )
+	assertEquals '3 check counter' 3 "${adata[0]}"
+	assertEquals '3 check start_time' "23" "${adata[1]}"
+	assertEquals '3 check end_time' "28" "${adata[2]}"
+	assertEquals '3 check content' "overlap2" "${adata[3]}"
+
+	_restore_subotage_globs
+	unlink "$tmp"
 	return 0
 }
 
