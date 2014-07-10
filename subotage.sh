@@ -342,7 +342,7 @@ read -r -d "" generic_check << 'EOF'
     reg[2] = "^[0-9]+:[0-9]+:[0-9]+[:;=,]+"
     result=-1
 
-    for (i in reg) {
+    for (i = 1; i<=2; i++) {
         where = match($0, reg[i])
         if (where) {
             result = i " " RLENGTH
@@ -1466,7 +1466,7 @@ BEGIN {
     regs[3]="[0-9]+ *$"
 
     # execute regexp each by each and seek for a match
-    for (r in regs) {
+    for (r = 1; r<=3; r++) {
 
         where = match($3, regs[r])
         if (where) {
