@@ -94,6 +94,12 @@ package { "original-awk":
 }
 
 
+package { "p7zip-full":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
 package { "mawk":
 	ensure => present,
     require => Exec["apt-get update"],

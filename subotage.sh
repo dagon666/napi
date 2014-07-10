@@ -1208,12 +1208,11 @@ list_formats() {
     local fmt=''
 
     # description for every supported file format
-    declare -ar desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [$g_inf[$___FPS]] fps)" \
-                       "[start][stop] format. The unit is time based == 0.1 sec" \
-                       "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
-                       "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
-                       "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" \
-                    ) 
+    desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [${g_inf[$___FPS]}] fps)" \
+           "[start][stop] format. The unit is time based == 0.1 sec" \
+           "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
+           "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
+           "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" ) 
 
     if [ "$long" -eq 1 ]; then
 

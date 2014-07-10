@@ -35,8 +35,6 @@ for s in "${utests[@]}"; do
 	fi
 done
 
-# TODO REMOVE ME - ONLY TEMPORARY
-exit
 
 # run system tests with the following shells
 declare -a shells=( 'bash-2.04' \

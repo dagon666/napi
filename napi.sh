@@ -193,7 +193,7 @@ declare -a g_tools_fps=( 'ffmpeg' 'mediainfo' 'mplayer' 'mplayer2' )
 # @brief wget details
 # 0 - cmd
 # 1 - flag defining if wget supports post requests
-declare -a g_cmd_wget=( 'wget -q -O' '0' )
+g_cmd_wget=( 'wget -q -O' '0' )
 
 g_cmd_stat='stat -c%s'
 g_cmd_md5='md5sum'
@@ -692,7 +692,8 @@ verify_format() {
             return $RET_PARAM
         fi
 
-        declare -a formats=( $(subotage.sh -gf) )
+        declare -a formats=()
+        formats=( $(subotage.sh -gf) )
 
         # this function can cope with that kind of input
         # shellcheck disable=SC2068
