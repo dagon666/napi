@@ -114,6 +114,6 @@ for f in "${bin_files[@]}"; do
 	cp -v "$f" "$BIN_dir"
 
 	# restore original files if we've got backups
-	[ -e "${f}.orig" ] && mv -v "${f}.orig" "$f"
+	[ -e "${f}.orig" ] && mv "${f}.orig" "$f"
 done
 

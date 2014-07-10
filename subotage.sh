@@ -1590,7 +1590,7 @@ convert_formats() {
     fi
 
     # get rid of the temporary file
-    [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
+    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 
