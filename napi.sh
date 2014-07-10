@@ -184,10 +184,10 @@ declare -a g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
     'basename=1' 'dirname=1' 'cat=1' 'cp=1' \
     'mv=1' 'awk=0' 'file=0' 'subotage.sh=0' \
     '7z=0' '7za=0' '7zr=0' 'iconv=0' 'mediainfo=0' \
-    'mplayer=0' 'mplayer2=0' 'ffmpeg=0' )
+    'mplayer=0' 'mplayer2=0' 'ffmpeg=0' 'ffprobe=0' )
 
 # fps detectors
-declare -a g_tools_fps=( 'ffmpeg' 'mediainfo' 'mplayer' 'mplayer2' )
+declare -a g_tools_fps=( 'ffmpeg' 'ffprobe' 'mediainfo' 'mplayer' 'mplayer2' )
 
 # 
 # @brief wget details
@@ -418,6 +418,8 @@ get_fps() {
     local fps=0
     local tbr=0
     local t="${1:-default}"
+    local tmp=''
+    declare -a atmp=()
  
     # don't bother if there's no tool available or not specified
     if [ -z "$t" ] || [ "$t" = "default" ]; then
@@ -446,6 +448,18 @@ get_fps() {
             tbr=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
             fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
             [ -z "$fps" ] && fps="$tbr"
+            ;;
+
+            'ffprobe' )
+            tmp=$(ffprobe -v 0 -select_streams v -print_format csv -show_entries stream=avg_frame_rate,r_frame_rate -- "$2" | tr ',' ' ')
+            atmp=( $tmp )
+
+            local i=0
+            for i in 1 2; do
+                local a=$(echo "${atmp[$i]}" | cut -d '/' -f 1)
+                local b=$(echo "${atmp[$i]}" | cut -d '/' -f 2)
+                [ "${atmp[$i]}" != "0/0" ] && fps=$(float_div "$a" "$b")
+            done
             ;;
 
             *)
