@@ -50,7 +50,7 @@ NapiTest::qx_napi($shell, " -f subrip " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
 ok ( -e $subs_path{srt}, 'checking the converted subrip file' );
 
-is ( (split ' ', qx/subotage.sh -gi $subs_path{srt}/)[0],
+is ( (split ' ', qx/subotage.sh -gi -i $subs_path{srt} | grep IN_FORMAT/)[3],
 	'subrip',
 	'checking if converted format is subrip'
 );
@@ -60,7 +60,7 @@ NapiTest::qx_napi($shell, " -f microdvd " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
 ok ( -e $subs_path{txt}, 'checking the converted microdvd file' );
 
-is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
+is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
 	'microdvd',
 	'checking if converted format is microdvd'
 );
@@ -71,7 +71,7 @@ NapiTest::qx_napi($shell, " -f mpl2 " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
 ok ( -e $subs_path{txt}, 'checking the converted mpl2 file' );
 
-is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
+is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
 	'mpl2',
 	'checking if converted format is mpl2'
 );
@@ -82,30 +82,19 @@ NapiTest::qx_napi($shell, " -f tmplayer " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
 ok ( -e $subs_path{txt}, 'checking the converted tmplayer file' );
 
-is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
+is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
 	'tmplayer',
 	'checking if converted format is tmplayer'
 );
 
 
-# fab
-NapiTest::qx_napi($shell, " -f fab " . $test_file_path);
-ok ( -e $subs_path{orig}, 'checking the original file' );
-ok ( -e $subs_path{txt}, 'checking the converted fab file' );
-
-is ( (split ' ', qx/subotage.sh -gi $subs_path{txt}/)[0],
-	'fab',
-	'checking if converted format is fab'
-);
-
-
-# subviewer
-NapiTest::qx_napi($shell, " -f subviewer " . $test_file_path);
+# subviewer2
+NapiTest::qx_napi($shell, " -f subviewer2 " . $test_file_path);
 ok ( -e $subs_path{orig}, 'checking the original file' );
 ok ( -e $subs_path{sub}, 'checking the converted subviewer file' );
 
-is ( (split ' ', qx/subotage.sh -gi $subs_path{sub}/)[0],
-	'subviewer',
+is ( (split ' ', qx/subotage.sh -gi -i $subs_path{sub} | grep IN_FORMAT/)[3],
+	'subviewer2',
 	'checking if converted format is subviewer'
 );
 

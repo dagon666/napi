@@ -87,6 +87,31 @@ package { "libwww-perl":
     require => Exec["apt-get update"],
 }
 
+
+package { "original-awk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "p7zip-full":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "mawk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "gawk":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
 file { "/home/vagrant/bin":
   ensure  => "directory",
   owner => "vagrant",
@@ -94,20 +119,38 @@ file { "/home/vagrant/bin":
 }
 
 
-file { "/home/vagrant/bin/sh":
-	ensure => "link",
-	target => "/bin/busybox",
+file { "/home/vagrant/napi_bin":
+	ensure => "directory",
+   	owner => "vagrant",
+  	mode => 750
 }
 
 
-file { "/home/vagrant/bin/napi.sh":
+file { "/home/vagrant/bin/sh":
 	ensure => "link",
-	target => "/vagrant/napi.sh",
+	target => "/bin/busybox",
+	require => File['/home/vagrant/bin']
+}
+
+
+exec { "install napi":
+	command => "/vagrant/install.sh --bindir /home/vagrant/napi_bin --shareddir /home/vagrant/napi_bin",
+	cwd => "/vagrant",
+	creates => "/home/vagrant/napi_bin/napi.sh",
+	require => File['/home/vagrant/napi_bin']
 }
 
 
 file { "/home/vagrant/bin/subotage.sh":
 	ensure => "link",
-    target => "/vagrant/subotage.sh",
+    target => "/home/vagrant/napi_bin/subotage.sh",
+	require => Exec["install napi"]
+}
+
+
+file { "/home/vagrant/bin/napi.sh":
+	ensure => "link",
+    target => "/home/vagrant/napi_bin/napi.sh",
+	require => Exec["install napi"]
 }
 

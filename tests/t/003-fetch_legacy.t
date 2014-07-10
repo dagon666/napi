@@ -39,7 +39,7 @@ sub prepare_assets {
 #
 # Brief:
 # 
-# Verify if napi works for single media files
+# Verify if napi works for single media files in legacy mode
 #
 # Preconditions:
 # - napi.sh & subotage.sh must be available in public $PATH
@@ -80,7 +80,7 @@ foreach (@files) {
 	my $filename = $NapiTest::testspace . '/' . $_->{dst};
 	my $subs = $NapiTest::testspace . '/' . $_->{res};
 
-	like ( scalar NapiTest::qx_napi($shell, $filename),
+	like ( scalar NapiTest::qx_napi($shell, " --id pynapi " . $filename),
 			qr/#\d+:\d+\s$_->{pattern}\s->\s/,
 			"Single File ($_->{dst}) test");
 
@@ -91,38 +91,6 @@ foreach (@files) {
 	unlink $NapiTest::testspace . '/' . $_->{dst};
 	unlink $NapiTest::testspace . '/' . $_->{res} if $_->{res};
 }
-
-
-#
-#>TESTSPEC
-#
-# Brief:
-# 
-# Verify if napi downloads covers and nfo files
-#
-# Preconditions:
-# - napi.sh & subotage.sh must be available in public $PATH
-# - prepare a test file for which a cover exists
-#
-# Procedure:
-# - Call napi with the path to the pre-prepared media file
-#
-# Expected results:
-# - napi should download the cover and the nfo file for the media
-# - the processing results must be reflected in the napi summary correctly
-#
-
-copy $NapiTest::assets . '/av1.dat', $NapiTest::testspace . '/available.avi';
-
-my %output = ();
-my $output = NapiTest::qx_napi($shell, " -c -n --stats " . $NapiTest::testspace . "/available.avi");
-%output = NapiTest::parse_summary($output);
-
-is ($output{cover_ok}, 1, "Total covers downloaded");
-is ($output{total}, 1, "Total processed");
-is (-e $NapiTest::testspace . "/available.jpg", 1, "cover existence");
-is (-e $NapiTest::testspace . "/available.nfo", 1, "nfo existence");
-
 
 #
 #>TESTSPEC
@@ -144,11 +112,10 @@ is (-e $NapiTest::testspace . "/available.nfo", 1, "nfo existence");
 #
 # - the processing results must be reflected in the napi summary correctly
 #
-NapiTest::clean_testspace();
 prepare_assets();
 
-%output = ();
-$output = NapiTest::qx_napi($shell, " --stats " . $NapiTest::testspace);
+my %output = ();
+my $output = NapiTest::qx_napi($shell, " --id pynapi --stats " . $NapiTest::testspace);
 
 %output = NapiTest::parse_summary($output);
 is ($output{ok}, $total_available, "Total number downloaded");
@@ -175,7 +142,7 @@ is ($output{total}, $total_available + $total_unavailable, "Total processed 2");
 # - napi shouldn't download the subtitles for the media files (for which they are available) if it detects that the
 # subtitles file already exist
 #
-$output = NapiTest::qx_napi($shell, "--stats -s " . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, " --id pynapi --stats -s " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{skip}, $total_available, "Total number of skipped");
 is ($output{skip} + $output{unav}, $output{total}, "Total processed (with skipping)");
@@ -216,15 +183,15 @@ foreach my $dir (glob ($NapiTest::testspace . '/*')) {
 	$dir_cnt++;
 }
 
-$output = NapiTest::qx_napi($shell, "--stats -b 12 " . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--id pynapi --stats -b 12 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{unav}, $dir_cnt * 2, "Number of processed files bigger than given size");
 
-$output = NapiTest::qx_napi($shell, "--stats -b 16 " . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--id pynapi --stats -b 16 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{unav}, $dir_cnt, "Number of processed files bigger than given size 2");
 
-$output = NapiTest::qx_napi($shell, "--stats -b 4 " . $NapiTest::testspace);
+$output = NapiTest::qx_napi($shell, "--id pynapi --stats -b 4 " . $NapiTest::testspace);
 %output = NapiTest::parse_summary($output);
 is ($output{total},
 	$output{unav} + $output{ok}, 
