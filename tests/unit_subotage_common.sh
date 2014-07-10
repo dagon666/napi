@@ -1253,6 +1253,8 @@ test_print_format_summary() {
 
 test_convert_formats() {
 	local status=0
+	local input=$(mktemp input.XXXXXXXX)
+
 	_save_subotage_globs
 
 	(
@@ -1274,6 +1276,8 @@ test_convert_formats() {
 	}
 	export -f correct_overlaps
 
+	g_inf[$___PATH]="$input"
+
 	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
 	status=$?
 	assertEquals "reader failure" $RET_FAIL "$status"
@@ -1289,6 +1293,7 @@ test_convert_formats() {
 	assertEquals "all ok" $RET_OK "$status"
 	)
 	
+	unlink "$input"
 	_restore_subotage_globs
 	return 0
 }

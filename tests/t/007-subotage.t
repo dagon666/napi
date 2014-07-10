@@ -18,9 +18,25 @@ mkdir $NapiTest::testspace . "/converted";
 #
 # prepare the assets in the testspace
 #
-sub prepare_assets() {
+sub prepare_assets {
 	system("cp -r " . 
 		$NapiTest::assets . "/subtitles " .  $NapiTest::testspace);
+}
+
+
+#
+# helper function
+#
+sub count_lines {
+	my $cnt = 0;
+	open my $fn, "<", $_[0];
+	
+	while (<$fn>) {
+	}
+
+	$cnt=$.;
+	close $fn;
+	return $cnt;
 }
 
 
@@ -82,8 +98,15 @@ foreach my $format (@formats) {
 			my $rv = NapiTest::system_subotage($shell, " -i " . $file . 
 				" -of $dst_format -o $dst_file ");
 
+			my $minimum = 6;
+
+			$minimum = 12 if $dst_format eq 'subviewer2';
+			$minimum = 10 if $dst_format eq 'subrip';
+			$minimum = 2 if $format eq 'subviewer2';
+
 			is ($rv, 0, "return value for $format -> $dst_format conversion");
 			is ( -e $dst_file, 1, "checking $dst_file existence" );
+			ok ( (count_lines $dst_file) > $minimum, "the number of lines $dst_file" );
 
 			# check format detection
 			is ( (split ' ', qx/subotage.sh -gi -i $dst_file | grep IN_FORMAT/)[3],

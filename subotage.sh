@@ -703,7 +703,7 @@ BEGIN {
 }
 
 length($0) {
-    
+
     # this is to skip initial non subs lines
     if (lines_processed == 1) {
         rec = __start_line
@@ -713,7 +713,6 @@ length($0) {
     }
 
     line_data = rec + 1
-    gsub("\r", "")
 
     if (__counter_type == "inline") {
         gsub(",", ".", $rec)
@@ -1031,7 +1030,7 @@ NR > 1 {
         # just strip the fractional part
         idx = index($2, ".") - 1
         if (idx) {
-            printf("%s:", substr($2, 0, idx))
+            printf("%s:", substr($2, 1, idx))
         }
         else {
             # universal format is invalid - failure
@@ -1090,6 +1089,11 @@ guess_format() {
 
     echo "$fmt"
     return $rv
+}
+
+
+convert_dos2unix() {
+    $g_cmd_awk '{ sub("\r$",""); print }'
 }
 
 
@@ -1469,9 +1473,13 @@ BEGIN {
             m = substr($3, where, RLENGTH)
 
             # extract only numbers
-            print substr(m, match(m, "[\\.0-9]+"), RLENGTH)
+            where = match(m, "[\\.0-9]+")
 
-            break
+            if (where) {
+                print substr(m, 1, RLENGTH);
+                # we've got a match quit other attempts
+                exit 0
+            }
         }
     }
 
@@ -1574,11 +1582,19 @@ convert_formats() {
     local freader="$1"
     local fwriter="$2"
     local tmp_output=$(mktemp conversion.XXXXXXXX)
+    local unix_ln=$(mktemp conversion_unix.XXXXXXXX)
 
     local rv=$RET_OK
     local status=$RET_OK
+
+    if [ "${g_inf[$___PATH]}" = "none" ] || [ ! -e "${g_inf[$___PATH]}" ]; then
+        _error "plik wejsciowy [${g_inf[$___PATH]}] nie istnieje"
+        return $RET_PARAM
+    fi
+
+    cat "${g_inf[$___PATH]}" | convert_dos2unix > "$unix_ln"
     
-    if ! $freader "${g_inf[$___PATH]}" "$tmp_output"; then
+    if ! $freader "$unix_ln" "$tmp_output"; then
         _error "blad podczas konwersji pliku wejsciowego na format uniwersalny"
         rv=$RET_FAIL
     else
@@ -1590,7 +1606,8 @@ convert_formats() {
     fi
 
     # get rid of the temporary file
-    # [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
+    [ -e "$unix_ln" ] && $g_cmd_unlink "$unix_ln"
+    [ -e "$tmp_output" ] && $g_cmd_unlink "$tmp_output"
     return $rv
 }
 
