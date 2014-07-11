@@ -445,8 +445,10 @@ get_fps() {
             ;;
 
             'ffmpeg' )
-            tbr=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
-            fps=$($1 -i "$2" 2>&1 | grep "Video:" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
+            tmp=$($1 -i "$2" 2>&1 | grep "Video:") 
+            tbr=$(echo "$tmp" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
+            fps=$(echo "$tmp" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
+
             [ -z "$fps" ] && fps="$tbr"
             ;;
 
