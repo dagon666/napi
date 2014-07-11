@@ -1,4 +1,4 @@
-version v1.3.1
+version v1.3.1 (2014-07-11)
 - napiprojekt3 XML API support implemented
 - napiprojekt3 API as default engine (legacy mode still supported using --id
 		pynapi or --id other)
