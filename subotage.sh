@@ -1724,7 +1724,7 @@ main() {
         fi
     fi
 
-    if [ "$status" -rq $RET_OK ]; then
+    if [ "$status" -eq $RET_OK ]; then
         # process the file
         _debug $LINENO "argumenty poprawne, przetwarzam plik"
         process_file
