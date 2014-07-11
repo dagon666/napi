@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 retval=${1:-0}
 response=${2:-200}
 url="$3"

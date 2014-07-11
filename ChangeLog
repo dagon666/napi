@@ -1,8 +1,27 @@
+version v1.3.1
+- napiprojekt3 XML API support implemented
+- napiprojekt3 API as default engine (legacy mode still supported using --id
+		pynapi or --id other)
+- implemented media nfo retrieval from napi xml (napiprojekt3 API)
+- implemented cover support using napi xml (napiprojekt3 API)
+- fps detection using ffprobe + ffmpeg fps detection fixes
+- subotage.sh reimplemented and code cleaned up
+- fab support removed from subotage
+- napi and subotage code integration
+- extraction of common code to the napi_common.sh library
+- unit tests for napi and subotage
+- system tests for napi and subotage
+- a lot of bugfixes and corrections
+- napi bundle installer introduced
+- many fixes to subotage format processing
+- added logoverwrite option to napi
+
+
 version v1.2.1 (2014-06-11)
 - Major code redesign which includes
 -- decomposing code into small functional blocks
 -- assuring more compatibility with old shells
--- implemented multithreading (spawning multiple processes ata time to speed
+-- implemented multithreading (spawning multiple processes at the same time to speed
 		up the processing -F options)
 -- "skip" option reimplemented and made more flexible
 -- multiple verbosity levels

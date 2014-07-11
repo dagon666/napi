@@ -1713,23 +1713,26 @@ main() {
     # get argv
     if ! parse_argv "$@"; then
         _error "niepoprawne argumenty..."
-        return $RET_FAIL
+        status=$RET_FAIL
     fi
 
-    # verify argv
-    if ! verify_argv; then 
-        _error "niepoprawne argumenty..."
-        return $RET_FAIL
+    if [ "$status" -eq $RET_OK ]; then
+        # verify argv
+        if ! verify_argv; then 
+            _error "niepoprawne argumenty..."
+            status=$RET_FAIL
+        fi
     fi
 
-    # process the file
-    _debug $LINENO "argumenty poprawne, przetwarzam plik"
-    process_file
-    status=$?
+    if [ "$status" -eq $RET_OK ]; then
+        # process the file
+        _debug $LINENO "argumenty poprawne, przetwarzam plik"
+        process_file
+        status=$?
+    fi
 
     # inform ipc
     create_output_summary
-
     return $status
 }
 

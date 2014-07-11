@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 BIN_dir='/usr/bin'
 SHARED_dir='/usr/share'
 
