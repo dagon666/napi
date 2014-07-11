@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 read -r -d '' h1 << HELP1
 BusyBox v1.18.5 (Ubuntu 1:1.18.5-1ubuntu4.1) multi-call binary.
 

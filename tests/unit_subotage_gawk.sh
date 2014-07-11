@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 declare -r SHUNIT_TESTS_AWK="/usr/bin/gawk"
 
 echo "====================================="

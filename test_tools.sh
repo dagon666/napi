@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 test_tool() {
 	eval "$2" > /tmp/tmp_result 2> /tmp/tmp_err
 

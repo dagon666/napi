@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
 ################################################################################
 
 #  Copyright (C) 2014 Tomasz Wisniewski aka 
