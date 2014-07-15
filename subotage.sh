@@ -1352,7 +1352,7 @@ parse_argv() {
 
             # verbosity
             "-v" | "--verbosity") varname="g_output[$___VERBOSITY]"
-                msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy)"
+                msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy, 4 - insane)"
                 ;;
 
             # sanity check for unknown parameters
@@ -1410,6 +1410,21 @@ verify_fps() {
 # @brief verify correctness of the argv settings provided
 #
 verify_argv() {
+
+    # make sure first that the printing functions will work
+    case "${g_output[$___VERBOSITY]}" in
+        0 | 1 | 2 | 3 ) 
+            ;;
+
+        4 )
+            _debug_insane
+            ;;
+
+        *)
+            _error "poziom gadatliwosci moze miec jedynie wartosci z zakresu (0-3)"
+            return $RET_BREAK
+            ;;
+    esac
 
     _debug "sprawdzam plik wejsciowy"
     [ -z "${g_inf[$___PATH]}" ] || [ "${g_inf[$___PATH]}" = "none" ] || [ ! -s "${g_inf[$___PATH]}" ] &&

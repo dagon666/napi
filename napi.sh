@@ -557,7 +557,7 @@ parse_argv() {
 
             # verbosity
             "-v" | "--verbosity") varname="g_output[$___VERBOSITY]"
-            msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy)"
+            msg="okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy, 4 - insane)"
             ;;
             
             # destination format definition
@@ -819,6 +819,11 @@ verify_argv() {
     case "${g_output[$___VERBOSITY]}" in
         0 | 1 | 2 | 3 ) 
             ;;
+
+        4 )
+            _debug_insane
+            ;;
+
         *)
             _error "poziom gadatliwosci moze miec jedynie wartosci z zakresu (0-3)"
             return $RET_BREAK

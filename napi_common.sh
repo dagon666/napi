@@ -261,6 +261,16 @@ _blit() {
 
 
 #
+# @brief set insane verbosity
+#
+_debug_insane() {
+    exec 2>&1
+    set -x
+    PS4='+ [${LINENO}] ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+}
+
+
+#
 # @brief print a debug verbose information
 #
 _debug() {
@@ -337,7 +347,8 @@ to_stderr() {
 redirect_to_logfile() {
     [ -n "${g_output[$___LOG]}" ] && 
     [ "${g_output[$___LOG]}" != "none" ] && 
-    exec 3>&1 1> "${g_output[$___LOG]}"
+        exec 3>&1 1> "${g_output[$___LOG]}" &&
+        exec 4>&2 2> "${g_output[$___LOG]}"
 }
 
 
@@ -346,7 +357,9 @@ redirect_to_logfile() {
 #
 redirect_to_stdout() {
     [ -n "${g_output[$___LOG]}" ] && 
-    [ "${g_output[$___LOG]}" != "none" ] && exec 1>&3 3>&-
+    [ "${g_output[$___LOG]}" != "none" ] && 
+        exec 1>&3 3>&- &&
+        exec 2>&4 4>&-
 }
 
 # EOF
