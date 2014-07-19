@@ -417,6 +417,7 @@ count_fps_detectors() {
 get_fps() {
     local fps=0
     local tbr=0
+    local tbr2=0
     local t="${1:-default}"
     local tmp=''
     declare -a atmp=()
@@ -446,7 +447,7 @@ get_fps() {
 
             'ffmpeg' )
             tmp=$($1 -i "$2" 2>&1 | grep "Video:") 
-            tbr=$(echo "$tmp" | sed 's/, /\n/g' | grep tbr | cut -d ' ' -f 1)
+            tbr=$(echo "$tmp" | sed 's/, /\n/g' | tr -d ')(' | grep tbr | cut -d ' ' -f 1)
             fps=$(echo "$tmp" | sed 's/, /\n/g' | grep fps | cut -d ' ' -f 1)
 
             [ -z "$fps" ] && fps="$tbr"

@@ -137,7 +137,7 @@ EOF
         attempts=$(( attempts - 1 ))       
 
         # match the format
-        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$awk_code")
+        match_tmp=$(echo "$file_line" | LC_ALL=C LANG=C $g_cmd_awk "$awk_code")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -188,7 +188,7 @@ EOF
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$awk_code")
+        match_tmp=$(echo "$file_line" | LC_ALL=C LANG=C $g_cmd_awk "$awk_code")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -231,7 +231,7 @@ EOF
         if [ "$counter_type" = "not_found" ]; then
                 first_line=$(( max_attempts - attempts + 1 ))
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C $g_cmd_awk '/^[0-9]+[\r\n]*$/')
+                    LC_ALL=C LANG=C $g_cmd_awk '/^[0-9]+[\r\n]*$/')
 
                 if [ -n "$match_tmp" ]; then
                     counter_type="newline"
@@ -240,7 +240,7 @@ EOF
 
                 # check for inline counter
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C $g_cmd_awk -v prefix="[0-9]+ " "$match_ts")
+                    LC_ALL=C LANG=C $g_cmd_awk -v prefix="[0-9]+ " "$match_ts")
 
                 if [ "$match_tmp" -ne 0 ]; then
                     counter_type="inline"
@@ -251,7 +251,7 @@ EOF
         elif [ "$counter_type" = "newline" ]; then
                 # check for the time signature
                 match_tmp=$(echo "$file_line" | \
-                    LANG=C $g_cmd_awk -v prefix="" "$match_ts")
+                    LC_ALL=C LANG=C $g_cmd_awk -v prefix="" "$match_ts")
 
                 if [ "$match_tmp" -ne 0 ]; then
                     counter_type="newline"
@@ -302,7 +302,7 @@ EOF
         fi
 
         match_tmp=$(echo "$file_line" | \
-            LANG=C $g_cmd_awk "$match_ts")
+            LC_ALL=C LANG=C $g_cmd_awk "$match_ts")
 
         # we've got a match
         if [ "$match_tmp" -ne 0 ]; then
@@ -367,7 +367,7 @@ EOF
         first_line=$(( max_attempts - attempts + 1 ))
         attempts=$(( attempts - 1 ))       
 
-        match_tmp=$(echo "$file_line" | LANG=C $g_cmd_awk "$generic_check")
+        match_tmp=$(echo "$file_line" | LC_ALL=C LANG=C $g_cmd_awk "$generic_check")
 
         # skip empty lines
         [ -z "$match_tmp" ] && continue
@@ -384,7 +384,7 @@ EOF
 
             # extract delimiter
             delim=$(echo "$file_line" | \
-                LANG=C $g_cmd_awk -v match_len="${tmp_data[1]}" "$extract_delim")
+                LC_ALL=C LANG=C $g_cmd_awk -v match_len="${tmp_data[1]}" "$extract_delim")
 
             # is it a multiline format (hh:mm:ss,LINENO=)?
             [ "${tmp_data[0]}" -eq 1 ] && multiline=1
@@ -494,10 +494,6 @@ BEGIN {
     __last_time = __last_time / 1000
 }
 
-/^[:space:]*$/ {
-    next
-}
-
 length($0) && NR >= __start_line {
     
     if (FS == ":") {
@@ -605,10 +601,6 @@ BEGIN {
     __last_time = __last_time / 1000
 }
 
-/^[:space:]*$/ {
-    next
-}
-
 NR >= __start_line {
     frame_start=$2
     frame_end=$4
@@ -653,10 +645,6 @@ BEGIN {
     FS="[][]"
     lines_processed = 1;   
     __last_time = __last_time / 100
-}
-
-/^[:space:]*$/ {
-    next
 }
 
 length($0) && NR >= __start_line {
@@ -877,12 +865,12 @@ NR > 1 {
 
     if (time_type == "secs") {
         sh = $2/3600
-        sm = $2/60
+        sm = ($2/60) % 60
         ss = $2%60
         sc = int(($2 - int($2))*1000)
 
         eh = $3/3600
-        em = $3/60
+        em = ($3/60) % 60
         es = $3%60
         ec = int(($3 - int($3))*1000)
     }
@@ -1501,7 +1489,7 @@ BEGIN {
 }
 EOF
 
-    if ! LANG=C $g_cmd_awk "$awk_code"; then
+    if ! LC_ALL=C LANG=C $g_cmd_awk "$awk_code"; then
         return $RET_FAIL
     fi
 
