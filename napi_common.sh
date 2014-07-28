@@ -348,7 +348,7 @@ redirect_to_logfile() {
     [ -n "${g_output[$___LOG]}" ] && 
     [ "${g_output[$___LOG]}" != "none" ] && 
         exec 3>&1 1> "${g_output[$___LOG]}" &&
-        exec 4>&2 2> "${g_output[$___LOG]}"
+        exec 4>&2 2>> "${g_output[$___LOG]}"
 }
 
 
