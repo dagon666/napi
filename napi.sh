@@ -162,9 +162,12 @@ declare -a g_pf=()
 # 3 - converted
 # 4 - covers downloaded
 # 5 - covers unavailable
-# 6 - total processed
-#
-declare -a g_stats=( 0 0 0 0 0 0 0 )
+# 6 - covers skipped
+# 7 - nfos downloaded
+# 8 - nfos unavailable
+# 9 - nfos skipped
+# 10 - total processed
+declare -a g_stats=( 0 0 0 0 0 0 0 0 0 0 0 )
 
 #
 # controls whether to print statistics on exit or not
@@ -1689,6 +1692,13 @@ get_nfo() {
     local status=$RET_FAIL
 
     nfo_fn="${nfo_fn}.nfo"
+
+    # if skipping requested
+    if [ "$g_skip" -eq 1 ] && [ -e "$path/$nfo_fn" ]; then
+        _info $LINENO "plik nfo juz istnieje. nie bedzie pobrany"
+        return $RET_NOACT
+    fi
+        
     _info $LINENO "pobieram nfo dla pliku [$media_file]"
     
     # pick method depending on id
@@ -1716,15 +1726,19 @@ get_cover() {
     local cover_fn=$(strip_ext "$media_file")
     local status=$RET_FAIL
 
-    local lang="$2"
-    
     # TODO correct this - extension hardcoded
     cover_fn="${cover_fn}.jpg"
+
+    # if skipping requested
+    if [ "$g_skip" -eq 1 ] && [ -e "$path/$cover_fn" ]; then
+        _info $LINENO "plik okladki juz istnieje. nie bedzie pobrany"
+        return $RET_NOACT
+    fi
     
     # pick method depending on id
     case ${g_system[2]} in
         'NapiProjekt' | 'NapiProjektPython' )
-            download_item_xml "cover" "$sum" "$1" "$path/$cover_fn" "$lang" 
+            download_item_xml "cover" "$sum" "$1" "$path/$cover_fn"
             status=$?
             ;;
 
@@ -2172,7 +2186,7 @@ obtain_file() {
 
                 # increment skipped counter
                 g_stats[2]=$(( g_stats[2] + 1 ))
-                rv=$RET_OK
+                rv=$RET_NOACT
             ;;
 
             2|3) # convert 
@@ -2206,12 +2220,70 @@ obtain_file() {
 
             # increment skipped counter
             g_stats[2]=$(( g_stats[2] + 1 ))
-            rv=$RET_OK
+            rv=$RET_NOACT
         fi
     fi
     
     # return the subtitles index
     return $rv
+}
+
+
+obtain_others() {
+    local what="${1:cover}"
+    local media_path="$2"
+    local media_file=$(basename "$media_path")
+
+    local status=$RET_NOACT
+    local flag_value=0
+    local func="get_$what"
+    local idx_base=4
+
+    case "$what" in
+        "nfo" ) 
+            flag_value="$g_nfo" 
+            idx_base=7
+            ;;
+
+        "cover" ) 
+            flag_value="$g_cover" 
+            ;;
+
+        *)
+            return $RET_FAIL
+            ;;
+    esac
+
+    # download the data, if requested to do so
+    if [ "$flag_value" -eq 1 ]; then
+        local offset=0
+        local idx=0
+
+        $func "$media_path"
+        status=$?
+
+        case $status in
+            $RET_NOACT ) 
+                _status "SKIP" "$what for $media_file" 
+                offset=2
+                ;;
+
+            $RET_OK ) 
+                _status "OK" "$what for $media_file" 
+                offset=0
+                ;;
+
+            *) 
+                _status "UNAV" "$what for $media_file" 
+                offset=1
+                ;;
+        esac
+
+        idx=$(( idx_base + offset ))
+        g_stats[$idx]=$(( g_stats[$idx] + 1 ))
+    fi
+
+    return $status
 }
 
 
@@ -2230,45 +2302,29 @@ process_file() {
     obtain_file "$media_path"
     status=$?
 
-    if [ $status -eq $RET_OK ]; then
+    if [ $status -eq $RET_OK ] || [ $status -eq $RET_NOACT ]; then
         _status "OK" "$media_file"
 
         [ "$g_sub_format" != 'default' ] &&
             _debug $LINENO "zadanie konwersji - korekcja nazwy pliku"
             si=7
 
-        # charset conversion
-        [ "$g_charset" != 'default' ] && 
+        # charset conversion (only if freshly downloaded)
+        [ "$g_charset" != 'default' ] && [ $status -eq $RET_OK ] &&
             _msg "konwertowanie kodowania do $g_charset" &&
             convert_charset "$path/${g_pf[$si]}" $g_charset
 
-        # process hook
-        [ "$g_hook" != 'none' ] &&
+        # process nfo requests
+        obtain_others "nfo" "$media_path"
+
+        # process cover requests
+        obtain_others "cover" "$media_path"
+
+        # process hook - only if some processing has been done
+        [ "$g_hook" != 'none' ] && [ $status -eq $RET_OK ] &&
             _msg "wywoluje zewnetrzny skrypt" &&
             $g_hook "$path/${g_pf[$si]}"
 
-        # download nfo
-        # if requested to do so
-        if [ "$g_nfo" -eq 1 ]; then
-            if get_nfo "$media_path"; then
-                _status "OK" "nfo for $media_file"
-            else
-                _status "UNAV" "nfo for $media_file"
-            fi 
-        fi
-
-        # download cover
-        # assumed here that cover is only available
-        # if subtitles are
-        if [ "$g_cover" -eq 1 ]; then
-            if get_cover "$media_path" "$g_lang"; then
-                _status "OK" "cover for $media_file"
-                g_stats[4]=$(( g_stats[4] + 1 ))
-            else
-                _status "UNAV" "cover for $media_file"
-                g_stats[5]=$(( g_stats[5] + 1 ))
-            fi 
-        fi # if [ $g_cover -eq 1 ]
     else
         _status "UNAV" "$media_file"
         g_stats[1]=$(( g_stats[1] + 1 ))
@@ -2279,7 +2335,7 @@ process_file() {
     cleanup_xml "$media_path"
 
     # increment total processed counter
-    g_stats[6]=$(( g_stats[6] + 1 ))
+    g_stats[10]=$(( g_stats[10] + 1 ))
     return $rv
 }
 
@@ -2393,8 +2449,7 @@ spawn_forks() {
 # print stats summary
 #
 print_stats() {
-
-    declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'TOTAL' )
+    declare -a labels=( 'OK' 'UNAV' 'SKIP' 'CONV' 'COVER_OK' 'COVER_UNAV' 'COVER_SKIP' 'NFO_OK' 'NFO_UNAV' 'NFO_SKIP' 'TOTAL' )
     local i=0
 
     _msg "statystyki przetwarzania"
@@ -2541,7 +2596,7 @@ main() {
     # first positional
     local arg1="${1:-}"
 
-    # debug
+    # early debug - requires explicit level modification to appear
     _debug $LINENO "$0: ($g_revision) uruchamianie ..." 
 
     # print bash version
@@ -2593,7 +2648,7 @@ main() {
     redirect_to_logfile
 
     _msg "wywolano o $(date)"
-    _msg "system: ${g_system[0]}, forkow: ${g_system[1]}"
+    _msg "system: ${g_system[0]}, forkow: ${g_system[1]}, wersja: $g_revision"
 
     # inform about new napiprojekt API
     print_new_api_info

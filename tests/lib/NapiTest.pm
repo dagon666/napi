@@ -165,6 +165,7 @@ sub prepare_shells {
 	}
 }
 
+
 sub parse_summary {
 	my @strings = qw/
 		OK
@@ -173,6 +174,10 @@ sub parse_summary {
 	   	CONV
 	   	COVER_OK
 	   	COVER_UNAV
+		COVER_SKIP
+		NFO_OK
+		NFO_UNAV
+		NFO_SKIP
 	   	TOTAL
 		/;
 

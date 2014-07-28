@@ -1431,7 +1431,7 @@ test_print_stats() {
     local output=''
 	_save_globs
     
-	g_stats=( 1 2 3 4 5 6 7 )
+	g_stats=( 1 2 3 4 5 6 7 8 9 12 15 )
 	output=$(print_stats | grep -w OK | rev | cut -d ' ' -f 1)
 	assertEquals 'OK stats' 1 ${output:-0}
 
@@ -1450,8 +1450,20 @@ test_print_stats() {
 	output=$(print_stats | grep -w COVER_UNAV | rev | cut -d ' ' -f 1)
 	assertEquals 'COVER_UNAV stats' 6 ${output:-0}
 
-	output=$(print_stats | grep -w TOTAL | rev | cut -d ' ' -f 1)
-	assertEquals 'TOTAL stats' 7 ${output:-0}
+	output=$(print_stats | grep -w COVER_SKIP | rev | cut -d ' ' -f 1)
+	assertEquals 'COVER_SKIP stats' 7 ${output:-0}
+
+	output=$(print_stats | grep -w NFO_OK | rev | cut -d ' ' -f 1)
+	assertEquals 'NFO_OK stats' 8 ${output:-0}
+
+	output=$(print_stats | grep -w NFO_UNAV | rev | cut -d ' ' -f 1)
+	assertEquals 'NFO_UNAV stats' 9 ${output:-0}
+
+	output=$(print_stats | grep -w NFO_SKIP | rev | cut -d ' ' -f 1 | rev)
+	assertEquals 'NFO_SKIP stats' 12 ${output:-0}
+
+	output=$(print_stats | grep -w TOTAL | rev | cut -d ' ' -f 1 | rev)
+	assertEquals 'TOTAL stats' 15 ${output:-0}
 
 	_restore_globs
 }
@@ -1578,6 +1590,59 @@ test_process_files() {
 
 	_restore_globs
     return 0    
+}
+
+
+test_obtain_others() {
+    _save_globs
+
+    obtain_others "bogus"
+    status=$?
+    assertEquals 'failure on bogus obtain_others request' $RET_FAIL "$status"
+
+    g_nfo=0
+    g_cover=0
+    obtain_others "cover"
+    status=$?
+    assertEquals 'no_act for cover and g_cover = 0 request' $RET_NOACT "$status"
+
+    obtain_others "nfo"
+    status=$?
+    assertEquals 'no_act for nfo and g_nfo = 0 request' $RET_NOACT "$status"
+
+    (
+
+    g_nfo=1
+    g_cover=1
+    
+    nfo_retval=$RET_OK
+    get_nfo() {
+        return $nfo_retval
+    }
+    export -f get_nfo
+
+    cover_retval=$RET_OK
+    get_cover() {
+        return $cover_retval
+    }
+    export -f get_cover
+
+    obtain_others "cover"
+    status=$?
+    assertEquals 'OK for cover and g_cover = 1 request' $RET_OK "$status"
+
+    obtain_others "nfo"
+    status=$?
+    assertEquals 'OK for nfo and g_nfo = 1 request' $RET_OK "$status"
+
+    assertEquals 'check nfo stats' 1 "${g_stats[7]}"
+    assertEquals 'check cover stats' 1 "${g_stats[4]}"
+
+    )
+
+
+
+    _restore_globs
 }
 
 
