@@ -1346,7 +1346,7 @@ parse_argv() {
             # sanity check for unknown parameters
             *)
                 _error "nieznany parametr: [$1]"
-                return $RET_BREAK
+                return $RET_PARAM
                 ;;
         esac
 
@@ -1707,6 +1707,7 @@ main() {
     # first positional
     local arg1="${1:-}"
     local status=$RET_OK
+    local rv=0;
 
     # if no arguments are given, then print help and exit
     [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
@@ -1714,11 +1715,25 @@ main() {
         return $RET_OK
 
     # get argv
-    if ! parse_argv "$@"; then
+    parse_argv "$@"
+    rv=$?
+
+    # check the parse_argv return value
+    case "$rv" in
+        "$RET_OK" )
+            status=$RET_OK
+            ;;
+
+        "$RET_BREAK" )
+            return $RET_OK
+            ;;
+
+        *)
         _error "niepoprawne argumenty..."
         status=$RET_FAIL
-    fi
+    esac
 
+    # verify collected arguments
     if [ "$status" -eq $RET_OK ]; then
         # verify argv
         if ! verify_argv; then 
@@ -1727,8 +1742,8 @@ main() {
         fi
     fi
 
+    # process the file
     if [ "$status" -eq $RET_OK ]; then
-        # process the file
         _debug $LINENO "argumenty poprawne, przetwarzam plik"
         process_file
         status=$?
