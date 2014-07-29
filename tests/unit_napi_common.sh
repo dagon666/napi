@@ -294,9 +294,12 @@ test_status() {
 # test redirection to stderr
 #
 test_to_stderr() {
+
+    # should go to stderr leaving stdout clean
     local output=$(echo test | to_stderr 2>&1 | wc -l)
     assertEquals "to_stderr output redirection" 1 $output
 
+    # should go to stdout leaving stderr clean
     g_output[$___LOG]='file.log'
     output=$(echo test | to_stderr | wc -l )
     assertEquals "to_stderr output redirection with logfile" 1 $output
