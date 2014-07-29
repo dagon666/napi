@@ -253,11 +253,12 @@ test_warning() {
 # test error printing routine
 #
 test_error() {
-    local output=$(_error "error message" | grep "ERROR" | wc -l)
-    assertEquals "error message format" 1 $output
+    local output=$(_error "error message" 2>&1 | grep "ERROR" | wc -l)
+    assertEquals "error message format 1" 1 $output
     g_output[$___VERBOSITY]=0
-    output=$(_error "error message" | grep "ERROR" | wc -l)
-    assertEquals "error message format" 1 $output
+
+    output=$(_error "error message" 2>&1 | grep "ERROR" | wc -l)
+    assertEquals "error message format 2" 1 $output
     g_output[$___VERBOSITY]=1
 
 }
@@ -293,11 +294,13 @@ test_status() {
 # test redirection to stderr
 #
 test_to_stderr() {
-    local output=$(echo test | to_stderr 2> /dev/null | wc -l)
+    local output=$(echo test | to_stderr 2>&1 | wc -l)
     assertEquals "to_stderr output redirection" 1 $output
+
     g_output[$___LOG]='file.log'
-    output=$(echo test | to_stderr 2> /dev/null | wc -l )
-    assertEquals "to_stderr output redirection with logfile" 0 $output
+    output=$(echo test | to_stderr | wc -l )
+    assertEquals "to_stderr output redirection with logfile" 1 $output
+
     g_output[$___LOG]='none'
 
 }
