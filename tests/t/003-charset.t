@@ -83,12 +83,12 @@ like(`file -b $test_txt_path`,
 # - Call napi with any charset different than the one in which the subtitles file is encoded
 #
 # Expected results:
-# - napi should overwrite already existing file, the charset should be converted
+# - napi shouldn't (when skip option given) overwrite already existing file, the charset shouldn't be converted
 #
 
 NapiTest::qx_napi($shell, " -s -C utf8 " . $test_file_path);
 like(`file -b $test_txt_path`, 
-		qr/UTF-8/, "Checking conversion result for ISO with skip option");
+		qr/ISO-8859/, "Checking conversion result for ISO with skip option");
 
 NapiTest::clean_testspace();
 done_testing();
