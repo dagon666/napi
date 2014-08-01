@@ -753,6 +753,7 @@ write_format_microdvd() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -772,7 +773,7 @@ NR > 1 {
         exit 1
     }
 
-    for (i=4; i<=NF; i++) printf("%s ", $i)
+    for (i=4; i<=NF; i++) print $i
     printf("\n")
 }
 EOF
@@ -798,6 +799,7 @@ write_format_mpl2() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -817,7 +819,7 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i)
+    for (i=4; i<=NF; i++) print $i
     printf("\n")
 }
 EOF
@@ -840,6 +842,7 @@ write_format_subrip() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
@@ -852,9 +855,9 @@ function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
 
 function print_content() {
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i)
+        tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
-        printf ( "%s ", tmp )
+        print tmp
     }
 
     printf("\n\n")
@@ -918,6 +921,7 @@ write_format_subviewer2() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -961,9 +965,9 @@ NR > 1 {
         eh, em, es, ec)
 
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i)
+        tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
-        printf ( "%s ", tmp )
+        print tmp
     }
 
     printf("\n\n")
@@ -1001,6 +1005,7 @@ write_format_tmplayer() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -1029,7 +1034,7 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i)
+    for (i=4; i<=NF; i++) print $i
     printf("\n")
 }
 EOF
@@ -1171,6 +1176,7 @@ EOF
             ;;
 
         *)
+            _debug $LINENO "skorygowano nakladajace sie napisy"
             ;;
     esac
 
