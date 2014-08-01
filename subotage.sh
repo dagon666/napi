@@ -773,8 +773,10 @@ NR > 1 {
         exit 1
     }
 
-    for (i=4; i<=NF; i++) print $i
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
@@ -819,8 +821,10 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) print $i
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
@@ -857,10 +861,11 @@ function print_content() {
     for (i=4; i<=NF; i++) {
         tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
+        ORS=" "; if (i == NF) ORS="\n"
         print tmp
     }
 
-    printf("\n\n")
+    printf("\n")
 }
 
 NR > 1 {
@@ -906,7 +911,7 @@ NR > 1 {
 EOF
 
     # use the AWK force :)
-    if ! $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! LC_ALL=C LANG=C $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         return $RET_FAIL;
     fi
     return $RET_OK
@@ -967,10 +972,11 @@ NR > 1 {
     for (i=4; i<=NF; i++) {
         tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
+        ORS=" "; if (i == NF) ORS="\n"
         print tmp
     }
 
-    printf("\n\n")
+    printf("\n")
 }
 EOF
 
@@ -1034,8 +1040,10 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) print $i
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
