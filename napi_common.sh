@@ -246,7 +246,8 @@ get_system() {
 # @brief extracts http status from the http headers
 #
 get_http_status() {
-    grep -o "HTTP/[\.0-9]* [0-9]*"
+    # grep -o "HTTP/[\.0-9]* [0-9]*"
+    awk '{ m = match($0, /HTTP\/[\.0-9]* [0-9]*/); if (m) print substr($0, m, RLENGTH) }'
 }
 
 ################################## STDOUT ######################################
