@@ -1,3 +1,9 @@
+version 1.3.2 (2014-08-08)
+- corrections for ffmpeg framerate detection
+- corrections for the logging mechanism
+- bugfixes
+- subotage correction for minutes increment
+
 version v1.3.1 (2014-07-11)
 - napiprojekt3 XML API support implemented
 - napiprojekt3 API as default engine (legacy mode still supported using --id
