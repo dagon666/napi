@@ -753,6 +753,7 @@ write_format_microdvd() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -772,8 +773,10 @@ NR > 1 {
         exit 1
     }
 
-    for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
@@ -798,6 +801,7 @@ write_format_mpl2() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -817,8 +821,10 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
@@ -840,6 +846,7 @@ write_format_subrip() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
@@ -852,12 +859,13 @@ function print_ts(cnt, sh, sm, ss, sc, eh, em, es, ec) {
 
 function print_content() {
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i)
+        tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
-        printf ( "%s ", tmp )
+        ORS=" "; if (i == NF) ORS="\n"
+        print tmp
     }
 
-    printf("\n\n")
+    printf("\n")
 }
 
 NR > 1 {
@@ -903,7 +911,7 @@ NR > 1 {
 EOF
 
     # use the AWK force :)
-    if ! $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
+    if ! LC_ALL=C LANG=C $g_cmd_awk "$awk_code" "$in_file_path" > "$out_file_path"; then
         return $RET_FAIL;
     fi
     return $RET_OK
@@ -918,6 +926,7 @@ write_format_subviewer2() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -961,12 +970,13 @@ NR > 1 {
         eh, em, es, ec)
 
     for (i=4; i<=NF; i++) {
-        tmp = sprintf("%s ", $i)
+        tmp = sprintf("%s", $i)
         gsub(/\|/, "\n", tmp)
-        printf ( "%s ", tmp )
+        ORS=" "; if (i == NF) ORS="\n"
+        print tmp
     }
 
-    printf("\n\n")
+    printf("\n")
 }
 EOF
 
@@ -1001,6 +1011,7 @@ write_format_tmplayer() {
 read -r -d "" awk_code << 'EOF'
 NR == 1 {
     time_type=$0
+    ORS=" "
 }
 
 NR > 1 {
@@ -1029,8 +1040,10 @@ NR > 1 {
         exit 1
     }
     
-    for (i=4; i<=NF; i++) printf("%s ", $i)
-    printf("\n")
+    for (i=4; i<=NF; i++) {
+        ORS=" "; if (i == NF) ORS="\n"
+        print $i
+    }
 }
 EOF
 
@@ -1171,6 +1184,7 @@ EOF
             ;;
 
         *)
+            _debug $LINENO "skorygowano nakladajace sie napisy"
             ;;
     esac
 
@@ -1346,7 +1360,7 @@ parse_argv() {
             # sanity check for unknown parameters
             *)
                 _error "nieznany parametr: [$1]"
-                return $RET_BREAK
+                return $RET_PARAM
                 ;;
         esac
 
@@ -1707,6 +1721,7 @@ main() {
     # first positional
     local arg1="${1:-}"
     local status=$RET_OK
+    local rv=0;
 
     # if no arguments are given, then print help and exit
     [ $# -lt 1 ] || [ "$arg1" = "--help" ] || [ "$arg1" = "-h" ] && 
@@ -1714,11 +1729,25 @@ main() {
         return $RET_OK
 
     # get argv
-    if ! parse_argv "$@"; then
+    parse_argv "$@"
+    rv=$?
+
+    # check the parse_argv return value
+    case "$rv" in
+        "$RET_OK" )
+            status=$RET_OK
+            ;;
+
+        "$RET_BREAK" )
+            return $RET_OK
+            ;;
+
+        *)
         _error "niepoprawne argumenty..."
         status=$RET_FAIL
-    fi
+    esac
 
+    # verify collected arguments
     if [ "$status" -eq $RET_OK ]; then
         # verify argv
         if ! verify_argv; then 
@@ -1727,8 +1756,8 @@ main() {
         fi
     fi
 
+    # process the file
     if [ "$status" -eq $RET_OK ]; then
-        # process the file
         _debug $LINENO "argumenty poprawne, przetwarzam plik"
         process_file
         status=$?

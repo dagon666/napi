@@ -264,9 +264,8 @@ _blit() {
 # @brief set insane verbosity
 #
 _debug_insane() {
-    exec 2>&1
-    set -x
     PS4='+ [${LINENO}] ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -x
 }
 
 
@@ -274,7 +273,7 @@ _debug_insane() {
 # @brief print a debug verbose information
 #
 _debug() {
-    local line=${1:-0} && shift
+    local line="${1:-0}" && shift
     [ "${g_output[$___VERBOSITY]}" -ge 3 ] && _blit "--- $line: $*"
     return $RET_OK
 }
@@ -334,9 +333,9 @@ _status() {
 #
 to_stderr() {
     if [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ]; then
-        cat > /dev/stderr
-    else
         cat
+    else
+        cat > /dev/stderr
     fi
 }
 
@@ -347,8 +346,7 @@ to_stderr() {
 redirect_to_logfile() {
     [ -n "${g_output[$___LOG]}" ] && 
     [ "${g_output[$___LOG]}" != "none" ] && 
-        exec 3>&1 1> "${g_output[$___LOG]}" &&
-        exec 4>&2 2> "${g_output[$___LOG]}"
+        exec 3>&1 4>&2 1> "${g_output[$___LOG]}" 2>&1 
 }
 
 
@@ -356,10 +354,10 @@ redirect_to_logfile() {
 # @brief redirect output to stdout
 #
 redirect_to_stdout() {
+    # restore everything
     [ -n "${g_output[$___LOG]}" ] && 
     [ "${g_output[$___LOG]}" != "none" ] && 
-        exec 1>&3 3>&- &&
-        exec 2>&4 4>&-
+        exec 1>&3 2>&4 4>&- 3>&- 
 }
 
 # EOF

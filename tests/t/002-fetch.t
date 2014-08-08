@@ -80,7 +80,7 @@ foreach (@files) {
 	my $filename = $NapiTest::testspace . '/' . $_->{dst};
 	my $subs = $NapiTest::testspace . '/' . $_->{res};
 
-	like ( scalar NapiTest::qx_napi($shell, $filename),
+	like ( scalar NapiTest::qx_napi($shell, $filename . ' 2> /dev/null'),
 			qr/#\d+:\d+\s$_->{pattern}\s->\s/,
 			"Single File ($_->{dst}) test");
 

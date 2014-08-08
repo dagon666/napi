@@ -576,7 +576,7 @@ test_write_format_microdvd() {
 	echo "junk" >> "$tmp"
 
 	g_outf[$___FPS]=25
-	write_format_microdvd "$tmp" "$out" 2>&1 > /dev/null
+	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1 
 	status=$?
 	assertEquals "checking return value" "$RET_FAIL" "$status"
 
@@ -584,7 +584,7 @@ test_write_format_microdvd() {
 	echo "1 10 20 line1" >> "$tmp"
 	echo "2 22 25 line2" >> "$tmp"
 
-	write_format_microdvd "$tmp" "$out"
+	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -598,7 +598,7 @@ test_write_format_microdvd() {
 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
 
-	write_format_microdvd "$tmp" "$out"
+	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -613,7 +613,7 @@ test_write_format_microdvd() {
 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
 
 	g_outf[$___FPS]=30
-	write_format_microdvd "$tmp" "$out"
+	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -641,7 +641,7 @@ test_write_format_mpl2() {
 	echo "junk" > "$tmp"
 	echo "junk" >> "$tmp"
 
-	write_format_mpl2 "$tmp" "$out" 2>&1 > /dev/null
+	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1 
 	status=$?
 	assertEquals "checking return value" "$RET_FAIL" "$status"
 
@@ -649,7 +649,7 @@ test_write_format_mpl2() {
 	echo "1 10 20 line1" >> "$tmp"
 	echo "2 22 25 line2" >> "$tmp"
 
-	write_format_mpl2 "$tmp" "$out"
+	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -663,7 +663,7 @@ test_write_format_mpl2() {
 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
 
-	write_format_mpl2 "$tmp" "$out"
+	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
 
@@ -677,7 +677,7 @@ test_write_format_mpl2() {
 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
 
-	write_format_mpl2 "$tmp" "$out"
+	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
 
@@ -706,7 +706,7 @@ test_write_format_tmplayer() {
 	echo "junk" > "$tmp"
 	echo "junk" >> "$tmp"
 
-	write_format_tmplayer "$tmp" "$out" 2>&1 > /dev/null
+	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1 
 	status=$?
 	assertEquals "checking return value" "$RET_FAIL" "$status"
 
@@ -714,7 +714,7 @@ test_write_format_tmplayer() {
 	echo "1 10 20 line1" >> "$tmp"
 	echo "2 22 25 line2" >> "$tmp"
 
-	write_format_tmplayer "$tmp" "$out"
+	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -728,7 +728,7 @@ test_write_format_tmplayer() {
 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
 
-	write_format_tmplayer "$tmp" "$out"
+	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
 
@@ -742,7 +742,7 @@ test_write_format_tmplayer() {
 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
 
-	write_format_tmplayer "$tmp" "$out"
+	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
 
@@ -770,7 +770,7 @@ test_write_format_subviewer2() {
 	echo "junk" > "$tmp"
 	echo "junk" >> "$tmp"
 
-	write_format_subviewer2 "$tmp" "$out" 2>&1 > /dev/null
+	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1 
 	status=$?
 	assertEquals "checking return value" "$RET_FAIL" "$status"
 
@@ -778,7 +778,7 @@ test_write_format_subviewer2() {
 	echo "1 10 20 line1" >> "$tmp"
 	echo "2 22 25 line2" >> "$tmp"
 
-	write_format_subviewer2 "$tmp" "$out"
+	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -792,7 +792,7 @@ test_write_format_subviewer2() {
 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
     
-	write_format_subviewer2 "$tmp" "$out"
+	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
     
@@ -806,7 +806,7 @@ test_write_format_subviewer2() {
 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
     
-	write_format_subviewer2 "$tmp" "$out"
+	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
     
@@ -834,7 +834,7 @@ test_write_format_subrip() {
 	echo "junk" > "$tmp"
 	echo "junk" >> "$tmp"
 
-	write_format_subrip "$tmp" "$out" 2>&1 > /dev/null
+	write_format_subrip "$tmp" "$out" >/dev/null 2>&1 
 	status=$?
 	assertEquals "checking return value" "$RET_FAIL" "$status"
 
@@ -842,7 +842,7 @@ test_write_format_subrip() {
 	echo "1 10 20 line1" >> "$tmp"
 	echo "2 22 25 line2" >> "$tmp"
 
-	write_format_subrip "$tmp" "$out"
+	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking return value" "$RET_OK" "$status"
 
@@ -859,7 +859,7 @@ test_write_format_subrip() {
 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
     
-	write_format_subrip "$tmp" "$out"
+	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "subrip checking return value" "$RET_OK" "$status"
     
@@ -876,7 +876,7 @@ test_write_format_subrip() {
 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
     
-	write_format_subrip "$tmp" "$out"
+	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
 	status=$?
 	assertEquals "subrip checking return value" "$RET_OK" "$status"
     
@@ -1095,7 +1095,7 @@ test_verify_argv() {
 	_save_subotage_globs
 
 	g_inf[$___PATH]="none"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect input" $RET_PARAM "$status"
 
@@ -1103,40 +1103,40 @@ test_verify_argv() {
 
 	g_inf[$___PATH]="input.txt"
 	g_outf[$___PATH]="none"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect output" $RET_PARAM "$status"
 
 	g_inf[$___PATH]="input.txt"
 	g_outf[$___PATH]="output.txt"
 	g_inf[$___FORMAT]="bogus"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect input format" $RET_PARAM "$status"
 
 	g_inf[$___FORMAT]="microdvd"
 	g_outf[$___FORMAT]="bogus"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect output format" $RET_PARAM "$status"
 
 	g_outf[$___FORMAT]="subrip"
 	g_inf[$___FPS]="25fps"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect input fps" $RET_PARAM "$status"
 
 	g_outf[$___FORMAT]="subrip"
 	g_inf[$___FPS]="25"
 	g_outf[$___FPS]="25fps"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "incorrect output fps" $RET_PARAM "$status"
 
 	g_outf[$___FORMAT]="subrip"
 	g_inf[$___FPS]="25"
 	g_outf[$___FPS]="25"
-	verify_argv 2>&1 > /dev/null
+	verify_argv >/dev/null 2>&1 
 	status=$?
 	assertEquals "correct settings" $RET_OK "$status"
 
@@ -1281,17 +1281,17 @@ test_convert_formats() {
 
 	g_inf[$___PATH]="$input"
 
-	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	convert_formats "_test_reader" "_test_writer" >/dev/null 2>&1 
 	status=$?
 	assertEquals "reader failure" $RET_FAIL "$status"
 
 	reader_rv=$RET_OK
-	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	convert_formats "_test_reader" "_test_writer" >/dev/null 2>&1 
 	status=$?
 	assertEquals "writer failure" $RET_FAIL "$status"
 		
 	writer_rv=$RET_OK
-	convert_formats "_test_reader" "_test_writer" 2>&1 > /dev/null
+	convert_formats "_test_reader" "_test_writer" >/dev/null 2>&1 
 	status=$?
 	assertEquals "all ok" $RET_OK "$status"
 	)
