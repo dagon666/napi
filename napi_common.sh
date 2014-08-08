@@ -273,7 +273,7 @@ _debug_insane() {
 # @brief print a debug verbose information
 #
 _debug() {
-    local line=${1:-0} && shift
+    local line="${1:-0}" && shift
     [ "${g_output[$___VERBOSITY]}" -ge 3 ] && _blit "--- $line: $*"
     return $RET_OK
 }
@@ -346,7 +346,7 @@ to_stderr() {
 redirect_to_logfile() {
     [ -n "${g_output[$___LOG]}" ] && 
     [ "${g_output[$___LOG]}" != "none" ] && 
-        exec 3>&1 4>&1 1> "${g_output[$___LOG]}" 2> "${g_output[$___LOG]}"
+        exec 3>&1 4>&2 1> "${g_output[$___LOG]}" 2>&1 
 }
 
 

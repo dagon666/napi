@@ -1260,7 +1260,7 @@ extract_subs_xml() {
 
     _debug $LINENO "subs xml status [$xml_status]"
     if [ "$xml_status" -eq 0 ]; then
-        _error "napiprojekt zglasza niepowodzenie - napisy niedostepne"
+        _warning "napiprojekt zglasza niepowodzenie - napisy niedostepne"
         return $RET_UNAV
     fi
 
