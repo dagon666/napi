@@ -335,9 +335,11 @@ configure_cmds() {
 # @brief verify system settings and gather info about commands
 #
 verify_system() {
+    local cores=1
     _debug $LINENO "weryfikuje system"
+    cores=$(get_cores ${g_system[0]})
     g_system[0]="$(get_system)"
-    g_system[1]=$(( $(get_cores) * 2 ))
+    g_system[1]=$(( cores * 2 ))
 }
 
 
@@ -2360,7 +2362,8 @@ process_files() {
     done
 
     # dump statistics to fd #8 (if it has been opened before)
-    [ -e "/proc/self/fd/8" ] && echo "${g_stats[*]}" >&8
+    [ -e "/proc/self/fd/8" ] || [ -e "/dev/fd/8" ] && 
+        echo "${g_stats[*]}" >&8
     return $RET_OK
 }
 
