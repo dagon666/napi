@@ -345,9 +345,13 @@ to_stderr() {
 # @brief redirect stdout to logfile
 #
 redirect_to_logfile() {
-    [ -n "${g_output[$___LOG]}" ] && 
-    [ "${g_output[$___LOG]}" != "none" ] && 
-        exec 3>&1 4>&2 1> "${g_output[$___LOG]}" 2>&1 
+    if [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ]; then
+        # truncate
+        cat /dev/null > "${g_output[$___LOG]}"
+        
+        # append instead of ">" to assure that children won't mangle the output
+        exec 3>&1 4>&2 1>> "${g_output[$___LOG]}" 2>&1 
+    fi
 }
 
 
