@@ -284,6 +284,21 @@ normalize_language() {
 
 #################################### ENV #######################################
 
+cleanup_tmp_files() {
+    _debug $LINENO "usuwam pliki tymczasowe (jesli istnieja)"
+    $g_cmd_unlink napisy.7z.*
+    $g_cmd_unlink napi.*
+    $g_cmd_unlink ipc.*
+    $g_cmd_unlink stats.*
+}
+
+
+trap_control_c() {
+    _msg $LINENO "przechwycono CTRL+C, koncze wykonywanie...";
+    cleanup_tmp_files    
+    exit $?
+}
+
 #
 # @brief configure external commands
 #
@@ -2668,6 +2683,9 @@ main() {
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
+
+    # install traps
+    trap trap_control_c SIGINT
 
     # do the job
     spawn_forks
