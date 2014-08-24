@@ -1269,6 +1269,15 @@ extract_subs_xml() {
     # extract the subs data
     local xml_subs=$(extract_xml_tag 'subtitles' "$xml_path")
 
+	# check if the subtitles tag exist in the output
+	# it's possible that the downloaded xml contains only
+	# the cover and metadata
+	if [ -z "$xml_subs" ]; then
+		_debug $LINENO "plik xml nie zawiera taga subtitles"
+		_info $LINENO "napisy niedostepne"
+		return $RET_UNAV
+	fi
+
     # extract content
     local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
 
