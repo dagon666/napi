@@ -11,7 +11,7 @@ g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.1"
+g_Revison="v1.1.2"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -54,6 +54,7 @@ g_SubotagePresence=0
 g_FpsTool=""
 g_Fps=0
 g_AvailableOne=0
+g_LogFile="none"
 
 ########################################################################
 ########################################################################
@@ -65,8 +66,10 @@ function display_help
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
-    echo "   -u | --user <login>    - uwierzytelnianie jako użytkownik"
-    echo "   -p | --pass <passwd> - hasło dla użytkownika <login>"
+    echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
+    echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
+    echo "   -l | --log <logfile> - drukuj output to pliku zamiast"
+    echo "                          na konsole"
         
     if [[ $g_SubotagePresence -eq 1 ]]; then    
         echo "   -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"                
@@ -75,7 +78,7 @@ function display_help
     echo "=============================================================="
     echo
     if [[ $g_SubotagePresence -eq 1 ]]; then    
-        echo "Obsługiwane formaty konwersji napisów"
+        echo "Obslugiwane formaty konwersji napisow"
         subotage.sh -gl
         echo
     fi
@@ -84,7 +87,7 @@ function display_help
     echo " napi.sh film.avi          - sciaga napisy dla film.avi."
     echo " napi.sh -c film.avi       - sciaga napisy i okladke dla film.avi."
     echo " napi.sh -u foo -p bar -c film.avi - sciaga napisy i okladke do"
-    echo "								film.avi jako uzytkownik foo"
+    echo "                             film.avi jako uzytkownik foo"
     echo " napi.sh *                 - szuka plikow wideo w obecnym katalogu"
     echo "                             i podkatalogach, po czym stara sie dla"
     echo "                             nich znalezc i pobrac napisy."
@@ -95,20 +98,20 @@ function display_help
     if [[ $g_SubotagePresence -ne 1 ]]; then
         echo " "
         echo "UWAGA !!!"
-        echo "napi.sh moze automatycznie dokonywac konwersji napisów"
+        echo "napi.sh moze automatycznie dokonywac konwersji napisow"
         echo "do wybranego przez Ciebie formatu. Zainstaluj uniwersalny"
-        echo "konwerter formatów dla basha: subotage.sh"
+        echo "konwerter formatow dla basha: subotage.sh"
         echo "http://sourceforge.net/projects/subotage/"
         echo
     else
 		echo " napi.sh -f subrip *		 - sciaga napisy dla kazdego znalezionego pliku"
-		echo "								po czym konwertuje je do formatu subrip"
+		echo "                           po czym konwertuje je do formatu subrip"
     
         if [[ $g_AvailableOne -eq 0 ]]; then 
             echo
             echo "By moc okreslac FPS na podstawie pliku video a nie na"
             echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
-            echo "zainstaluj dodatkowo jedno z tych narzędzi (dowolnie które)"
+            echo "zainstaluj dodatkowo jedno z tych narzedzi (dowolnie ktore)"
             echo -e "- mediainfo\n- mplayer\n- ffmpeg\n"
             echo
         fi
@@ -265,21 +268,22 @@ function download_subs
     echo
         
     for file in "${g_FileList[@]}"; do
-
-        # md5sum and hash calculation
-        suma=`dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1`
-        hash=$(f $suma)
         
         # input/output filename manipulation
         base=`basename "$file"`
         output_path=`dirname "$file"`
         output="$output_path/${base%.*}.txt"
         output_img="$output_path/${base%.*}.jpg"
+        conv_output="$output_path/ORIG_${base%.*}.txt"
         
-        if [[ -e "$output" ]]; then
+        if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
             echo "Plik z napisami juz istnieje [$output]. Pomijam !!!"
             continue    
         else
+
+            # md5sum and hash calculation
+            suma=`dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1`
+            hash=$(f $suma)
         
             napiStatus=$(get_subtitles $suma $hash "$output")       
             if [[ $napiStatus = "1" ]]; then
@@ -302,9 +306,9 @@ function download_subs
 					;;
 					
 					*)
-					cp $output "$output_path/ORIG_${base%.*}.txt"					
+					cp $output "$conv_output"
 					outputSubs="$output"
-					output="$output_path/ORIG_${base%.*}.txt"
+					output="$conv_output"
 					;;
 					esac
 															
@@ -314,11 +318,11 @@ function download_subs
 						echo "FPS okreslony na podstawie pliku wideo: [$g_Fps]"
 						subotage_c2="-fi $g_Fps"
 					else
-						echo "Nie udało sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
+						echo "Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
 						subotage_c2=""
 					fi
 					
-					echo "Wołam subotage.sh"
+					echo "Wolam subotage.sh"
 					echo "=================="
 					subotage_call="$subotage_c1 $subotage_c2"					
 					eval $subotage_call
@@ -379,7 +383,11 @@ function check_for_fps_detectors
 # @brief error wrapper
 function f_print_error
 {
-    echo -e "$@" > /dev/stderr
+   if [[ "$g_LogFile" != "none" ]]; then   
+      echo -e "$@"
+   else
+      echo -e "$@" > /dev/stderr
+   fi
 }
 
 # @brief detect fps from video file
@@ -430,7 +438,7 @@ while [ $# -gt 0 ]; do
         "-u" | "--user")        
         shift
         if [[ -z "$1" ]]; then
-            f_print_error "Nie podano nazwy użytkownika"
+            f_print_error "Nie podano nazwy uzytkownika"
             exit
         fi
         g_User="$1"
@@ -441,12 +449,22 @@ while [ $# -gt 0 ]; do
         shift
                 
         if [[ -z "$1" ]]; then
-            f_print_error "Nie podano hasła dla użytkownika [$g_User]"
+            f_print_error "Nie podano hasla dla uzytkownika [$g_User]"
             exit
         fi      
         g_Pass="$1"     
         ;;
-        
+
+        # logowanie do pliku
+        "-l" | "--log")
+        shift
+        if [[ -z "$1" ]]; then
+            f_print_error "Nie podano nazwy pliku dziennika"
+            exit        
+        fi
+        g_LogFile="$1"           
+        ;;
+
         # definicja formatu docelowego
         "-f" | "--format")
         shift
@@ -468,12 +486,12 @@ done
 
 # parameters validation
 if [[ -n "$g_Pass" ]] && [[ -z "$g_User" ]]; then
-    f_print_error "Podano hasło, lecz nie podano loginu. Uzupelnij dane !!!"
+    f_print_error "Podano haslo, lecz nie podano loginu. Uzupelnij dane !!!"
     exit
 fi
 
 if [[ -z "$g_Pass" ]] && [[ -n "$g_User" ]]; then
-    f_print_error "Podano login, lecz nie podano hasła, uzupełnij dane !!!"
+    f_print_error "Podano login, lecz nie podano hasla, uzupelnij dane !!!"
     exit
 fi
 
@@ -492,9 +510,23 @@ if [[ $g_SubotagePresence -eq 1 ]]; then
     fi
 fi
 
+# be sure not to overwrite actual video file
+if [[ ${#g_Params[*]} -eq 0 ]] && [[ "$g_LogFile" != "none" ]]; then
+   f_print_error "Nie podales pliku loga !!!"
+   exit   
+elif [[ "$g_LogFile" != "none" ]]; then
+   exec 3>&1 1> "$g_LogFile"
+fi
+
 ########################################################################
 ########################################################################
 ########################################################################
+
+echo
+echo "=================="
+echo "Wywo�ano o [$(date)]"
+echo "=================="
+echo
 
 #set -- "${g_Params[@]}"
 prepare_file_list "${g_Params[@]}"
@@ -509,5 +541,11 @@ echo "=================="
 echo "Koniec, przetworzono lacznie ${#g_FileList[*]} plikow"
 echo "=================="
 echo
+
+       
+# restore original stdout
+if [[ "$g_LogFile" != "none" ]]; then   
+   exec 1>&3 3>&-
+fi
 
 # EOF
