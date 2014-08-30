@@ -7,9 +7,11 @@ g_Pass=""
 
 g_NapiPass="iBlm8NTigvru0Jr0"
 g_Lang="PL"
+g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
+g_Revison="v0.2.3"
 g_Version="pynapi"
 #g_Version="other"
 
@@ -40,11 +42,11 @@ g_Version="pynapi"
 
 function display_help
 {
-	echo "============================"
-	echo "napi.sh version v0.2.1"
+	echo "====================================================="
+	echo "napi.sh version $g_Revison (identifies as $g_Version)"
 	echo "napi.sh [-c] <plik|katalog|*>"
 	echo "   -c     - pobierz okladke"
-	echo "============================"
+	echo "====================================================="
 	echo
 	echo "Podaj Nazwe plik(u|ow)/katalog(u|ow), jako argument !!!"
 	echo
@@ -55,6 +57,27 @@ function display_help
 	echo "    napi.sh *.avi"
 	echo "    napi.sh katalog_z_filmami"
 }
+
+#
+# @brief: check if the given file is a video file
+# @param: video filename
+# @return: bool 1 - is video file, 0 - is not a video file
+function check_extention
+{
+	is_video=0	
+        filename=$(basename "$1")
+        extention=$(echo "${filename##*.}" | tr [A-Z] [a-z])
+
+	for ext in "${g_VideoUris[@]}"; do
+		if [[ "$ext" == "$extention" ]]; then
+			is_video=1
+			break
+		fi
+	done
+	
+	echo $is_video
+}
+
 
 
 #
@@ -139,7 +162,7 @@ if [[ ! -z $1 ]]; then
 	fi	
 fi
 
-if [ $# -lt 1 ] || [ $1 == "--help" ]; then
+if [[ $# -lt 1 ]] || [[ $1 == "--help" ]]; then
 	display_help
 	exit
 fi
@@ -152,24 +175,32 @@ echo "========================="
 for file in "$@"; do
 	
 	# sprawdz czy plik istnieje, jezeli nie, pomin go
-	if [ ! -s "$file" ]; then
+	if [[ ! -s "$file" ]]; then
 		echo "Podany plik nie istnieje lub jest pusty: [\"$file\"], pomijam"
 		continue
 
 	# sprawdz czy jest katalogiem	
 	# jezeli tak to przeszukaj katalog
-	elif [ -d "$file" ]; then
+	elif [[ -d "$file" ]]; then
 		echo "Przeszukuje zawartosc katalogu: [\"$file\"]..."
 		
 		unset templist i
 		while IFS= read -r file2; do
-		  templist[i++]="$file2"       
+		
+			# check if the respective file is a video file (by extention)		
+			if [[ $(check_extention "$file2") == 1 ]]; then
+		  		templist[i++]="$file2"
+			fi
+ 
 		done < <(find "$file" -type f)
 
 		echo "Katalog zawiera ${#templist[*]} plikow"
 		g_FileList=( "${g_FileList[@]}" "${templist[@]}" )
 	else
-		g_FileList=( "${g_FileList[@]}" "$file" )
+		# check if the respective file is a video file (by extention)		
+		if [[ $(check_extention "$file") == 1 ]]; then
+			g_FileList=( "${g_FileList[@]}" "$file" )
+		fi
 	fi
 done
 
