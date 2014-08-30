@@ -1,5 +1,0 @@
-Installation:
-Simply Copy the subotage.sh script into one of the directories listed in your PATH environmental variable. All switches as well as their description can be listed with -h argument or when calling subotage.sh without any arguments passed.
-
-[PL]
-Po prostu skopiuj plik skryptu do katalogu zawartego w sciezce wykonywania. Instrukcje jak korzystac ze skryptu sa dostepne za pomoca przelacznika -h / --help lub w przypadku wywolania bez jakichkolwiek parametrow.
