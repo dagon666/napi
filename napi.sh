@@ -1,37 +1,59 @@
 #!/bin/bash
 
 # napi project user/password configuration
-# (maybe left blank)
-user=""
-pass=""
+# (may be left blank)
+g_User=""
+g_Pass=""
 
-###############################################################################
-###############################################################################
-## author: Tomasz Wisniewski aka DAGON
-## http://www.dagon.bblog.pl
-## http://hekate.homeip.net
-##
-## Maybe freely distributed and modified as long as 
-## the author name is mentioned
-##
-## napi.sh v0.1.0
-##
-###############################################################################
-###############################################################################
+g_NapiPass="iBlm8NTigvru0Jr0"
+g_Lang="PL"
+
+# if pynapi is not acceptable then use "other" - in this case p7zip is 
+# required to finish processing
+g_Version="pynapi"
+#g_Version="other"
+
+#  Copyright (C) 2010 Tomasz Wisniewski aka DAGON <tomasz.wisni3wski@gmail.com>
+#  http://www.dagon.bblog.pl
+#  http://hekate.homeip.net
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+########################################################################
+########################################################################
+########################################################################
 
 function display_help
 {
-	echo "napi.sh version v0.1.4"
-	echo "napi.sh <plik|*>"
-	echo "Podaj Nazwe pliku jako argument !!!"
+	echo "napi.sh version v0.1.8"
+	echo "napi.sh [-c] <plik|*>"
+	echo "   -c     - pobierz okladke"
+	echo
+	echo "Podaj Nazwe plik(u|ow) jako argument !!!"
 	echo
 	echo "Przyklady:"
 	echo "    napi.sh film.avi"
+	echo "    napi.sh -c film.avi"
 	echo "    napi.sh *"
 	echo "    napi.sh *.avi"
 }
 
-# mysterious f() function
+
+#
+# @brief: mysterious f() function
+# @param: md5sum
+#
 function f
 {
 	t_idx=( 0xe 0x3 0x6 0x8 0x2 )
@@ -55,6 +77,61 @@ function f
 	echo $b
 }
 
+#
+# @brief: retrieve subtitles
+# @param: md5sum
+# @param: hash
+# @param: outputfile
+#
+function get_subtitles
+{	
+	url="http://napiprojekt.pl/unit_napisy/dl.php?l=$g_Lang&f=$1&t=$2&v=$g_Version&kolejka=false&nick=$g_User&pass=$g_Pass&napios=posix"
+
+	if [[ $g_Version = "other" ]]; then
+		wget -q -O napisy.7z $url
+		7z x -y -so -p$g_NapiPass napisy.7z 2> /dev/null > "$3"
+		rm -rf napisy.7z
+	
+		if [[ -s "$3" ]]; then
+			echo "1"
+		else
+			echo "0"
+			rm -rf "$3"		
+		fi
+	else
+		wget -q -O "$3" $url
+		size=$(stat -c%s "$3")
+	
+		if [[ $size -le 4 ]]; then
+			echo "0"
+			rm -rf "$3"
+		else
+			echo "1"			
+		fi
+	fi		
+}
+
+#
+# @brief: retrieve cover
+# @param: md5sum
+# @param: outputfile
+#
+function get_cover
+{
+	url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
+	wget -q -O "$2" $url
+}
+
+########################################################################
+
+if [[ ! -z $1 ]]; then
+	g_Okladka=""
+	if [[ $1 = "-c" ]]; then
+		g_Okladka="1"
+		shift
+	fi	
+fi
+
 if [ $# -lt 1 ]; then
 	display_help
 	exit
@@ -74,22 +151,27 @@ for file in "$@"; do
 		continue
 	fi
 
+	# md5sum and hash calculation
 	suma=`dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1`
-	base=`basename "$file"`
-	output="${base%.*}.txt"
 	hash=`f $suma`
-	str="http://napiprojekt.pl/unit_napisy/dl.php?l=PL&f=$suma&t=$hash&v=other&kolejka=false&nick=$user&pass=$pass&napios=posix"
 	
-	wget -q -O napisy.7z $str
-	7z x -y -so -piBlm8NTigvru0Jr0 napisy.7z 2> /dev/null > "$output"
-	rm -rf napisy.7z
+	# input/output filename manipulation
+	base=`basename "$file"`
+	output_path=`dirname "$file"`
+	output="$output_path/${base%.*}.txt"
+	output_img="$output_path/${base%.*}.jpg"
 	
-	if [[ -s "$output" ]]; then
-		echo "Napisy pobrano pomyslnie [$file] !!!"
+	napiStatus=$(get_subtitles $suma $hash "$output")		
+	if [[ $napiStatus = "1" ]]; then
+		echo "Napisy pobrano pomyslnie [$base] !!!"
 	else
-		echo "Napisy niedostepne [$file]"
-		rm -rf "$output"
+		echo "Napisy niedostepne [$base]"
 		continue
-	fi	
+	fi
+	
+	if [[ $g_Okladka = "1" ]]; then
+		get_cover $suma "$output_img"
+	fi
+	
 done
 # EOF
