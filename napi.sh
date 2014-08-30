@@ -43,13 +43,14 @@ g_MandatoryTools=( 	'md5sum' 'tr' 'printf'
 
 # if pynapi is not acceptable then use "other" - in this case p7zip is 
 # required to finish processing
-g_Revison="v1.1.3"
+g_Revison="v1.1.5"
 g_Version="pynapi"
 #g_Version="other"
 
 # global file list
 g_FileList=( )
 g_Okladka=""
+g_Skip=0
 g_Format="no_conversion"
 g_Formats=( )
 g_Params=( )
@@ -62,6 +63,11 @@ g_FpsTool=""
 g_Fps=0
 g_LogFile="none"
 
+# statistical data
+g_Skipped=0
+g_Downloaded=0
+g_Unavailable=0
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -72,6 +78,7 @@ function display_help
     echo "napi.sh version $g_Revison (identifies as $g_Version)"
     echo "napi.sh [OPCJE] <plik|katalog|*>"
     echo "   -c | --cover - pobierz okladke"
+    echo "   -s | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -p | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -l | --log <logfile> - drukuj output to pliku zamiast"
@@ -230,16 +237,21 @@ function get_cover
 #
 function prepare_file_list
 {
-    echo "=================="
-    echo "Tworzenie listy plikow..."
-    echo "=================="
-    echo
+    list_creation_info=0
+
+    if [[ $# -gt 1 ]] && [[ ! -d "$1" ]] ; then
+	list_creation_info=1
+    	echo "=================="
+    	echo "Tworzenie listy plikow..."
+    	echo "=================="
+    	echo
+    fi
                 
     for file in "$@"; do
         
         # check if file exists, if not skip it
         if [[ ! -s "$file" ]]; then
-            echo "Podany plik nie istnieje lub jest pusty: [\"$file\"], pomijam"
+            echo -e "[EMPTY]\t[\"$file\"]:\tPodany plik nie istnieje lub jest pusty !!!"
             continue
 
         # check if is a directory
@@ -266,7 +278,10 @@ function prepare_file_list
             fi
         fi
     done
-    echo "Lista gotowa."
+
+    if [[ $list_creation_info -eq 1 ]]; then
+    	echo "Lista gotowa."
+    fi
 }
 
 #
@@ -274,10 +289,12 @@ function prepare_file_list
 #
 function download_subs
 {   
-    echo "=================="
-    echo "Pobieram napisy..."
-    echo "=================="
-    echo
+    if [[ ${#g_FileList[*]} -gt 0 ]]; then
+    	echo "=================="
+    	echo "Pobieram napisy..."
+    	echo "=================="
+    	echo
+    fi
         
     for file in "${g_FileList[@]}"; do
         
@@ -287,22 +304,29 @@ function download_subs
         output="$output_path/${base%.*}.txt"
         output_img="$output_path/${base%.*}.jpg"
         conv_output="$output_path/ORIG_${base%.*}.txt"
+	fExists=0
         
         if [[ -e "$output" ]] || [[ -e "$conv_output" ]]; then
-            echo "Plik z napisami juz istnieje [$output]. Pomijam !!!"
+		fExists=1
+	fi
+
+	if [[ $fExists -eq 1 ]] && [[ $g_Skip -eq 1 ]]; then	
+            echo -e "[SKIP]\t[${base%.*}.txt]:\tPlik z napisami juz istnieje !!!"
+	    g_Skipped=$(( $g_Skipped + 1 ))
             continue    
         else
             # md5sum and hash calculation
-			suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
-			hash=$(f $suma)        
-			napiStatus=$(get_subtitles $suma $hash "$output")       
+	    suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+	    hash=$(f $suma)        
+	    napiStatus=$(get_subtitles $suma $hash "$output")       
 			
             if [[ $napiStatus = "1" ]]; then
-                echo "Napisy pobrano pomyslnie [$base] !!!"
+                echo -e "[OK]\t[$base]:\tNapisy pobrano pomyslnie !!!"
+		g_Downloaded=$(( $g_Downloaded + 1 ))
                 
-				# conversion to different format requested
+		# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
-					echo "Konwertuje napisy do formatu: [$g_Format]"
+					echo " -- Konwertuje napisy do formatu: [$g_Format]"
 				
 					# determine the output extention and the output filename
 					# if ext == txt then copy the original with a ORIG_ prefix
@@ -325,21 +349,22 @@ function download_subs
 					subotage_c1="subotage.sh -i '$output' -of $g_Format -o '$outputSubs'"
 					f_detect_fps "$file"
 					if [[ "$g_Fps" != "0" ]]; then
-						echo "FPS okreslony na podstawie pliku wideo: [$g_Fps]"
+						echo " -- FPS okreslony na podstawie pliku wideo: [$g_Fps]"
 						subotage_c2="-fi $g_Fps"
 					else
-						echo "Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
+						echo " -- Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
 						subotage_c2=""
 					fi
 							
-					echo "Wolam subotage.sh"
-					echo "=================="
+					echo " -- Wolam subotage.sh"
+					echo " -- =================="
 					subotage_call="$subotage_c1 $subotage_c2"					
 					eval $subotage_call
-					echo "=================="
-				fi
+					echo " -- =================="
+		fi
             else
-                echo "Napisy niedostepne [$base]"
+                echo -e "[UNAV]\t[$base]:\tNapisy niedostepne !!!"
+		g_Unavailable=$(( $g_Unavailable + 1 ))
                 continue
             fi
             
@@ -441,6 +466,11 @@ while [ $# -gt 0 ]; do
         # cover download
         "-c" | "--cover")
         g_Okladka=1
+        ;;
+
+        # skip flag
+        "-s" | "--skip")
+        g_Skip=1
         ;;
         
         # user login
@@ -549,9 +579,13 @@ download_subs
 ########################################################################
 
 echo
-echo "=================="
-echo "Koniec, przetworzono lacznie ${#g_FileList[*]} plikow"
-echo "=================="
+echo "==================="
+echo "Koniec"
+echo -e "Pominieto:\t[$g_Skipped]"
+echo -e "Pobrano:\t[$g_Downloaded]"
+echo -e "Niedostepne:\t[$g_Unavailable]"
+echo -e "Lacznie:\t[${#g_FileList[*]}]"
+echo "==================="
 echo
       
 # restore original stdout
