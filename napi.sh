@@ -36,17 +36,19 @@ g_Version="pynapi"
 
 function display_help
 {
-	echo "napi.sh version v0.1.8"
+	echo "napi.sh version v0.1.9"
 	echo "napi.sh [-c] <plik|*>"
 	echo "   -c     - pobierz okladke"
 	echo
-	echo "Podaj Nazwe plik(u|ow) jako argument !!!"
+	echo "Podaj Nazwe plik(u|ow), jako argument !!!"
+	echo "Argumentem moze byc rowniez katalog  !!!"
 	echo
 	echo "Przyklady:"
 	echo "    napi.sh film.avi"
 	echo "    napi.sh -c film.avi"
 	echo "    napi.sh *"
 	echo "    napi.sh *.avi"
+	echo "    napi.sh katalog_z_filmami"
 }
 
 
@@ -132,28 +134,50 @@ if [[ ! -z $1 ]]; then
 	fi	
 fi
 
-if [ $# -lt 1 ]; then
+if [ $# -lt 1 ] || [ $1 == "--help" ]; then
 	display_help
 	exit
 fi
 
+# global file list
+g_FileList=( )
+
+echo "Tworzenie listy plikow..."
+echo "========================="
 for file in "$@"; do
 	
 	# sprawdz czy plik istnieje, jezeli nie, pomin go
 	if [ ! -s "$file" ]; then
-		echo "Podany plik nie istnieje lub jest pusty: [$file], pomijam"
+		echo "Podany plik nie istnieje lub jest pusty: [\"$file\"], pomijam"
 		continue
-	fi
 
 	# sprawdz czy jest katalogiem	
-	if [ -d "$file" ]; then
-		echo "Podany plik jest katalogiem: [$file], pomijam"
-		continue
+	# jezeli tak to przeszukaj katalog
+	elif [ -d "$file" ]; then
+		echo "Przeszukuje zawartosc katalogu: [\"$file\"]..."
+		
+		unset templist i
+		while IFS= read -r -d $'\0' file2; do
+		  templist[i++]="$file2"       
+		done < <(find "$file" -type f -print0)
+
+		echo "Katalog zawiera ${#templist[*]} plikow"
+		g_FileList=( "${g_FileList[@]}" "${templist[@]}" )
+	else
+		g_FileList=( "${g_FileList[@]}" "$file" )
 	fi
+done
+
+
+
+echo "Lista gotowa, pobieram napisy..."
+echo "================================"
+
+for file in "${g_FileList[@]}"; do
 
 	# md5sum and hash calculation
 	suma=`dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1`
-	hash=`f $suma`
+	hash=$(f $suma)
 	
 	# input/output filename manipulation
 	base=`basename "$file"`
@@ -172,6 +196,9 @@ for file in "$@"; do
 	if [[ $g_Okladka = "1" ]]; then
 		get_cover $suma "$output_img"
 	fi
-	
 done
+
+echo "==================================================="
+echo "Koniec, przetworzono lacznie ${#g_FileList[*]} plikow"
+
 # EOF

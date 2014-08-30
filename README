@@ -3,4 +3,17 @@ napiprojekt.pl client
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
 
+Usage example:
+==============
+
+napi.sh video_file.avi
+- download subtitiles for video_file.avi
+
+napi.sh *
+- iterate through all elements in current directory and try to download subtitles for them. If directory contains subdirectories - than the script will also iterate through all the files in subdirectories.
+
+napi.sh movie_dir/
+- try to find and download subtitles for all files in movie_dir/ directory/
+
+============================================
 The script is distributed under GPL license.
