@@ -13,6 +13,10 @@ g_Lang="PL"
 g_Version="pynapi"
 #g_Version="other"
 
+########################################################################
+########################################################################
+########################################################################
+
 #  Copyright (C) 2010 Tomasz Wisniewski aka DAGON <tomasz.wisni3wski@gmail.com>
 #  http://www.dagon.bblog.pl
 #  http://hekate.homeip.net
@@ -36,12 +40,13 @@ g_Version="pynapi"
 
 function display_help
 {
-	echo "napi.sh version v0.1.9"
-	echo "napi.sh [-c] <plik|*>"
+	echo "============================"
+	echo "napi.sh version v0.2.1"
+	echo "napi.sh [-c] <plik|katalog|*>"
 	echo "   -c     - pobierz okladke"
+	echo "============================"
 	echo
-	echo "Podaj Nazwe plik(u|ow), jako argument !!!"
-	echo "Argumentem moze byc rowniez katalog  !!!"
+	echo "Podaj Nazwe plik(u|ow)/katalog(u|ow), jako argument !!!"
 	echo
 	echo "Przyklady:"
 	echo "    napi.sh film.avi"
@@ -157,9 +162,9 @@ for file in "$@"; do
 		echo "Przeszukuje zawartosc katalogu: [\"$file\"]..."
 		
 		unset templist i
-		while IFS= read -r -d $'\0' file2; do
+		while IFS= read -r file2; do
 		  templist[i++]="$file2"       
-		done < <(find "$file" -type f -print0)
+		done < <(find "$file" -type f)
 
 		echo "Katalog zawiera ${#templist[*]} plikow"
 		g_FileList=( "${g_FileList[@]}" "${templist[@]}" )
