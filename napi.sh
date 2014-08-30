@@ -1,20 +1,5 @@
 #!/bin/bash
 
-# napi project user/password configuration
-# (may be left blank)
-g_User=""
-g_Pass=""
-
-g_NapiPass="iBlm8NTigvru0Jr0"
-g_Lang="PL"
-g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
-
-# if pynapi is not acceptable then use "other" - in this case p7zip is 
-# required to finish processing
-g_Revison="v1.1.2"
-g_Version="pynapi"
-#g_Version="other"
-
 ########################################################################
 ########################################################################
 ########################################################################
@@ -40,6 +25,28 @@ g_Version="pynapi"
 ########################################################################
 ########################################################################
 
+
+# napi project user/password configuration
+# (may be left blank)
+g_User=""
+g_Pass=""
+g_NapiPass="iBlm8NTigvru0Jr0"
+g_Lang="PL"
+
+# supported video file extentions
+g_VideoUris=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' 'mpeg' 'wmv' )
+
+# list of all mandatory to basic functionality tools
+g_MandatoryTools=( 	'md5sum' 'tr' 'printf' 
+					'wget' 'find' 'dd' 
+					'grep' 'sed' 'cut' 'seq' )
+
+# if pynapi is not acceptable then use "other" - in this case p7zip is 
+# required to finish processing
+g_Revison="v1.1.3"
+g_Version="pynapi"
+#g_Version="other"
+
 # global file list
 g_FileList=( )
 g_Okladka=""
@@ -53,7 +60,6 @@ g_SubotagePresence=0
 # fps detection tools: mediainfo mplayer
 g_FpsTool=""
 g_Fps=0
-g_AvailableOne=0
 g_LogFile="none"
 
 ########################################################################
@@ -107,7 +113,7 @@ function display_help
 		echo " napi.sh -f subrip *		 - sciaga napisy dla kazdego znalezionego pliku"
 		echo "                           po czym konwertuje je do formatu subrip"
     
-        if [[ $g_AvailableOne -eq 0 ]]; then 
+        if [[ -z $g_FpsTool ]]; then 
             echo
             echo "By moc okreslac FPS na podstawie pliku video a nie na"
             echo "podstawie pierwszej linii pliku (w przypadku konwersji z microdvd)"
@@ -125,11 +131,11 @@ function display_help
 function check_extention
 {
     is_video=0  
-        filename=$(basename "$1")
+    filename=$(basename "$1")
         extention=$(echo "${filename##*.}" | tr [A-Z] [a-z])
 
     for ext in "${g_VideoUris[@]}"; do
-        if [[ "$ext" == "$extention" ]]; then
+        if [[ "$ext" = "$extention" ]]; then
             is_video=1
             break
         fi
@@ -152,7 +158,7 @@ function f
     suma=$1
     b=""    
 
-    for i in `seq 0 4`; do
+    for i in $(seq 0 4); do
         a=${t_add[$i]}
         m=${t_mul[$i]}
         g=${t_idx[$i]}
@@ -161,8 +167,8 @@ function f
         v=$((16#${suma:$t:2} ))
         
         x=$(( (v*m) % 0x10 ))
-        z=`printf "%X" $x`
-        b="$b`echo $z | tr '[A-Z]' '[a-z]'`"
+        z=$(printf "%X" $x)
+        b="$b$(echo $z | tr '[A-Z]' '[a-z]')"
     done
     echo $b
 }
@@ -179,6 +185,12 @@ function get_subtitles
 
     if [[ $g_Version = "other" ]]; then
         wget -q -O napisy.7z $url
+        
+        if [[ -z "$(builtin type -P 7z)" ]]; then
+			f_print_error "7zip jest niedostepny\nzmodyfikuj zmienna g_Version tak by napi.sh identyfikowal sie jako \"pynapi\"" 
+			exit
+        fi
+                
         7z x -y -so -p$g_NapiPass napisy.7z 2> /dev/null > "$3"
         rm -rf napisy.7z
     
@@ -209,7 +221,7 @@ function get_subtitles
 function get_cover
 {
     url="http://www.napiprojekt.pl/okladka_pobierz.php?id=$1&oceny=-1"
-    wget -q -O "$2" $url
+    wget -q -O "$2" "$url"
 }
 
 #
@@ -225,13 +237,13 @@ function prepare_file_list
                 
     for file in "$@"; do
         
-        # sprawdz czy plik istnieje, jezeli nie, pomin go
+        # check if file exists, if not skip it
         if [[ ! -s "$file" ]]; then
             echo "Podany plik nie istnieje lub jest pusty: [\"$file\"], pomijam"
             continue
 
-        # sprawdz czy jest katalogiem   
-        # jezeli tak to przeszukaj katalog
+        # check if is a directory
+        # if so, then recursively search the dir
         elif [[ -d "$file" ]]; then
             echo "Przeszukuje zawartosc katalogu: [\"$file\"]..."
             
@@ -249,7 +261,7 @@ function prepare_file_list
             g_FileList=( "${g_FileList[@]}" "${templist[@]}" )
         else
             # check if the respective file is a video file (by extention)       
-            if [[ $(check_extention "$file") == 1 ]]; then
+            if [[ $(check_extention "$file") -eq 1 ]]; then
                 g_FileList=( "${g_FileList[@]}" "$file" )
             fi
         fi
@@ -270,8 +282,8 @@ function download_subs
     for file in "${g_FileList[@]}"; do
         
         # input/output filename manipulation
-        base=`basename "$file"`
-        output_path=`dirname "$file"`
+        base=$(basename "$file")
+        output_path=$(dirname "$file")
         output="$output_path/${base%.*}.txt"
         output_img="$output_path/${base%.*}.jpg"
         conv_output="$output_path/ORIG_${base%.*}.txt"
@@ -280,38 +292,36 @@ function download_subs
             echo "Plik z napisami juz istnieje [$output]. Pomijam !!!"
             continue    
         else
-
             # md5sum and hash calculation
-            suma=`dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1`
-            hash=$(f $suma)
-        
-            napiStatus=$(get_subtitles $suma $hash "$output")       
+			suma=$(dd if="$file" bs=1024k count=10 2> /dev/null | md5sum | cut -d ' ' -f 1)
+			hash=$(f $suma)        
+			napiStatus=$(get_subtitles $suma $hash "$output")       
+			
             if [[ $napiStatus = "1" ]]; then
                 echo "Napisy pobrano pomyslnie [$base] !!!"
                 
-                # Potrzebna konwersja do innego formatu
+				# conversion to different format requested
                 if [[ $g_SubotagePresence -eq 1 ]] && [[ $g_Format != "no_conversion" ]]; then
 					echo "Konwertuje napisy do formatu: [$g_Format]"
-					
-					# okresl rozszerzenie wyjsciowe i plik wyjsciowy
-					# jezeli rozszerzenie = txt to skopiuj oryginal z 
-					# przedrostkiem ORIG_ a plik o nazwie filmu bedzie po konwersji
+				
+					# determine the output extention and the output filename
+					# if ext == txt then copy the original with a ORIG_ prefix
 					case "$g_Format" in
 					"subrip")
-					outputSubs="$output_path/${base%.*}.srt"
-					;;
-					
+						outputSubs="$output_path/${base%.*}.srt"
+						;;
+							
 					"subviewer")
-					outputSubs="$output_path/${base%.*}.sub"
-					;;
+						outputSubs="$output_path/${base%.*}.sub"
+						;;
 					
 					*)
-					cp $output "$conv_output"
-					outputSubs="$output"
-					output="$conv_output"
-					;;
+						cp $output "$conv_output"
+						outputSubs="$output"
+						output="$conv_output"
+						;;
 					esac
-															
+																	
 					subotage_c1="subotage.sh -i '$output' -of $g_Format -o '$outputSubs'"
 					f_detect_fps "$file"
 					if [[ "$g_Fps" != "0" ]]; then
@@ -321,13 +331,13 @@ function download_subs
 						echo "Nie udalo sie okreslic Fps. Okreslam na podstawie pliku napisow lub przyjmuje dom. wart."
 						subotage_c2=""
 					fi
-					
+							
 					echo "Wolam subotage.sh"
 					echo "=================="
 					subotage_call="$subotage_c1 $subotage_c2"					
 					eval $subotage_call
 					echo "=================="
-                fi
+				fi
             else
                 echo "Napisy niedostepne [$base]"
                 continue
@@ -342,20 +352,9 @@ function download_subs
 }
 
 #
-# @brief get fps information directly from video file
-# @param video file
-#
-function video_file_get_fps
-{
-    video_fps=$(mplayer -ao null -vo null -frames 0 -identify "$1" 2> /dev/null | grep ID_VIDEO_FPS)
-    fps=$(echo $video_fps | cut -d '=' -f 2)
-    echo $fps
-}
-
-#
 # @brief check if subotage.sh is installed and available
 #
-function check_for_subotage
+function f_check_for_subotage
 {
     if [[ -n $(builtin type -P subotage.sh) ]]; then
         g_SubotagePresence=1
@@ -365,18 +364,15 @@ function check_for_subotage
 #
 # @brief check for FPS detection tools
 #
-function check_for_fps_detectors
+function f_check_for_fps_detectors
 {
     if [[ -n $(builtin type -P mediainfo) ]]; then
         g_FpsTool="mediainfo \"{}\" | grep -i 'frame rate' | tr -d '[\r a-zA-Z:]'"        
-        g_AvailableOne=1
         return
     
     elif [[ -n $(builtin type -P mplayer) ]]; then    
         g_FpsTool="mplayer -identify -vo null -ao null -frames 0 \"{}\" 2> /dev/null | grep ID_VIDEO_FPS | cut -d '=' -f 2"
-        g_AvailableOne=1
-        return
-                
+        return                
     fi
 }
 
@@ -393,7 +389,7 @@ function f_print_error
 # @brief detect fps from video file
 function f_detect_fps
 {
-   if [[ $g_AvailableOne -ne 0 ]]; then
+   if [[ -n $g_FpsTool ]]; then
 		echo "Okreslam FPS na podstawie pliku video"
 		cmd=${g_FpsTool/\{\}/"$1"}		
 		tmpFps=$(eval $cmd)
@@ -406,20 +402,33 @@ function f_detect_fps
 	fi
 }
 
+# scan if all needed tools are available
+function f_check_mandatory_tools
+{
+	for elem in "${g_MandatoryTools[@]}"; do
+		if [[ -z "$(builtin type -P $elem)" ]]; then
+			f_print_error "BLAD !!!\n\n[${elem}] jest niedostepny, skrypt nie bedzie dzialal poprawnie.\nZmodyfikuj zmienna PATH tak by zawierala wlasciwa sciezke do narzedzia\n"
+			exit
+		fi	
+	done	
+}
+
 ########################################################################
 ########################################################################
 ########################################################################
 
 # initialisation
-check_for_subotage
-check_for_fps_detectors
+f_check_for_subotage
+f_check_for_fps_detectors
+
 
 if [[ $g_SubotagePresence -eq 1 ]]; then
     g_Formats=( $(subotage.sh -gf) )
 fi
 
 # if no arguments are given, then print help and exit
-if [[ $# -lt 1 ]] || [[ $1 == "--help" ]] || [[ $1 == "-h" ]]; then
+if [[ $# -lt 1 ]] || [[ $1 = "--help" ]] || [[ $1 = "-h" ]]; then
+    f_check_mandatory_tools
     display_help
     exit
 fi
@@ -429,12 +438,12 @@ fi
 while [ $# -gt 0 ]; do
 
     case "$1" in
-        # pobieranie okladek
+        # cover download
         "-c" | "--cover")
         g_Okladka=1
         ;;
         
-        # nazwa uzytkownika
+        # user login
         "-u" | "--user")        
         shift
         if [[ -z "$1" ]]; then
@@ -444,7 +453,7 @@ while [ $# -gt 0 ]; do
         g_User="$1"
         ;;
         
-        # haslo
+        # password
         "-p" | "--pass")
         shift
                 
@@ -455,7 +464,7 @@ while [ $# -gt 0 ]; do
         g_Pass="$1"     
         ;;
 
-        # logowanie do pliku
+        # logfile
         "-l" | "--log")
         shift
         if [[ -z "$1" ]]; then
@@ -465,13 +474,13 @@ while [ $# -gt 0 ]; do
         g_LogFile="$1"           
         ;;
 
-        # definicja formatu docelowego
+        # destination format definition
         "-f" | "--format")
         shift
         g_Format="$1"
         ;;
     
-        # Parametr nie jest argumentem, zapewne nazwa pliku
+        # parameter is not a known argument, probably a filename
         *)
         g_Params=( "${g_Params[@]}" "$1" )
         ;;
@@ -504,7 +513,7 @@ if [[ $g_SubotagePresence -eq 1 ]]; then
         fi      
     done
     
-    if [[ $f_valid -eq 0 ]]; then
+    if [[ $f_valid -eq 0 ]] && [[ "$g_Format" != "no_conversion" ]]; then
         f_print_error "Podany format docelowy jest niepoprawny: [$g_Format] !!!"
         exit
     fi
@@ -518,13 +527,16 @@ elif [[ "$g_LogFile" != "none" ]]; then
    exec 3>&1 1> "$g_LogFile"
 fi
 
+# initialisation 2
+f_check_mandatory_tools
+
 ########################################################################
 ########################################################################
 ########################################################################
 
 echo
 echo "=================="
-echo "Wywo³ano o [$(date)]"
+echo "Wywolano o [$(date)]"
 echo "=================="
 echo
 
@@ -541,8 +553,7 @@ echo "=================="
 echo "Koniec, przetworzono lacznie ${#g_FileList[*]} plikow"
 echo "=================="
 echo
-
-       
+      
 # restore original stdout
 if [[ "$g_LogFile" != "none" ]]; then   
    exec 1>&3 3>&-

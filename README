@@ -3,8 +3,6 @@ napiprojekt.pl client
 
 This script is a napiprojekt.pl client written in bash. It automatically downloads subtitles from napiprojekt.pl database basing on the video file.
 
-If you want to be able to automatically do the conversion to the desired format of the downloaded subtitles please install subotage.sh aswell. The most recent version is delivered in subotage subdirectory - please read the instructions for more information on how to proceed
-
 Usage example:
 ==============
 

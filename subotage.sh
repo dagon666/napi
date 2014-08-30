@@ -38,7 +38,7 @@ g_LineCounter=0
 g_Quiet=0
 
 # current version
-g_Version="0.14 alpha"
+g_Version="0.15 alpha"
 
 # supported subtitle file formats
 g_FileFormats=( "microdvd" "mpl2" "subrip" "tmplayer" "subviewer" "fab" )
@@ -371,7 +371,7 @@ function f_read_tmplayer_format
                     x=(\$1*3600+\$2*60+\$3 + ($g_LastingTime/1000));
                     printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", NR, 
                     \$1,\$2,\$3,
-                    (x/3600), (x/60), (x%60));
+                    (x/3600), ((x/60)%60), (x%60));
                     for (i=4; i<=NF; i++) printf(\"%s\", \$i);
                     printf \"\n\"; 
                 }" >> "$g_ProcTmpFile"      
@@ -383,7 +383,7 @@ function f_read_tmplayer_format
                     x=((st[1]*3600)+(st[2]*60)+st[3]) + ($g_LastingTime/1000);
                     printf(\"%d %s %02d:%02d:%02d \", NR, 
                     \$1,
-                    (x/3600), (x/60), (x%60));
+                    (x/3600), ((x/60)%60), (x%60));
                     for (i=2; i<=NF; i++) printf(\"%s\", \$i);
                     printf \"\n\"; 
                 }" >> "$g_ProcTmpFile"                  
@@ -406,7 +406,7 @@ function f_read_tmplayer_format
                         }                                               
                         printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", linecc, 
                             \$1,\$2,\$3,
-                            (xe/3600), (xe/60), (xe%60));
+                            (xe/3600), ((xe/60)%60), (xe%60));
                     }                       
                     for (i=4; i<=NF; i++) printf(\"%s\", \$i);
                     xprev=xc;           
@@ -427,8 +427,8 @@ function f_read_tmplayer_format
                             linecc=linecc+1;
                         }                                               
                         printf(\"%d %02d:%02d:%02d %02d:%02d:%02d \", linecc, 
-                            (xc/3600), (xc/60), (xc%60),
-                            (xe/3600), (xe/60), (xe%60));                       
+                            (xc/3600), ((xc/60)%60), (xc%60),
+                            (xe/3600), ((xe/60)%60), (xe%60));                       
                     }                       
                     for (i=2; i<=NF; i++) printf(\"%s\", \$i);
                     xprev=xc;           
@@ -577,7 +577,7 @@ function f_write_tmplayer_format
     "secs")
         tail -n +2  "$g_ProcTmpFile" |  tr -d '\r' |
         awk "{ printf(\"%02d:%02d:%02d:\", 
-                (\$2/3600),(\$2/60),(\$2%60));
+                (\$2/3600),((\$2/60)%60),(\$2%60));
                 for (i=4; i<=NF; i++) printf(\"%s \", \$i);
                 printf \"\n\" }" > "$1" 
     ;;
@@ -622,9 +622,9 @@ function f_write_subviewer_format
         tail -n +2  "$g_ProcTmpFile" |  tr -d '\r' |
             awk "{ 
                     printf (\"%02d:%02d:%02d:%02d,%02d:%02d:%02d:%02d\n\",
-                        (\$2/3600),(\$2/60),(\$2%60),                   
+                        (\$2/3600),((\$2/60)%60),(\$2%60),                   
                         int((\$2 - int(\$2))*100),
-                        (\$3/3600),(\$3/60),(\$3%60),
+                        (\$3/3600),((\$3/60)%60),(\$3%60),
                         int((\$3 - int(\$3))*100));
                         for (i=4; i<=NF; i++) printf(\"%s \", \$i); 
                         printf (\"\n\n\");
@@ -710,9 +710,9 @@ function f_write_subrip_format
     tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
     awk "{ 
             printf(\"%d\n%02d:%02d:%02d,%03d --> %02d:%02d:%02d,%03d\n\",
-            \$1, (\$2/3600),(\$2/60),(\$2%60),
+            \$1, (\$2/3600),((\$2/60)%60),(\$2%60),
             int((\$2 - int(\$2))*1000),         
-            (\$3/3600),(\$3/60),(\$3%60),
+            (\$3/3600),((\$3/60)%60),(\$3%60),
             int((\$3 - int(\$3))*1000));            
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
             printf (\"\n\n\");
@@ -765,9 +765,9 @@ function f_write_fab_format
     tail -n +2 "$g_ProcTmpFile" |   tr -d '\r' |
     awk "{ 
             printf(\"%04d : %02d:%02d:%02d:%02d  %02d:%02d:%02d:%02d\n\",
-            \$1, (\$2/3600),(\$2/60),(\$2%60),
+            \$1, (\$2/3600),((\$2/60)%60),(\$2%60),
             int((\$2 - int(\$2))*100),          
-            (\$3/3600),(\$3/60),(\$3%60),
+            (\$3/3600),((\$3/60)%60),(\$3%60),
             int((\$3 - int(\$3))*100));         
             for (i=4; i<=NF; i++) printf(\"%s \", \$i);
             printf (\"\n\n\");
