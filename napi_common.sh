@@ -230,8 +230,15 @@ modify_value() {
 # determines number of available cpu's in the system
 #
 get_cores() {
-    grep -i processor /proc/cpuinfo | count_lines
+    local os="${1:-linux}"
+    
+    if [ "$os" = "darwin" ]; then
+        sysctl hw.ncpu | cut -d ' ' - f 1
+	else
+        grep -i processor /proc/cpuinfo | wc -l
+    fi
 }
+
 
 
 #
@@ -246,7 +253,8 @@ get_system() {
 # @brief extracts http status from the http headers
 #
 get_http_status() {
-    grep -o "HTTP/[\.0-9]* [0-9]*"
+    # grep -o "HTTP/[\.0-9]* [0-9]*"
+    awk '{ m = match($0, /HTTP\/[\.0-9]* [0-9]*/); if (m) print substr($0, m, RLENGTH) }'
 }
 
 ################################## STDOUT ######################################
@@ -344,9 +352,13 @@ to_stderr() {
 # @brief redirect stdout to logfile
 #
 redirect_to_logfile() {
-    [ -n "${g_output[$___LOG]}" ] && 
-    [ "${g_output[$___LOG]}" != "none" ] && 
-        exec 3>&1 4>&2 1> "${g_output[$___LOG]}" 2>&1 
+    if [ -n "${g_output[$___LOG]}" ] && [ "${g_output[$___LOG]}" != "none" ]; then
+        # truncate
+        cat /dev/null > "${g_output[$___LOG]}"
+        
+        # append instead of ">" to assure that children won't mangle the output
+        exec 3>&1 4>&2 1>> "${g_output[$___LOG]}" 2>&1 
+    fi
 }
 
 

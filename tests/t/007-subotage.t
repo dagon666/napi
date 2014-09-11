@@ -106,7 +106,7 @@ foreach my $format (@formats) {
 
 			is ($rv, 0, "return value for $format -> $dst_format conversion");
 			is ( -e $dst_file, 1, "checking $dst_file existence" );
-			ok ( (count_lines $dst_file) > $minimum, "the number of lines $dst_file" );
+			ok ( (count_lines $dst_file) >= $minimum, "the number of lines $dst_file" );
 
 			# check format detection
 			is ( (split ' ', qx/subotage.sh -gi -i $dst_file | grep IN_FORMAT/)[3],

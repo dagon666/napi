@@ -284,6 +284,21 @@ normalize_language() {
 
 #################################### ENV #######################################
 
+cleanup_tmp_files() {
+    _debug $LINENO "usuwam pliki tymczasowe (jesli istnieja)"
+    $g_cmd_unlink napisy.7z.*
+    $g_cmd_unlink napi.*
+    $g_cmd_unlink ipc.*
+    $g_cmd_unlink stats.*
+}
+
+
+trap_control_c() {
+    _msg $LINENO "przechwycono CTRL+C, koncze wykonywanie...";
+    cleanup_tmp_files    
+    exit $?
+}
+
 #
 # @brief configure external commands
 #
@@ -335,9 +350,11 @@ configure_cmds() {
 # @brief verify system settings and gather info about commands
 #
 verify_system() {
+    local cores=1
     _debug $LINENO "weryfikuje system"
+    cores=$(get_cores ${g_system[0]})
     g_system[0]="$(get_system)"
-    g_system[1]=$(( $(get_cores) * 2 ))
+    g_system[1]=$(( cores * 2 ))
 }
 
 
@@ -1266,6 +1283,15 @@ extract_subs_xml() {
 
     # extract the subs data
     local xml_subs=$(extract_xml_tag 'subtitles' "$xml_path")
+
+	# check if the subtitles tag exist in the output
+	# it's possible that the downloaded xml contains only
+	# the cover and metadata
+	if [ -z "$xml_subs" ]; then
+		_debug $LINENO "plik xml nie zawiera taga subtitles"
+		_info $LINENO "napisy niedostepne"
+		return $RET_UNAV
+	fi
 
     # extract content
     local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
@@ -2360,7 +2386,8 @@ process_files() {
     done
 
     # dump statistics to fd #8 (if it has been opened before)
-    [ -e "/proc/self/fd/8" ] && echo "${g_stats[*]}" >&8
+    [ -e "/proc/self/fd/8" ] || [ -e "/dev/fd/8" ] && 
+        echo "${g_stats[*]}" >&8
     return $RET_OK
 }
 
@@ -2656,6 +2683,9 @@ main() {
     _info $LINENO "przygotowuje liste plikow..."
     prepare_file_list $g_min_size "${g_paths[@]}"
     _msg "znaleziono ${#g_files[@]} plikow..."
+
+    # install traps
+    trap trap_control_c SIGINT
 
     # do the job
     spawn_forks
