@@ -174,6 +174,12 @@ declare -a g_stats=( 0 0 0 0 0 0 0 0 0 0 0 )
 #
 g_stats_print=0
 
+#
+#
+#
+#
+g_clean_xml=1
+
 ################################### TOOLS ######################################
 
 #
@@ -534,6 +540,8 @@ parse_argv() {
             "-s" | "--skip") g_skip=1 ;;
             # log overwrite option
             "-lo" | "--log-overwrite") g_output[$___LOG_OWR]=1 ;;
+            # don't delete the xml (debugging purposes)
+            "-px" | "--preserve-xml") g_clean_xml=0 ;;
 
             # stats flag
             "--stats") g_stats_print=1 ;;
@@ -1460,7 +1468,7 @@ cleanup_xml() {
     local path=$(dirname "$movie_path")
 
     # check for file presence
-    if [ -e "$path/$xmlfile" ]; then
+    if [ -e "$path/$xmlfile" ] && [ $g_clean_xml -ge 1 ]; then
         $g_cmd_unlink "$path/$xmlfile"
         _debug $LINENO "usunieto plik xml dla [$movie_file]"
     fi
