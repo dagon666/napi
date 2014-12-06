@@ -61,7 +61,7 @@ var featchImdbInfo = function (imdbId, callback) {
 	});
 };
 
-var moveRename = function (oldName, newName, dirName) {
+var moveRename = function (oldName, dirName) {
 	oldName = path.basename(oldName, '.nfo');
 	fs.readdir(inputDir, function (err, files) {
 		files.filter(function (fileName) {
@@ -69,7 +69,7 @@ var moveRename = function (oldName, newName, dirName) {
 		}).forEach(function (fileName) {
 			var source = inputDir + '/' + fileName;
 			var ext = path.extname(source);
-			var dest = outputDir + '/' + dirName + '/' + newName + ext;
+			var dest = outputDir + '/' + dirName + '/' + dirName + ext;
 			fs.rename(source, dest, function (err) {
 				console.log('Moving file...');
 				console.log('From: %s', source);
@@ -84,6 +84,11 @@ var moveRename = function (oldName, newName, dirName) {
 	});
 };
 
+var sanitizeTitle = function (title) {
+	title = title.replace(':', ' - ');
+	return title.replace(/ +(?= )/g,'');
+};
+
 fs.readdir(inputDir, function (err, files) {
 	files.filter(function (fileName) {
 		var regexp = /.*.nfo$/i;
@@ -95,14 +100,14 @@ fs.readdir(inputDir, function (err, files) {
 				var matches = nfo['imdb_com'].match(/tt[0-9]+/g);
 				var imdbId = matches[0];
 				featchImdbInfo(imdbId, function(err, info) {
-					var dirName = info['Title'] + ' (' + info['Year'] + ')';
+					var dirName = sanitizeTitle(info['Title']) + ' (' + info['Year'] + ')';
 					createDir(outputDir + '/' + dirName, function(err) {
 						if (err) {
-							console.log('Could not create dir: %s' + '\n', dir);
+							console.log('Could not create dir: %s' + '\n', dirName);
 							return;
 						}
 						console.log('Dir created: %s' + '\n', dirName);
-						moveRename(fileName, info['Title'] + ' (' + info['Year'] + ')', dirName);
+						moveRename(fileName, dirName);
 					});
 				});
 			} else {
