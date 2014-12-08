@@ -1,137 +1,121 @@
-exec { "apt-get update":
-  path => "/usr/bin",
-}
+Exec { path => [ '/bin/', '/sbin/', '/usr/bin/', '/usr/sbin/' ] }
 
+exec { "apt-get update":
+	path => "/usr/bin",
+}
 
 package { "busybox":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "libssl-dev":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "make":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "bison":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "flex":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "patch":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
 
 package { "shunit2":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
 
 package { "mplayer":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
 
 package { "mplayer2":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
 
 package { "mediainfo":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
 
 package { "ffmpeg":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "gcc-multilib":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "g++-multilib":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "ncurses-dev":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "libwww-perl":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "original-awk":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "p7zip-full":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "mawk":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 package { "gawk":
 	ensure => present,
-    require => Exec["apt-get update"],
+	require => Exec["apt-get update"],
 }
-
 
 file { "/home/vagrant/bin":
-  ensure  => "directory",
-  owner => "vagrant",
-  mode => 750
+	ensure  => "directory",
+	owner => "vagrant",
+	mode => 750
 }
-
 
 file { "/home/vagrant/napi_bin":
 	ensure => "directory",
-   	owner => "vagrant",
-  	mode => 750
+	owner => "vagrant",
+	mode => 750
 }
-
 
 file { "/home/vagrant/bin/sh":
 	ensure => "link",
 	target => "/bin/busybox",
 	require => File['/home/vagrant/bin']
 }
-
 
 exec { "install napi":
 	command => "/vagrant/install.sh --bindir /home/vagrant/napi_bin --shareddir /home/vagrant/napi_bin",
@@ -140,17 +124,45 @@ exec { "install napi":
 	require => File['/home/vagrant/napi_bin']
 }
 
-
 file { "/home/vagrant/bin/subotage.sh":
 	ensure => "link",
-    target => "/home/vagrant/napi_bin/subotage.sh",
+	target => "/home/vagrant/napi_bin/subotage.sh",
 	require => Exec["install napi"]
 }
-
 
 file { "/home/vagrant/bin/napi.sh":
 	ensure => "link",
-    target => "/home/vagrant/napi_bin/napi.sh",
+	target => "/home/vagrant/napi_bin/napi.sh",
 	require => Exec["install napi"]
 }
 
+/* nodejs */
+
+package { "python-software-properties":
+	ensure => present,
+	require => Exec["apt-get update"],
+}
+
+exec { "apt-add-repository":
+	command => "apt-add-repository --yes ppa:chris-lea/node.js",
+	require => Package['python-software-properties']
+}
+
+exec { "apt-get update2":
+	command => "apt-get update",
+	path => "/usr/bin",
+	require => Exec['apt-add-repository']
+}
+
+package { "nodejs":
+	ensure => present,
+	require => Exec["apt-get update2"],
+}
+
+/* movies.sh */
+
+file { "/home/vagrant/bin/movies.sh":
+	ensure => "link",
+	target => "/vagrant/movies.sh",
+	require => File['/home/vagrant/bin']
+}
