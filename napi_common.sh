@@ -233,7 +233,7 @@ get_cores() {
     local os="${1:-linux}"
     
     if [ "$os" = "darwin" ]; then
-        sysctl hw.ncpu | cut -d ' ' - f 1
+        sysctl hw.ncpu | cut -d ' ' -f 2
 	else
         grep -i processor /proc/cpuinfo | wc -l
     fi

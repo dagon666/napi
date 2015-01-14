@@ -353,6 +353,11 @@ verify_system() {
     local cores=1
     _debug $LINENO "weryfikuje system"
     cores=$(get_cores ${g_system[0]})
+
+    # sanity checks
+    [ "${#cores}" -eq 0 ] && cores=1
+    [ "$cores" -eq 0 ] && cores=1
+
     g_system[0]="$(get_system)"
     g_system[1]=$(( cores * 2 ))
 }
