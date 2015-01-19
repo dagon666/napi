@@ -205,6 +205,7 @@ declare -a g_tools_fps=( 'ffmpeg' 'ffprobe' 'mediainfo' 'mplayer' 'mplayer2' )
 g_cmd_wget=( 'wget -q -O' '0' )
 
 g_cmd_stat='stat -c%s'
+g_cmd_base64_decode="base64 -d"
 g_cmd_md5='md5sum'
 g_cmd_cp='cp'
 g_cmd_unlink='unlink'
@@ -316,9 +317,11 @@ configure_cmds() {
     if [ "${g_system[0]}" = "darwin" ]; then
         g_cmd_md5="md5" 
         g_cmd_stat="stat -f%z"
+        g_cmd_base64_decode="base64 -D"
     else
         g_cmd_md5="md5sum" 
         g_cmd_stat="stat -c%s"
+        g_cmd_base64_decode="base64 -d"
     fi
 
     # g_tools+=( "$g_cmd_md5=1" )
@@ -1105,6 +1108,11 @@ extract_xml_tag() {
     local tag="$1"
     local file_path="${2:-}"
     local awk_script=''
+    local num_arg=$#
+
+    # 0 - file
+    # 1 - stream
+    local input_type=0
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
@@ -1115,7 +1123,16 @@ BEGIN {
 /<$tag/,/<\\\/$tag/ { print }
 EOF
 
-    run_awk_script "$awk_script" "$file_path"
+    # detect number of arguments
+    [ "$num_arg" -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
+
+    # process a stream or a file
+    if [ "$input_type" -eq 0 ]; then
+        awk "$awk_script" "$file_path"
+    else
+        awk "$awk_script"
+    fi
+
     return $?
 }
 
@@ -1127,19 +1144,34 @@ EOF
 extract_cdata_tag() {
     local file_path="${1:-}"
     local awk_script=''
+    local num_arg=$#
+
+    # 0 - file
+    # 1 - stream
+    local input_type=0
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
 BEGIN {
-    RS="CDATA";
+    # this can't be a string - single character delimiter (to be portable)
+    # RS="CDATA";
     FS="[\\]\\[]";
 }
 { 
-    print \$2; 
+    print \$3; 
 }
 EOF
 
-    run_awk_script "$awk_script" "$file_path" | tr -d '\n'
+    # detect number of arguments
+    [ "$num_arg" -eq 0 ] && [ ! -e "$file_path" ] && input_type=1
+
+    # process a stream or a file
+    if [ "$input_type" -eq 0 ]; then
+        awk "$awk_script" "$file_path" | tr -d '\n'
+    else
+        awk "$awk_script" | tr -d '\n'
+    fi
+
     return $?
 }
 
@@ -1153,6 +1185,11 @@ strip_xml_tag() {
     local tag="$1"
     local file_path="${2:-}"
     local awk_script=''
+    local num_arg=$#
+
+    # 0 - file
+    # 1 - stream
+    local input_type=0
 
 # embed small awk program to extract the tag contents
 read -d "" awk_script << EOF
@@ -1162,7 +1199,16 @@ BEGIN {
 /$tag/ { print \$3 }
 EOF
 
-    run_awk_script "$awk_script" "$file_path"
+    # detect number of arguments
+    [ "$num_arg" -eq 1 ] && [ ! -e "$file_path" ] && input_type=1
+
+    # process a stream or a file
+    if [ "$input_type" -eq 0 ]; then
+        awk "$awk_script" "$file_path"
+    else
+        awk "$awk_script"
+    fi
+
     return $?
 }
 
@@ -1316,7 +1362,7 @@ extract_subs_xml() {
 
     # create archive file
     local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
-    echo "$subs_content" | extract_cdata_tag | base64 -d > "$tmp_7z_archive" 2> /dev/null
+    echo "$subs_content" | extract_cdata_tag | $g_cmd_base64_decode > "$tmp_7z_archive" 2> /dev/null
 
     if [ -s "$tmp_7z_archive" ]; then
         _debug $LINENO "rozpakowuje archiwum ..."
@@ -1440,7 +1486,7 @@ extract_cover_xml() {
     local xml_cover=$(extract_xml_tag 'cover' "$xml_path")
 
     # write archive data
-    echo "$xml_cover" | extract_cdata_tag | base64 -d > "$cover_path" 2> /dev/null
+    echo "$xml_cover" | extract_cdata_tag | $g_cmd_base64_decode > "$cover_path" 2> /dev/null
 
     if ! [ -s "$cover_path" ]; then
         _info $LINENO "okladka ma zerowy rozmiar, usuwam..."
