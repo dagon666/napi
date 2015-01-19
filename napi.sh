@@ -358,13 +358,18 @@ configure_cmds() {
 verify_system() {
     local cores=1
     _debug $LINENO "weryfikuje system"
+
+    # detect the system first
+    g_system[0]="$(get_system)"
+
+    # establish the number of cores
     cores=$(get_cores ${g_system[0]})
 
     # sanity checks
     [ "${#cores}" -eq 0 ] && cores=1
     [ "$cores" -eq 0 ] && cores=1
 
-    g_system[0]="$(get_system)"
+    # two threads on one core should be safe enough
     g_system[1]=$(( cores * 2 ))
 }
 
