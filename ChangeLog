@@ -1,3 +1,16 @@
+version 1.3.4 (2015-01-21)
+- bugfix for system detection routine
+- core detection routine bugfix
+- test environment corrected test box name
+- added -px debugging option to preserve the xml
+- various fixes for mac osx
+
+version 1.3.3 (2014-09-11)
+- cleanup on SIGINT implemented
+- removed attempts to access /proc on darwin
+- corrections for the log being broken
+- removed grep -o which is not portable (busybox)
+
 version 1.3.2 (2014-08-08)
 - corrections for ffmpeg framerate detection
 - corrections for the logging mechanism
