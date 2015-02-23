@@ -1,0 +1,31 @@
+Source: napi
+Section: utils
+Priority: optional
+Maintainer: Mikhail Morfikov <mmorfikov@gmail.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.6
+Homepage: https://github.com/dagon666/napi
+Vcs-Git: git://github.com/dagon666/napi.git
+Vcs-Browser: https://github.com/dagon666/napi
+
+Package: napi
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ bash (>= 2.04)
+Description: Napiprojekt client written in bash
+ This script is a napiprojekt.pl client written in bash. It automatically
+ downloads subtitles from napiprojekt.pl database based on the video file.
+ .
+ This script works on Linux & OS X systems. It has very limited requirements
+ and mostly depends on bash (it has proven to run from bash 2.04 - which
+ is ideal for embedded devices) and coreutils (which should be available
+ on most modern systems. No perl or Python is required).
+ .
+ This package contains also subotage, the universal subtitle format converter.
+ Currently supported formats are:
+  * mpl2
+  * tmplayer (most of the versions)
+  * subrip
+  * subviewer (1.0)
+  * fab
+  * microdvd
