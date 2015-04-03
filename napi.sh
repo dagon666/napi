@@ -316,7 +316,7 @@ configure_cmds() {
     # verify stat & md5 tool
     if [ "${g_system[0]}" = "darwin" ]; then
         g_cmd_md5="md5" 
-        g_cmd_stat="stat -f%z"
+        g_cmd_stat="/usr/bin/stat -f%z"
         g_cmd_base64_decode="base64 -D"
     else
         g_cmd_md5="md5sum" 

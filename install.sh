@@ -49,7 +49,7 @@ replace_path() {
 
 	# that's because busybox sed doesn't support suffixes
 	cp "$file" "${file}.orig"
-	sed -i "s|${token}=|${replacement}|" "$file"	
+	sed -ie "s|${token}=|${replacement}|" "$file"
 }
 
 
