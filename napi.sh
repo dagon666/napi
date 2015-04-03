@@ -315,8 +315,13 @@ configure_cmds() {
 
     # verify stat & md5 tool
     if [ "${g_system[0]}" = "darwin" ]; then
+
+        # stat may be installed through macports, check if 
+        # there's a need to reconfigure it to BSD flavour
+        $g_cmd_stat "$0" > /dev/null 2>&1
+        [ $? != 0 ] && g_cmd_stat="stat -f%z"
+
         g_cmd_md5="md5" 
-        g_cmd_stat="stat -f%z"
         g_cmd_base64_decode="base64 -D"
     else
         g_cmd_md5="md5sum" 
