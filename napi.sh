@@ -306,32 +306,51 @@ trap_control_c() {
     exit $?
 }
 
-#
-# @brief configure external commands
-#
-configure_cmds() {
-    local k=''
-    _debug $LINENO "konfiguruje stat i md5"
 
-    # verify stat & md5 tool
+#
+# configure the stat tool
+#
+configure_stat() {
+    _debug $LINENO "konfiguruje stat"
+
+    # verify stat tool
     if [ "${g_system[0]}" = "darwin" ]; then
 
         # stat may be installed through macports, check if 
         # there's a need to reconfigure it to BSD flavour
         $g_cmd_stat "$0" > /dev/null 2>&1
         [ $? != 0 ] && g_cmd_stat="stat -f%z"
+    else
+        g_cmd_stat="stat -c%s"
+    fi
 
+    return $RET_OK
+}
+
+
+#
+# configure the md5 tool
+#
+configure_md5() {
+    _debug $LINENO "konfiguruje md5"
+
+    # verify md5 tool
+    if [ "${g_system[0]}" = "darwin" ]; then
         g_cmd_md5="md5" 
-        g_cmd_base64_decode="base64 -D"
     else
         g_cmd_md5="md5sum" 
-        g_cmd_stat="stat -c%s"
-        g_cmd_base64_decode="base64 -d"
     fi
 
     # g_tools+=( "$g_cmd_md5=1" )
     g_tools=( "${g_tools[@]}" "$g_cmd_md5=1" )
+    return $RET_OK
+}
 
+
+#
+# configure the wget tool
+#
+configure_wget() {
     _debug $LINENO "sprawdzam czy wget wspiera opcje -S"
     local s_test=$(wget --help 2>&1 | grep "\-S")
 
@@ -347,6 +366,31 @@ configure_cmds() {
         g_cmd_wget[1]=1 &&
         _info $LINENO "wget wspiera zadania POST"
 
+    return $RET_OK
+}
+
+
+#
+# configure the base64 tool
+#
+configure_base64() {
+    _debug $LINENO "sprawdzam base64"
+
+    # verify base64 & md5 tool
+    if [ "${g_system[0]}" = "darwin" ]; then
+        g_cmd_base64_decode="base64 -D"
+    else
+        g_cmd_base64_decode="base64 -d"
+    fi
+
+    return $RET_OK
+}
+
+
+#
+# configure the unlink tool
+#
+configure_unlink() {
     # check unlink command
     _debug $LINENO "sprawdzam obecnosc unlink"
 
@@ -355,6 +399,20 @@ configure_cmds() {
     [ "$(lookup_value 'unlink' ${g_tools[@]})" = "0" ] &&
         _info $LINENO 'brak unlink, g_cmd_unlink = rm' &&
         g_cmd_unlink='rm -rf'
+
+    return $RET_OK
+}
+
+
+#
+# @brief configure external commands
+#
+configure_cmds() {
+    configure_stat
+    configure_md5
+    configure_base64
+    configure_wget
+    configure_unlink
 
     return $RET_OK
 }

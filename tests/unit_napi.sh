@@ -5,12 +5,12 @@
 
 ################################################################################
 
-#  Copyright (C) 2014 Tomasz Wisniewski aka 
+#  Copyright (C) 2014 Tomasz Wisniewski aka
 #       DAGON <tomasz.wisni3wski@gmail.com>
 #
 #  http://github.com/dagon666
 #  http://pcarduino.blogspot.co.ul
-# 
+#
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -90,16 +90,16 @@ test_verify_languages() {
 
     idx=$(verify_language "ENG")
     status=$?
-    assertEquals 'verifying english' $RET_OK $status 
-    assertNotEquals 'verifying eng index' 0 $idx 
+    assertEquals 'verifying english' $RET_OK $status
+    assertNotEquals 'verifying eng index' 0 $idx
 
     idx=$(verify_language "NOT_EXISTING")
     status=$?
-    assertEquals 'verifying not existing' $RET_PARAM $status 
+    assertEquals 'verifying not existing' $RET_PARAM $status
 
     idx=$(verify_language "XXX")
     status=$?
-    assertEquals 'verifying not existing' $RET_FAIL $status 
+    assertEquals 'verifying not existing' $RET_FAIL $status
 }
 
 
@@ -119,11 +119,24 @@ test_normalize_lang() {
 }
 
 
-#
-# verify the configure_cmds routine
-#
-test_configure_cmds() {
+test_configure_unlink() {
+	_save_globs
 
+	g_tools=( 'unlink=0' )
+    configure_unlink
+	assertEquals "checking if unlink is rm -rf" "rm -rf" "$g_cmd_unlink"
+
+	_restore_globs
+
+	g_tools=( 'unlink=1' )
+    configure_unlink
+	assertNotEquals "checking if unlink is not rm -rf" "rm -rf" "$g_cmd_unlink"
+
+	_restore_globs
+}
+
+
+test_configure_wget() {
 	_save_globs
 
 	# let's prepare wget mock
@@ -131,47 +144,103 @@ test_configure_cmds() {
 	export SUPPORT_S=0
 	export SUPPORT_POST=0
 
-    # linux 
-    configure_cmds
-    assertEquals 'check md5 for linux' 'md5sum' "$g_cmd_md5"
-    assertEquals 'check stat for linux' 'stat -c%s' "$g_cmd_stat"
-
-    g_system[0]="darwin"
-    configure_cmds
-    assertEquals 'check md5 for darwin' 'md5' "$g_cmd_md5"
-    assertEquals 'check stat for darwin' 'stat -f%z' "$g_cmd_stat"
-
-    g_system[0]="other"
-    configure_cmds
-    assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
-    assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
-
 	# checking wget capabilities detection
     g_system[0]="linux"
-	configure_cmds
+	configure_wget
 	assertEquals "0 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
 	assertEquals "0 wget no post support" 0 ${g_cmd_wget[1]}
 
 	export SUPPORT_S=0
 	export SUPPORT_POST=1
-	configure_cmds
+	configure_wget
 	assertEquals "1 wget check for lack of -S" 'wget -q -O' "${g_cmd_wget[0]}"
 	assertEquals "1 wget post support" 1 ${g_cmd_wget[1]}
 
 	export SUPPORT_S=1
 	export SUPPORT_POST=0
-	configure_cmds
+	configure_wget
 	assertEquals "2 wget check for -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
 	assertEquals "2 wget no post support" 0 ${g_cmd_wget[1]}
 
 	export SUPPORT_S=1
 	export SUPPORT_POST=1
-	configure_cmds
+	configure_wget
 	assertEquals "3 wget check for lack of -S" 'wget -q -S -O' "${g_cmd_wget[0]}"
 	assertEquals "3 wget no post support" 1 ${g_cmd_wget[1]}
 
-	g_tools=( 'unlink=0' )
-	assertEquals "checking if unlink is rm -rf" "rm -rf" "$g_cmd_unlink"
+	_restore_globs
+}
+
+
+test_configure_md5() {
+	_save_globs
+
+    configure_md5
+    assertEquals 'check md5 for linux' 'md5sum' "$g_cmd_md5"
+
+    g_system[0]="darwin"
+    configure_md5
+    assertEquals 'check md5 for darwin' 'md5' "$g_cmd_md5"
+
+    g_system[0]="other"
+    configure_md5
+    assertEquals 'check md5 for unknown' 'md5sum' "$g_cmd_md5"
+
+	_restore_globs
+}
+
+
+test_configure_base64() {
+	_save_globs
+
+    configure_base64
+    assertEquals 'check base64 for linux' 'base64 -d' "$g_cmd_base64_decode"
+
+    g_system[0]="darwin"
+    configure_base64
+    assertEquals 'check base64 for darwin' 'base64 -D' "$g_cmd_base64_decode"
+
+    g_system[0]="other"
+    configure_base64
+    assertEquals 'check base64 for unknown' 'base64 -d' "$g_cmd_base64_decode"
+
+	_restore_globs
+}
+
+
+#
+# verify the configure_cmds routine
+#
+test_configure_stat() {
+
+	_save_globs
+
+    # linux
+    configure_stat
+    assertEquals 'check stat for linux' 'stat -c%s' "$g_cmd_stat"
+
+	_restore_globs
+    g_system[0]="darwin"
+    hash -r
+
+    # prepare failing stat mock
+    ln -sf "/bin/false" "$g_assets_path/$g_ut_root/bin/stat"
+
+    configure_stat
+    assertEquals 'check stat for darwin (BSD)' 'stat -f%z' "$g_cmd_stat"
+    unlink "$g_assets_path/$g_ut_root/bin/stat" 2> /dev/null
+
+    # clear the executable path cache
+    hash -r
+	_restore_globs
+    g_system[0]="darwin"
+    configure_stat
+    assertEquals 'check stat for darwin (UNIX)' 'stat -c%s' "$g_cmd_stat"
+
+	_restore_globs
+    g_system[0]="other"
+    configure_stat
+    assertEquals 'check stat for unknown' 'stat -c%s' "$g_cmd_stat"
 
 	_restore_globs
 }
@@ -211,7 +280,7 @@ test_get_sub_ext() {
 
     ext=$(get_sub_ext 'subrip')
     assertEquals 'checking subrip extension' 'srt' "$ext"
-    
+
     ext=$(get_sub_ext 'mpl2')
     assertEquals 'checking subrip extension' 'txt' "$ext"
 }
@@ -283,21 +352,21 @@ test_get_fps() {
 
 #
 # test the argument parsing routine
-# 
+#
 test_parse_argv() {
     local status=0
 	_save_globs
-    
-    parse_argv -a >/dev/null 2>&1 
+
+    parse_argv -a >/dev/null 2>&1
     status=$?
     assertEquals "checking for failure without parameter value" $RET_FAIL $status
 
-    parse_argv -a ABBREV >/dev/null 2>&1 
+    parse_argv -a ABBREV >/dev/null 2>&1
     status=$?
     assertEquals "checking for success (-a)" $RET_OK $status
     assertEquals "checking for abbreviation" "ABBREV" "${g_abbrev[0]}"
 
-    parse_argv -b 123 >/dev/null 2>&1 
+    parse_argv -b 123 >/dev/null 2>&1
     status=$?
     assertEquals "checking for success (-b)" $RET_OK $status
     assertEquals "checking for size" 123 $g_min_size
@@ -326,7 +395,7 @@ test_parse_argv() {
         -o PREFIX_ \
         --conv-abbrev CONV \
         -F 32 \
-        file1.avi file2.avi >/dev/null 2>&1 
+        file1.avi file2.avi >/dev/null 2>&1
 
     assertEquals 'checking cover flag' 1 $g_cover
     assertEquals 'checking cover flag' 1 $g_nfo
@@ -415,24 +484,24 @@ test_verify_id() {
 	_save_globs
 
     g_system[2]='pynapi'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'success for pynapi' $RET_OK $status
 
     g_system[2]='NapiProjekt'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'failure for NapiProjekt - no 7z' $RET_UNAV $status
 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     g_system[2]='NapiProjektPython'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'failure for NapiProjektPython - no 7z' $RET_UNAV $status
 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
 
     g_system[2]='other'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'other - failure 7z marked as absent' $RET_UNAV $status
 	assertEquals 'checking for id' 'pynapi' ${g_system[2]}
@@ -441,23 +510,23 @@ test_verify_id() {
     g_tools=( 7z=1 )
 	g_cmd_7z='7z'
     g_system[2]='other'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'other - success 7z marked as present' $RET_OK $status
 	assertEquals 'checking for id' 'other' ${g_system[2]}
 
     g_system[2]='NapiProjektPython'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'failure for NapiProjektPython - no base64 & awk' $RET_UNAV $status
 
     g_tools=( 7z=1 base64=1 awk=1 )
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'success for NapiProjektPython - 7z & base64 & awk' $RET_OK $status
 
     g_system[2]='unknown_system'
-    verify_id >/dev/null 2>&1 
+    verify_id >/dev/null 2>&1
     status=$?
     assertEquals 'unknown_system - failure' $RET_PARAM $status
 
@@ -476,21 +545,21 @@ test_verify_format() {
     verify_format
     status=$?
     assertEquals 'success for format default' $RET_OK $status
-    
+
     # format ok - no subotage.sh
     g_sub_format='subrip'
-    verify_format >/dev/null 2>&1 
+    verify_format >/dev/null 2>&1
     status=$?
     assertEquals 'failure due to lack of subotage.sh' $RET_PARAM $status
 
     g_tools=( subotage.sh=1 )
     g_sub_format='subrip'
-    verify_format >/dev/null 2>&1 
+    verify_format >/dev/null 2>&1
     status=$?
     assertEquals 'format ok, subotage present' $RET_OK $status
 
     g_sub_format='bogus_format'
-    verify_format >/dev/null 2>&1 
+    verify_format >/dev/null 2>&1
     status=$?
     assertEquals 'format unknown, subotage present' $RET_PARAM $status
 
@@ -508,22 +577,22 @@ test_verify_fps_tool() {
     verify_fps_tool
     status=$?
     assertEquals 'no tools available, tool = default' $RET_OK $status
-    
+
     g_fps_tool='unsupported_tool'
-    verify_fps_tool >/dev/null 2>&1 
+    verify_fps_tool >/dev/null 2>&1
     status=$?
     assertEquals 'checking unsupported tool' $RET_PARAM $status
 
     g_fps_tool='mediainfo'
-    verify_fps_tool >/dev/null 2>&1 
+    verify_fps_tool >/dev/null 2>&1
     status=$?
     assertEquals 'checking supported, absent tool' $RET_PARAM $status
 
     g_tools=( mediainfo=1 )
-    verify_fps_tool >/dev/null 2>&1 
+    verify_fps_tool >/dev/null 2>&1
     status=$?
     assertEquals 'checking supported, present tool' $RET_OK $status
-    
+
 	_restore_globs
 }
 
@@ -544,7 +613,7 @@ test_verify_7z() {
 	status=$?
 	assertEquals "checking for success" $RET_OK "$status"
 	assertEquals "7za has priority" "7za" "$g_cmd_7z"
-	
+
 	g_tools=( '7z=1' '7za=0' )
 	verify_7z
 	status=$?
@@ -564,28 +633,28 @@ test_verify_argv() {
 	_save_globs
 
     g_cred[0]='user_no_password'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertNull 'empty username' "${g_cred[0]}"
     assertNull 'empty password' "${g_cred[1]}"
-    
+
     g_min_size='abc'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertEquals 'checking g_min_size resetted to zero' 0 $g_min_size
 
     g_min_size=666
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertEquals 'checking g_min_size value' 666 $g_min_size
 
     g_charset='bogus'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertEquals 'checking default encoding' 'default' $g_charset
 
     g_charset='utf8'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertEquals 'checking encoding value' 'utf8' $g_charset
 
     g_system[2]='bogus_id'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     assertEquals 'checking incorrect id' 'pynapi' ${g_system[2]}
 
     local logfile=$(mktemp -t logfile.XXXX)
@@ -599,7 +668,7 @@ test_verify_argv() {
     unlink "$logfile"
 
     g_lang='XXX'
-    verify_argv >/dev/null 2>&1 
+    verify_argv >/dev/null 2>&1
     status=$?
     assertEquals 'checking status - unknown language' $RET_OK $status
     assertEquals 'checking language - unknown language' 'PL' $g_lang
@@ -720,13 +789,13 @@ test_run_awk_script() {
 	echo "col1 col2 col3" | run_awk_script "$code"
 	status=$?
 	assertEquals "awk failure - awk marked as absent" $RET_FAIL $status
-	
+
 	g_tools=( awk=1 )
 	output=$(echo "col1 col2 col3" | run_awk_script "$code")
 	status=$?
 	assertEquals "awk success - marked as present" $RET_OK $status
 	assertEquals "checking result of the stream processing" "col2" "$output"
-	
+
 	local tmpf=$(mktemp -t tmp.awk.XXXXXXXX)
 
 	echo "col1 col2 col3" > "$tmpf"
@@ -831,7 +900,7 @@ test_download_data_xml() {
 		assertEquals 'checking success download status' $RET_OK $status
 
 		retval=$RET_FAIL
-		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' >/dev/null 2>&1 
+		download_data_xml 0 "movie file.avi" 666 "/path/to/xml file.xml" 'ENG' 'tw' 'pass' >/dev/null 2>&1
 		status=$?
 		assertEquals 'checking failure download status' $RET_FAIL $status
 	)
@@ -889,13 +958,13 @@ test_extract_subs_xml() {
 
 	_save_globs
 
-	extract_subs_xml "$bogus_file" "$subs" >/dev/null 2>&1 
+	extract_subs_xml "$bogus_file" "$subs" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking for success status - failure" $RET_UNAV "$status"
 
 	g_cmd_7z="false"
 	g_tools=( 'awk=1' )
-	extract_subs_xml "$g_assets_path/$g_ut_root/example.xml" "$subs" >/dev/null 2>&1 
+	extract_subs_xml "$g_assets_path/$g_ut_root/example.xml" "$subs" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking for 7z failure" $RET_FAIL "$status"
 
@@ -921,7 +990,7 @@ test_extract_nfo_xml() {
 
 	_save_globs
 
-	extract_nfo_xml "$bogus_file" "$nfo" >/dev/null 2>&1 
+	extract_nfo_xml "$bogus_file" "$nfo" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking for success status - failure" $RET_UNAV "$status"
 
@@ -948,7 +1017,7 @@ test_extract_cover_xml() {
 
 	_save_globs
 
-	extract_nfo_xml "$bogus_file" "$cover" >/dev/null 2>&1 
+	extract_nfo_xml "$bogus_file" "$cover" >/dev/null 2>&1
 	status=$?
 	assertEquals "checking for success status - failure" $RET_UNAV "$status"
 
@@ -995,7 +1064,7 @@ test_download_item_xml() {
 	local status=0
 	local moviepath="$g_assets_path/$g_ut_root/example.avi"
 
-	download_item_xml "unsupported" >/dev/null 2>&1 
+	download_item_xml "unsupported" >/dev/null 2>&1
 	status=$?
 	assertEquals "failure for unsupported item" $RET_BREAK "$status"
 
@@ -1013,17 +1082,17 @@ test_download_item_xml() {
 	}
 	export -f extract_subs_xml
 
-	download_item_xml "subs" >/dev/null 2>&1 
+	download_item_xml "subs" >/dev/null 2>&1
 	status=$?
 	assertEquals "failure for supported item but get_xml failure" $RET_FAIL "$status"
 
-	retval1=$RET_OK	
-	download_item_xml "subs" 0 "$moviepath" >/dev/null 2>&1 
+	retval1=$RET_OK
+	download_item_xml "subs" 0 "$moviepath" >/dev/null 2>&1
 	status=$?
 	assertEquals "failure for supported item but extract_item failure" $RET_FAIL "$status"
 
-	retval2=$RET_OK	
-	download_item_xml "subs" 0 "$moviepath" >/dev/null 2>&1 
+	retval2=$RET_OK
+	download_item_xml "subs" 0 "$moviepath" >/dev/null 2>&1
 	status=$?
 	assertEquals "success for supported item but extract_item failure" $RET_OK "$status"
 	)
@@ -1037,28 +1106,28 @@ test_download_item_xml() {
 #
 test_download_subs_classic() {
     local status=0
-	local output_file="$g_assets_path/$g_ut_root/output file" 
+	local output_file="$g_assets_path/$g_ut_root/output file"
 
 	_save_globs
 
     g_cmd_wget[0]="mocks/wget_log 127 none"
-    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1 
+    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1
     status=$?
     assertEquals 'verifying wget error' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 404"
-    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1 
+    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1
     status=$?
     assertEquals 'verifying error when 404' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 200"
-    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1 
+    download_subs_classic 123 123 "$output_file" PL other "" "" >/dev/null 2>&1
     status=$?
     assertEquals 'verifying failure when file down. successfully but file doesnt exist' $RET_FAIL $status
 
     g_cmd_wget[0]="mocks/wget_log 0 200"
     echo test > "$output_file"
-    download_subs_classic 123 123 "$output_file" PL pynapi "" "" >/dev/null 2>&1 
+    download_subs_classic 123 123 "$output_file" PL pynapi "" "" >/dev/null 2>&1
     status=$?
     assertEquals 'verifying small file' $RET_FAIL $status
     assertFalse 'check if file has been removed' "[ -s \"$output_file\" ]"
@@ -1069,7 +1138,7 @@ test_download_subs_classic() {
     echo line3 >> "$output_file"
     echo line4 >> "$output_file"
     echo line5 >> "$output_file"
-    download_subs_classic 123 123 "$output_file" PL pynapi "" "" >/dev/null 2>&1 
+    download_subs_classic 123 123 "$output_file" PL pynapi "" "" >/dev/null 2>&1
     status=$?
     assertEquals 'verifying big enough file' $RET_OK $status
     assertTrue 'check if file still exists' "[ -s \"$output_file\" ]"
@@ -1083,8 +1152,8 @@ test_download_subs_classic() {
 # test download cover routine
 #
 test_download_cover_classic() {
-    local status=0  
-	local output_file="$g_assets_path/$g_ut_root/output file" 
+    local status=0
+	local output_file="$g_assets_path/$g_ut_root/output file"
 
 	_save_globs
 
@@ -1118,9 +1187,9 @@ test_download_cover_classic() {
 # test get subtitles wrapper routine
 #
 test_get_subtitles() {
-    local status=0  
+    local status=0
 	local media=''
-	local output_file="$g_assets_path/$g_ut_root/subs.txt" 
+	local output_file="$g_assets_path/$g_ut_root/subs.txt"
 
 	_save_globs
 
@@ -1173,17 +1242,17 @@ test_get_nfo() {
 	export -f download_item_xml
 
 	g_system[2]='pynapi'
-	get_nfo >/dev/null 2>&1 
+	get_nfo >/dev/null 2>&1
 	status=$?
 	assertEquals "failure for non API3 id" $RET_FAIL "$status"
 
 	g_system[2]='NapiProjekt'
-	get_nfo >/dev/null 2>&1 
+	get_nfo >/dev/null 2>&1
 	status=$?
 	assertEquals "failure for due to download_item_xml fail" $RET_FAIL "$status"
 
 	retval=$RET_OK
-	get_nfo >/dev/null 2>&1 
+	get_nfo >/dev/null 2>&1
 	status=$?
 	assertEquals "get_nfo success" $RET_OK "$status"
 	)
@@ -1196,14 +1265,14 @@ test_get_nfo() {
 # test get cover wrapper routine
 #
 test_get_cover() {
-    local status=0  
+    local status=0
 
 	_save_globs
 
     g_cmd_wget[0]="mocks/wget_log 0 200"
 	g_system[2]='pynapi'
 	echo "cover_data" > "$g_assets_path/$g_ut_root/av1 file.jpg"
-	get_cover "$g_assets_path/$g_ut_root/av1 file.avi" 
+	get_cover "$g_assets_path/$g_ut_root/av1 file.avi"
 	status=$?
 	assertEquals 'checking the cover' $RET_OK $status
 
@@ -1236,12 +1305,12 @@ test_get_cover() {
 test_get_charset() {
     local output=''
     declare -a tmp=( ${g_tools[@]} )
-	local output_file="$g_assets_path/$g_ut_root/test_file" 
+	local output_file="$g_assets_path/$g_ut_root/test_file"
 
 	LANG=C echo test_file > "$output_file"
 	output=$(get_charset "$output_file")
 	assertEquals 'checking default charset when file=0' 'WINDOWS-1250' "$output"
-	
+
 	g_tools=( file=1 )
 	output=$(get_charset "$output_file")
 	assertEquals 'checking default charset when file=0' 'US-ASCII' "$output"
@@ -1257,7 +1326,7 @@ test_get_charset() {
 test_convert_charset() {
     local status=0
     declare -a tmp=( ${g_tools[@]} )
-	local output_file="$g_assets_path/$g_ut_root/test_file" 
+	local output_file="$g_assets_path/$g_ut_root/test_file"
 
 	LANG=C echo "znaki specjalne ęóąśżźćń" > "$output_file"
 	g_tools=( file=1 )
@@ -1280,7 +1349,7 @@ test_verify_extension() {
     local output=''
     output=$(verify_extension 'plik.txt')
     assertEquals 'verify txt ext' 0 $output
-    
+
     output=$(verify_extension 'plik ze spacja.dat')
     assertEquals 'verify dat ext' 0 $output
 
@@ -1346,7 +1415,7 @@ test_prepare_filenames() {
 test_check_subs_presence() {
 
 	local rv=0
-    
+
 	g_abbrev=( 'AB' 'CAB' )
 	prepare_filenames "video.avi"
 	g_sub_format='default'
@@ -1360,16 +1429,16 @@ test_check_subs_presence() {
 	rv=$?
 	assertEquals '0 available, checking rv' 2 $rv
 	assertTrue '0 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[1]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}" 2> /dev/null
+	unlink "$g_assets_path/$g_ut_root/${g_pf[1]}" 2> /dev/null
 
 	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[3]}"
 	check_subs_presence "video.avi" "$g_assets_path/$g_ut_root" >/dev/null 2>&1
 	rv=$?
 	assertEquals '3 available, checking rv' 2 $rv
 	assertTrue '3 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[1]}\" ]"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[3]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[0]}" 2> /dev/null
+	unlink "$g_assets_path/$g_ut_root/${g_pf[3]}" 2> /dev/null
 
 	g_sub_format='subrip'
 	echo "fake_subs" > "$g_assets_path/$g_ut_root/${g_pf[6]}"
@@ -1377,13 +1446,13 @@ test_check_subs_presence() {
 	rv=$?
 	assertEquals '6 available, checking rv' 1 $rv
 	assertTrue '6 available, checking file' "[ -e \"$g_assets_path/$g_ut_root/${g_pf[7]}\" ]"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[6]}"
-	unlink "$g_assets_path/$g_ut_root/${g_pf[7]}"
+	unlink "$g_assets_path/$g_ut_root/${g_pf[6]}" 2> /dev/null
+	unlink "$g_assets_path/$g_ut_root/${g_pf[7]}" 2> /dev/null
 
 	g_abbrev=()
 	g_sub_format='default'
 	g_pf=()
-    return 0    
+    return 0
 }
 
 
@@ -1395,30 +1464,30 @@ test_convert_format() {
 
 	_save_globs
 
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1 
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "not_existing_file.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1
 	status=$?
 	assertEquals 'failure on non existing subs' $RET_FAIL $status
 
 	echo "[529][586]line1" > "$g_assets_path/$g_ut_root/subs.txt"
 	echo "[610][639]line2" >> "$g_assets_path/$g_ut_root/subs.txt"
 	echo "[1059][1084]line3" >> "$g_assets_path/$g_ut_root/subs.txt"
-	
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1 
+
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1
 	status=$?
 	assertEquals 'failure on default subs format' $RET_FAIL $status
 
 	g_delete_orig=1
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1 
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1
 	status=$?
 	assertFalse 'checking if orig is deleted if failure' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
 
 	g_sub_format='subrip'
-	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1 
+	convert_format "$g_assets_path/$g_ut_root/av1 file.avi" "subs.txt" "ORIG_subs.txt" "converted.txt" >/dev/null 2>&1
 	status=$?
 	assertEquals 'success on subrip subs format' $RET_OK $status
 	assertFalse 'checking if orig is deleted if success' "[ -e \"$g_assets_path/$g_ut_root/ORIG_subs.txt\" ]"
 	assertTrue 'checking for subs file' "[ -e \"$g_assets_path/$g_ut_root/converted.txt\" ]"
-    
+
 	_restore_globs
     return 0
 }
@@ -1430,7 +1499,7 @@ test_convert_format() {
 test_print_stats() {
     local output=''
 	_save_globs
-    
+
 	g_stats=( 1 2 3 4 5 6 7 8 9 12 15 )
 	output=$(print_stats | grep -w OK | rev | cut -d ' ' -f 1)
 	assertEquals 'OK stats' 1 ${output:-0}
@@ -1499,7 +1568,7 @@ test_usage() {
 test_sum_stats() {
 	_save_globs
 
-	echo "1 2 3 4 5 6 7" > "$g_assets_path/$g_ut_root/stats.txt"	
+	echo "1 2 3 4 5 6 7" > "$g_assets_path/$g_ut_root/stats.txt"
 	echo "8 9 10 11 12 13 14" >> "$g_assets_path/$g_ut_root/stats.txt"
 
 	g_tools=( awk=1 )
@@ -1561,7 +1630,7 @@ test_spawn_forks() {
 	)
 
 	_restore_globs
-    return 0    
+    return 0
 }
 
 
@@ -1589,7 +1658,7 @@ test_process_files() {
 	)
 
 	_restore_globs
-    return 0    
+    return 0
 }
 
 
@@ -1614,7 +1683,7 @@ test_obtain_others() {
 
     g_nfo=1
     g_cover=1
-    
+
     nfo_retval=$RET_OK
     get_nfo() {
         return $nfo_retval
@@ -1649,7 +1718,7 @@ test_obtain_others() {
 #
 test_obtain_file() {
 	# empty for now, will be verified with system tests
-    return 0    
+    return 0
 }
 
 
@@ -1658,7 +1727,7 @@ test_obtain_file() {
 #
 test_process_file() {
 	# empty for now, will be verified with system tests
-    return 0    
+    return 0
 }
 
 
