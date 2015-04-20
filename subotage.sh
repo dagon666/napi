@@ -1122,7 +1122,11 @@ NR == 1 {
     print $0
 }
 
-
+#
+# convert the timestamp to milliseconds timestamp
+# This function unifies the hms/hmsms/secs format to
+# a milliseconds timestamp
+#
 function conv_to_ms(time, format) {
     rv = 0
 
@@ -1143,9 +1147,9 @@ function conv_to_ms(time, format) {
 
 
 NR > 1 {
-    if (time_type != "secs" &&
-        time_type != "hms" &&
-        time_time != "hmsms") {
+    if (( time_type != "secs" ) &&
+        ( time_type != "hms" ) &&
+        ( time_type != "hmsms" )) {
         # format unsupported
         exit 2
     }
