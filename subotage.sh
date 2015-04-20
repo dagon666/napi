@@ -1130,7 +1130,7 @@ function conv_to_ms(time, format) {
         rv = (time + 0) * 1000
     }
     else if ("hms" == format || "hmsms" == format) {
-        split(time, ts, "[:\.]")
+        split(time, ts, "[:.]")
 
         rv = ts[1] * 3600 + ts[2] * 60 + ts[3]
         rv = rv*1000
@@ -1165,10 +1165,10 @@ NR > 1 {
     pli = cli == 1 ? 0 : 1
 
     # current ending time-stamp
-    cets = conv_to_ms(lines[cli, 3] + 0, time_type)
+    cets = conv_to_ms(lines[cli, 3], time_type)
 
     # previous starting time-stamp
-    psts = conv_to_ms(lines[pli, 2] + 0, time_type)
+    psts = conv_to_ms(lines[pli, 2], time_type)
 
     if (cets > psts) lines[cli, 3] = lines[pli, 2]
 
