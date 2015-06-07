@@ -49,7 +49,10 @@ replace_path() {
 
 	# that's because busybox sed doesn't support suffixes
 	cp "$file" "${file}.orig"
-	sed -i "s|${token}=|${replacement}|" "$file"	
+
+    # had to get rid of the in-place editing flag to
+    # provide more inter system compatibility
+	sed "s|${token}=|${replacement}|" "${file}.orig" > "$file"
 }
 
 
@@ -127,11 +130,23 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+
+#
+# strip trailing slash from the path declarations
+#
+strip_trailing_slash() {
+    sed 's/\/*$//'
+}
+
+
+BIN_dir=$(echo "$BIN_dir" | strip_trailing_slash)
+SHARED_dir=$(echo "$SHARED_dir" | strip_trailing_slash)
+
 echo "BIN_dir : [$BIN_dir]"
 echo "SHARED_dir : [$SHARED_dir]"
 
 # check dirs
-check_dirs 
+check_dirs
 
 # install shared first
 mkdir -p "$SHARED_dir/napi"

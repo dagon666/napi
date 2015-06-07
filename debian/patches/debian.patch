@@ -1,8 +1,8 @@
 Description: Removed .sh suffixes and set NAPI_COMMON_PATH variable
 Author: Mikhail Morfikov <mmorfikov@gmail.com>
 
---- napi-1.3.4.orig/napi.sh
-+++ napi-1.3.4/napi.sh
+--- napi-1.3.5.orig/napi.sh
++++ napi-1.3.5/napi.sh
 @@ -32,12 +32,12 @@
  ########################################################################
  
@@ -173,8 +173,8 @@ Author: Mikhail Morfikov <mmorfikov@gmail.com>
      _msg "API (napiprojekt-3)"
      _msg "Jezeli zauwazysz jakies problemy z nowym API"
      _msg "albo skrypt dziala zbyt wolno, mozesz wrocic do"
---- napi-1.3.4.orig/napi_common.sh
-+++ napi-1.3.4/napi_common.sh
+--- napi-1.3.5.orig/napi_common.sh
++++ napi-1.3.5/napi_common.sh
 @@ -4,7 +4,7 @@
  # vim: ts=4 shiftwidth=4 expandtab
  
@@ -182,10 +182,10 @@ Author: Mikhail Morfikov <mmorfikov@gmail.com>
 -# version for the whole bundle (napi.sh & subotage.sh)
 +# version for the whole bundle (napi & subotage)
  #
- declare -r g_revision="v1.3.4"
+ declare -r g_revision="v1.3.5"
  
---- napi-1.3.4.orig/subotage.sh
-+++ napi-1.3.4/subotage.sh
+--- napi-1.3.5.orig/subotage.sh
++++ napi-1.3.5/subotage.sh
 @@ -24,12 +24,12 @@
  ################################################################################
  

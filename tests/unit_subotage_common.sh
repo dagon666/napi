@@ -958,17 +958,100 @@ test_correct_overlaps() {
 	declare -a adata=()
 	_save_subotage_globs
 
-	echo "hms" > "$tmp"
+    # should reject unsupported format
+	echo "xxx" > "$tmp"
 	echo "junk" >> "$tmp"
 	correct_overlaps "$tmp" 2>&1 > /dev/null
 	status=$?
-	assertEquals "hms not supported" $RET_NOACT "$status"
+	assertEquals "xxx not supported" $RET_NOACT "$status"
+
+	echo "hms" > "$tmp"
+    echo "1 00:05:56 00:05:59 Zmierzasz na" >> "$tmp"
+    echo "2 00:05:58 00:06:01 Polnoc." >> "$tmp"
+    echo "3 00:06:00 00:06:03 Wskakuj" >> "$tmp"
+    echo "4 00:06:02 00:06:05 Upewnie sie, | ze znajdziesz droge" >> "$tmp"
+    echo "5 00:06:17 00:06:20 - Dokad zmierzasz? | - Portland" >> "$tmp"
+    echo "6 00:06:20 00:06:23 Portland jest na poludniu mowiles, | ze zmierzasz na polnoc" >> "$tmp"
+	correct_overlaps "$tmp" 2>&1 > /dev/null
+	status=$?
+	assertEquals "hms status ok" $RET_OK "$status"
+
+	data=$(head -n 1 "$tmp" | tail -n 1)
+    assertEquals 'check for file type (hms)' "hms" "$data"
+
+	data=$(head -n 2 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '1 (hms) check counter' 1 "${adata[0]}"
+	assertEquals '1 (hms) check start_time' "00:05:56" "${adata[1]}"
+	assertEquals '1 (hms) check end_time' "00:05:58" "${adata[2]}"
+	assertEquals '1 (hms) check content' "Zmierzasz" "${adata[3]}"
+
+	data=$(head -n 3 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '2 (hms) check counter' 2 "${adata[0]}"
+	assertEquals '2 (hms) check start_time' "00:05:58" "${adata[1]}"
+	assertEquals '2 (hms) check end_time' "00:06:00" "${adata[2]}"
+	assertEquals '2 (hms) check content' "Polnoc." "${adata[3]}"
+
+	data=$(head -n 4 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '3 (hms) check counter' 3 "${adata[0]}"
+	assertEquals '3 (hms) check start_time' "00:06:00" "${adata[1]}"
+	assertEquals '3 (hms) check end_time' "00:06:02" "${adata[2]}"
+	assertEquals '3 (hms) check content' "Wskakuj" "${adata[3]}"
+
+	data=$(head -n 5 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '4 (hms) check counter' 4 "${adata[0]}"
+	assertEquals '4 (hms) check start_time' "00:06:02" "${adata[1]}"
+	assertEquals '4 (hms) check end_time' "00:06:05" "${adata[2]}"
+	assertEquals '4 (hms) check content' "Upewnie" "${adata[3]}"
+	unlink "$tmp"
+
+    # === hmsms
 
 	echo "hmsms" > "$tmp"
-	echo "junk" >> "$tmp"
+    echo "1 00:05:56.000 00:05:59.000 Zmierzasz na polnoc" >> "$tmp"
+    echo "2 00:05:58.000 00:06:01.000 Polnoc." >> "$tmp"
+    echo "3 00:06:00.000 00:06:03.000 Wskakuj" >> "$tmp"
+    echo "4 00:06:02.000 00:06:05.000 Upewnie sie, | ze znajdziesz droge." >> "$tmp"
 	correct_overlaps "$tmp" 2>&1 > /dev/null
 	status=$?
-	assertEquals "hmsms not supported" $RET_NOACT "$status"
+	assertEquals "hmsms status ok" $RET_OK "$status"
+
+	data=$(head -n 1 "$tmp" | tail -n 1)
+    assertEquals 'check for file type (hmsms)' "hmsms" "$data"
+
+	data=$(head -n 2 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '1 (hmsms) check counter' 1 "${adata[0]}"
+	assertEquals '1 (hmsms) check start_time' "00:05:56.000" "${adata[1]}"
+	assertEquals '1 (hmsms) check end_time' "00:05:58.000" "${adata[2]}"
+	assertEquals '1 (hmsms) check content' "Zmierzasz" "${adata[3]}"
+
+	data=$(head -n 3 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '2 (hmsms) check counter' 2 "${adata[0]}"
+	assertEquals '2 (hmsms) check start_time' "00:05:58.000" "${adata[1]}"
+	assertEquals '2 (hmsms) check end_time' "00:06:00.000" "${adata[2]}"
+	assertEquals '2 (hmsms) check content' "Polnoc." "${adata[3]}"
+
+	data=$(head -n 4 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '3 (hmsms) check counter' 3 "${adata[0]}"
+	assertEquals '3 (hmsms) check start_time' "00:06:00.000" "${adata[1]}"
+	assertEquals '3 (hmsms) check end_time' "00:06:02.000" "${adata[2]}"
+	assertEquals '3 (hmsms) check content' "Wskakuj" "${adata[3]}"
+
+	data=$(head -n 5 "$tmp" | tail -n 1)
+	adata=( $data )
+    assertEquals '4 (hmsms) check counter' 4 "${adata[0]}"
+	assertEquals '4 (hmsms) check start_time' "00:06:02.000" "${adata[1]}"
+	assertEquals '4 (hmsms) check end_time' "00:06:05.000" "${adata[2]}"
+	assertEquals '4 (hmsms) check content' "Upewnie" "${adata[3]}"
+	unlink "$tmp"
+
+    # === secs
 
 	echo "secs" > "$tmp"
 	echo "1 10 20 line1" >> "$tmp"

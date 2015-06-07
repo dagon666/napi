@@ -1122,43 +1122,79 @@ NR == 1 {
     print $0
 }
 
-NR > 1 {
-    if (time_type == "secs") {
-        lines[counter,0] = NF
-        for (i=1; i<=NF; i++) lines[counter,i] = $i
+#
+# convert the timestamp to milliseconds timestamp
+# This function unifies the hms/hmsms/secs format to
+# a milliseconds timestamp
+#
+function conv_to_ms(time, format) {
+    rv = 0
 
-        if (counter == 0) {
-            if ((lines[1,3]+0) > (lines[0,2]+0)) lines[1,3] = lines[0,2]
-        }
-        else {
-            if ((lines[0,3]+0) > (lines[1,2]+0)) lines[0,3] = lines[1,2]
-        }
-        
-        # print every second line or if line counter == __num_lines
-        # flush'em both at once
-        do {
-           line_counter++
-           counter = (counter + 1) % 2
-
-           if ((line_counter >=2 || line_counter == __num_lines) && 
-               lines[counter,0]>0) {
-
-               printf("%s %s %s ", lines[counter,1], lines[counter,2], lines[counter,3])
-
-               for (i = 4; i<=lines[counter,0]; i++)
-                   printf("%s ", lines[counter,i])
-
-               printf("\n")
-           }
-        } while (line_counter == __num_lines)
+    if ("secs" == format) {
+        rv = (time + 0) * 1000
     }
-    else if (time_type == "hmsms" || time_type == "hms") {
-        # don't do anything for those - at the moment not supported        
+    else if ("hms" == format || "hmsms" == format) {
+        split(time, ts, "[:.]")
+
+        rv = ts[1] * 3600 + ts[2] * 60 + ts[3]
+        rv = rv*1000
+
+        if ("hmsms" == format) rv += ts[4]
+    }
+
+    return rv
+}
+
+
+NR > 1 {
+    if (( time_type != "secs" ) &&
+        ( time_type != "hms" ) &&
+        ( time_type != "hmsms" )) {
+        # format unsupported
         exit 2
     }
-    else {
-        exit 1
-    }
+
+    # memorize the number of fields in the line
+    # in this two-line queue
+    lines[counter,0] = NF
+
+    # buffer the line
+    for (i=1; i<=NF; i++) lines[counter,i] = $i
+
+    # correct the overlapping subtitles
+    # current line index
+    cli = counter == 0 ? 1 : 0
+
+    # previous line index
+    pli = cli == 1 ? 0 : 1
+
+    # current ending time-stamp
+    cets = conv_to_ms(lines[cli, 3], time_type)
+
+    # previous starting time-stamp
+    psts = conv_to_ms(lines[pli, 2], time_type)
+
+    if (cets > psts) lines[cli, 3] = lines[pli, 2]
+
+    # print every second line or if line counter == __num_lines
+    # flush'em both at once
+    do {
+       line_counter++
+       counter = (counter + 1) % 2
+
+       if ((line_counter >=2 || line_counter == __num_lines) && lines[counter,0]>0) {
+
+           # print the line counter, start & stop timestamps
+           printf("%s %s %s ",
+                lines[counter,1], lines[counter,2], lines[counter,3])
+
+           # print the remaining part of the line
+           for (i = 4; i<=lines[counter,0]; i++)
+               printf("%s ", lines[counter,i])
+
+           printf("\n")
+       }
+    } while (line_counter == __num_lines)
 }
 EOF
     _info $LINENO "sprawdzam plik uniwersalny i usuwam overlaps"
