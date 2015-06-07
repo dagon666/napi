@@ -1424,7 +1424,8 @@ extract_subs_xml() {
     local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
 
     # create archive file
-    local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
+    local tmp_7z_archive="$(mktemp --tmpdir=/tmp/ napisy.7z.XXXXXXXX)"
+
     echo "$subs_content" | extract_cdata_tag | $g_cmd_base64_decode > "$tmp_7z_archive" 2> /dev/null
 
     if [ -s "$tmp_7z_archive" ]; then
@@ -1682,7 +1683,7 @@ download_subs_classic() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ "$id" = "other" ] && dof="$(mktemp napisy.7z.XXXXXXXX)"
+    [ "$id" = "other" ] && dof="$(mktemp --tmpdir=/tmp/ napisy.7z.XXXXXXXX)"
 
     # log the url with all the variables
     _debug $LINENO "url: [$url]"
@@ -1967,7 +1968,7 @@ convert_charset() {
     # detect charset
     [ -z "$s" ] && s=$(get_charset "$file")
     
-    local tmp=$(mktemp napi.XXXXXXXX)
+    local tmp=$(mktemp --tmpdir=/tmp/ napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
     if [ $? -eq $RET_OK ]; then
@@ -2133,7 +2134,7 @@ convert_format() {
         return $RET_FAIL
 
     # for the backup
-    local tmp="$(mktemp napi.XXXXXXXX)"
+    local tmp="$(mktemp --tmpdir=/tmp/ napi.XXXXXXXX)"
 
     # create backup
     _debug $LINENO "backupuje oryginalny plik jako $tmp"
@@ -2163,7 +2164,7 @@ convert_format() {
     _msg "wolam subotage.sh"
 
     # create ipc file to update the message counter
-    local ipc_file="$(mktemp ipc.XXXXXXXX)"
+    local ipc_file="$(mktemp --tmpdir=/tmp/ ipc.XXXXXXXX)"
     local msg_counter=0
 
     # fps_opt must be expanded for the subotage call
@@ -2558,7 +2559,7 @@ EOF
 #
 spawn_forks() {
     local c=0
-    local stats_file="$(mktemp stats.XXXXXXXX)"
+    local stats_file="$(mktemp --tmpdir=/tmp/ stats.XXXXXXXX)"
     local old_msg_cnt=0
 
     # open fd #8 for statistics collection
