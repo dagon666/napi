@@ -1,3 +1,10 @@
+version 1.3.5 (2015-06-07)
+- fix for MAC OS having both GNU & BSD stat installed
+- install.sh fixes for MAC OS 
+- configure_cmds function refactoring
+- overlap correction implemented for all supported format
+- added debian packaging script
+
 version 1.3.4 (2015-01-21)
 - bugfix for system detection routine
 - core detection routine bugfix
