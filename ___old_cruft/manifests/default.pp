@@ -112,6 +112,24 @@ package { "gawk":
 }
 
 
+package { "texinfo":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "install-info":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
+package { "wget":
+	ensure => present,
+    require => Exec["apt-get update"],
+}
+
+
 file { "/home/vagrant/bin":
   ensure  => "directory",
   owner => "vagrant",
@@ -133,24 +151,21 @@ file { "/home/vagrant/bin/sh":
 }
 
 
-exec { "install napi":
-	command => "/vagrant/install.sh --bindir /home/vagrant/napi_bin --shareddir /home/vagrant/napi_bin",
-	cwd => "/vagrant",
-	creates => "/home/vagrant/napi_bin/napi.sh",
-	require => File['/home/vagrant/napi_bin']
+exec { "prepare_shells":
+    command => "/vagrant/tests/prepare_shells.pl",
+    cwd => "/vagrant",
+    creates => "/opt/napi/bash",
+    require => [ Package['wget'], ],
+    timeout => 28800,
+    logoutput => true,
 }
 
 
-file { "/home/vagrant/bin/subotage.sh":
-	ensure => "link",
-    target => "/home/vagrant/napi_bin/subotage.sh",
-	require => Exec["install napi"]
+exec { "prepare_assets":
+    command => "/vagrant/tests/prepare_assets.pl",
+    cwd => "/vagrant",
+    creates => "/usr/share/napi/testdata",
+    require => Package['wget'],
+    logoutput => true,
+    timeout => 600,
 }
-
-
-file { "/home/vagrant/bin/napi.sh":
-	ensure => "link",
-    target => "/home/vagrant/napi_bin/napi.sh",
-	require => Exec["install napi"]
-}
-

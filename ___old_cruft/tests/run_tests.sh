@@ -48,7 +48,7 @@ executed=0
 
 unit_tests() {
     # run unit tests
-    declare -a utests=( 'unit_napi_common.sh' \
+    declare -a utests=( 'unit_libnapi_common.sh' \
         'unit_napi.sh' \
         'unit_subotage_awk.sh' \
         'unit_subotage_gawk.sh' \

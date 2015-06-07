@@ -8,12 +8,12 @@
 ########################################################################
 ########################################################################
 
-#  Copyright (C) 2015 Tomasz Wisniewski aka 
+#  Copyright (C) 2017 Tomasz Wisniewski aka
 #       DAGON <tomasz.wisni3wski@gmail.com>
 #
 #  http://github.com/dagon666
 #  http://pcarduino.blogspot.co.ul
-# 
+#
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ test_tool() {
 	else
 		echo "[ERROR] $1: Unexpected result"
 	fi
-	
+
 	rm -rf /tmp/err
 	rm -rf /tmp/tmp_result
 }

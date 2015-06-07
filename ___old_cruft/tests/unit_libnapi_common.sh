@@ -35,7 +35,7 @@
 #
 # source the code of the original script
 #
-. "$g_install_path/napi/napi_common.sh" 2>&1 > /dev/null
+. "$g_install_path/napi/libnapi_common.sh" 2>&1 > /dev/null
 
 ################################################################################
 

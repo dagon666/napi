@@ -23,9 +23,14 @@
 ################################################################################
 ################################################################################
 
+
+# common library shared between napi and subotage
+declare -r LIBNAPI_COMMON="libnapi_common.sh"
+
+
 # verify presence of the napi_common library
 declare -r NAPI_COMMON_PATH=
-if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; then
+if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/${LIBNAPI_COMMON}" ]; then
     echo
 	echo "napi.sh i subotage.sh nie zostaly poprawnie zainstalowane"
 	echo "uzyj skryptu install.sh (install.sh --help - pomoc)"
@@ -35,7 +40,7 @@ if [ -z "$NAPI_COMMON_PATH" ] || [ ! -e "${NAPI_COMMON_PATH}/napi_common.sh" ]; 
 fi
 
 # source the common routines
-. "${NAPI_COMMON_PATH}/"napi_common.sh
+. "${NAPI_COMMON_PATH}/${LIBNAPI_COMMON}"
 
 ################################################################################
 

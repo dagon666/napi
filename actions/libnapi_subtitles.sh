@@ -1,15 +1,18 @@
-#!/usr/bin/env perl
+#!/bin/bash
+
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
 
 ########################################################################
 ########################################################################
 ########################################################################
 
-#  Copyright (C) 2015 Tomasz Wisniewski aka 
+#  Copyright (C) 2017 Tomasz Wisniewski aka
 #       DAGON <tomasz.wisni3wski@gmail.com>
 #
 #  http://github.com/dagon666
-#  http://pcarduino.blogspot.co.ul
-# 
+#  http://pcarduino.blogspot.co.uk
+#
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -28,18 +31,20 @@
 ########################################################################
 ########################################################################
 
+#
+# @brief print usage description for subtitles action
+#
+subtitles_usage() {
+    # TODO implement me
+    echo
+}
 
-use strict;
-use warnings;
-$|++;
+#
+# @brief entry point for search action
+#
+subtitles_main() {
+    # TODO implement me
+    echo
+}
 
-use lib qw(./lib/);
-use NapiTest qw/:all/;
-
-print "Preparing shells\n";
-
-$NapiTest::path_root = shift || '/home/vagrant';
-
-NapiTest::prepare_env();
-NapiTest::prepare_shells();
-NapiTest::prepare_assets();
+# EOF

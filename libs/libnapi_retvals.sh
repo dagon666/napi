@@ -3,17 +3,16 @@
 # force indendation settings
 # vim: ts=4 shiftwidth=4 expandtab
 
-
 ########################################################################
 ########################################################################
 ########################################################################
 
-#  Copyright (C) 2015 Tomasz Wisniewski aka 
+#  Copyright (C) 2017 Tomasz Wisniewski aka
 #       DAGON <tomasz.wisni3wski@gmail.com>
 #
 #  http://github.com/dagon666
 #  http://pcarduino.blogspot.co.ul
-# 
+#
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -32,41 +31,21 @@
 ########################################################################
 ########################################################################
 
+# success
+export G_RETOK=0
 
-path_root=""
+# function failed
+export G_RETFAIL=255
 
-if [[ -z "$1" ]]; then
-	echo "prepare_gcc3.sh <installation_root_path>"
-	exit
-fi
-path_root="$1"
+# parameter error
+export G_RETPARAM=254
 
-if [[ -e "${path_root}/gcc-3.0" ]]; then
-	echo "GCC3 already installed. Nothing to do. Skipping"
-	exit
-fi
+# parameter/result will cause the script to break
+export G_RETBREAK=253
 
-export LIBRARY_PATH=/usr/lib/$(gcc -print-multiarch)
-export C_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
-export CPLUS_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
+# resource unavailable
+export G_RETUNAV=252
 
-cd /tmp
+# no action taken
+export G_RETNOACT=251
 
-if ! [[ -e gcc-3.0.tar.bz2  ]]; then
-	wget http://gcc.igor.onlinedirect.bg/old-releases/gcc-3/gcc-3.0.tar.bz2
-fi
-
-if ! [[ -e gcc-3.0 ]]; then
-	tar jvxf gcc-3.0.tar.bz2
-	cd gcc-3.0
-	patch -p1 -i /vagrant/tests/0001-collect-open-issue.patch
-	cd ..
-fi
-
-mkdir -p gcc-build
-cd gcc-build
-
-../gcc-3.0/configure --prefix="${path_root}/gcc-3.0" --enable-shared --enable-languages=c --disable-libgcj --disable-java-net --disable-static-libjava
-make 2>&1 | tee compilation.log
-sudo make install
-rm -rf gcc-build
