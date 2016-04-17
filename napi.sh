@@ -131,7 +131,7 @@ declare g_fps_tool='default'
 # @brief external script
 #
 declare g_hook='none'
-
+declare g_scriptPara=''
 #
 # @brief napiprojekt.pl user credentials
 # 0 - user
@@ -654,7 +654,12 @@ parse_argv() {
             "-S" | "--script") varname="g_hook"
             msg="nie okreslono sciezki do skryptu"
             ;;
-
+	    	
+	    # script parameters
+	    "-K" | "--scriptPara") varname="g_scriptPara"
+	    msg="podaj parametry skryptu"
+	    ;;
+	    
             # user login
             "-u" | "--user") varname="g_cred[0]"
             msg="nie podano nazwy uzytkownika"
@@ -2476,7 +2481,7 @@ process_file() {
         # process hook - only if some processing has been done
         [ "$g_hook" != 'none' ] && [ $status -eq $RET_OK ] &&
             _msg "wywoluje zewnetrzny skrypt" &&
-            $g_hook "$path/${g_pf[$si]}"
+            $g_hook $g_scriptPara
 
     else
         _status "UNAV" "$media_file"
