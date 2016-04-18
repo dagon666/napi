@@ -133,6 +133,11 @@ declare g_fps_tool='default'
 declare g_hook='none'
 
 #
+# @brief external script arguments
+#
+declare g_scriptArg=''
+
+#
 # @brief napiprojekt.pl user credentials
 # 0 - user
 # 1 - password
@@ -654,7 +659,12 @@ parse_argv() {
             "-S" | "--script") varname="g_hook"
             msg="nie okreslono sciezki do skryptu"
             ;;
-
+	    	
+	    # script parameters
+	    "-K" | "--scriptArg") varname="g_scriptArg"
+	    msg="nie podano argumentow dla skryptu zewnetrznego"
+	    ;;
+	    
             # user login
             "-u" | "--user") varname="g_cred[0]"
             msg="nie podano nazwy uzytkownika"
@@ -2476,7 +2486,7 @@ process_file() {
         # process hook - only if some processing has been done
         [ "$g_hook" != 'none' ] && [ $status -eq $RET_OK ] &&
             _msg "wywoluje zewnetrzny skrypt" &&
-            $g_hook "$path/${g_pf[$si]}"
+            $g_hook "$g_scriptArg${g_pf[$si]}" #script arg + sub. name + sub. extension
 
     else
         _status "UNAV" "$media_file"
@@ -2657,6 +2667,7 @@ usage() {
     echo "   -n  | --nfo - utworz plik z informacjami o napisach (wspierane tylko z id NapiProjektPython/NapiProjekt)"
     echo "   -p  | --pass <passwd> - haslo dla uzytkownika <login>"
     echo "   -S  | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
+    echo "   -K  | --scriptArg - podaj argumenty do przekazania do skryptu zewnetrznego"
     echo "   -s  | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u  | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -v  | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
