@@ -32,6 +32,7 @@
 ########################################################################
 
 BIN_dir='/usr/bin'
+DEST_dir=''
 SHARED_dir='/usr/share'
 
 declare -ar bin_files=( 'subotage.sh' 'napi.sh' )
@@ -75,8 +76,8 @@ check_dirs() {
 	local d=''
 
 	for d in "${dirs[@]}"; do
-		if ! is_writable "$d"; then
-			echo "katalog [$d] niedostepny do zapisu - okresl inny"
+		if ! is_writable "$DEST_dir$d"; then
+			echo "katalog [$DEST_dir$d] niedostepny do zapisu - okresl inny"
 			usage
 			exit -1
 		fi
@@ -93,6 +94,7 @@ usage() {
 	echo "opcje:"
 	echo
 	echo -e "\t --bindir - kat. w ktorym zostana zainst. pliki wykonywalne (dom. $BIN_dir)"
+	echo -e "\t --destdir - tymcz. prefiks, do ktorego zostana skopiowane pliki"
 	echo -e "\t --shareddir - kat. w ktorym zostana zainst. biblioteki (dom. $SHARED_dir)"
 	echo
 }
@@ -118,6 +120,11 @@ while [ $# -gt 0 ]; do
 			BIN_dir="$1"
 			;;
 
+		"--destdir" )
+			shift
+			DEST_dir="$1"
+			;;
+
 		"--shareddir" )
 			shift
 			[ -z "$1" ] && 
@@ -140,24 +147,26 @@ strip_trailing_slash() {
 
 
 BIN_dir=$(echo "$BIN_dir" | strip_trailing_slash)
+DEST_dir=$(echo "$DEST_dir" | strip_trailing_slash)
 SHARED_dir=$(echo "$SHARED_dir" | strip_trailing_slash)
 
 echo "BIN_dir : [$BIN_dir]"
+echo "DEST_dir : [$DEST_dir]"
 echo "SHARED_dir : [$SHARED_dir]"
 
 # check dirs
 check_dirs
 
 # install shared first
-mkdir -p "$SHARED_dir/napi"
+mkdir -p "$DEST_dir$SHARED_dir/napi"
 for f in "${shared_files[@]}"; do
-	cp -v "$f" "$SHARED_dir/napi"
+	cp -v "$f" "$DEST_dir$SHARED_dir/napi"
 done
 
 # install executables now
 for f in "${bin_files[@]}"; do
 	replace_path "$f" "$SHARED_dir/napi"
-	cp -v "$f" "$BIN_dir"
+	cp -v "$f" "$DEST_dir$BIN_dir"
 
 	# restore original files if we've got backups
 	[ -e "${f}.orig" ] && mv "${f}.orig" "$f"
