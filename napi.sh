@@ -133,6 +133,16 @@ declare g_fps_tool='default'
 declare g_hook='none'
 
 #
+# @brief external script arguments
+#
+declare g_scriptArg=''
+
+#
+# @brief path for temp files
+#
+declare g_tempPath='/tmp/'
+
+#
 # @brief napiprojekt.pl user credentials
 # 0 - user
 # 1 - password
@@ -654,6 +664,16 @@ parse_argv() {
             "-S" | "--script") varname="g_hook"
             msg="nie okreslono sciezki do skryptu"
             ;;
+
+			# script parameters
+			"-K" | "--scriptArg") varname="g_scriptArg"
+			msg="nie podano argumentow dla skryptu zewnetrznego"
+			;;
+
+			# temp folder
+			"-t" | "--tempPath") varname="g_tempPath"
+			msg="nie podano sciezki do folderu tymczasowego"
+			;;
 
             # user login
             "-u" | "--user") varname="g_cred[0]"
@@ -1424,7 +1444,8 @@ extract_subs_xml() {
     local subs_content=$(echo "$xml_subs" | extract_xml_tag 'content')
 
     # create archive file
-    local tmp_7z_archive=$(mktemp napisy.7z.XXXXXXXX)
+    local tmp_7z_archive="$(mktemp --tmpdir=${g_tempPath} napisy.7z.XXXXXXXX)"
+    
     echo "$subs_content" | extract_cdata_tag | $g_cmd_base64_decode > "$tmp_7z_archive" 2> /dev/null
 
     if [ -s "$tmp_7z_archive" ]; then
@@ -1682,7 +1703,7 @@ download_subs_classic() {
     local napi_pass="iBlm8NTigvru0Jr0"
 
     # should be enough to avoid clashing
-    [ "$id" = "other" ] && dof="$(mktemp napisy.7z.XXXXXXXX)"
+    [ "$id" = "other" ] && dof="$(mktemp --tmpdir=${g_tempPath} napisy.7z.XXXXXXXX)"
 
     # log the url with all the variables
     _debug $LINENO "url: [$url]"
@@ -1967,7 +1988,7 @@ convert_charset() {
     # detect charset
     [ -z "$s" ] && s=$(get_charset "$file")
     
-    local tmp=$(mktemp napi.XXXXXXXX)
+    local tmp=$(mktemp --tmpdir=${g_tempPath} napi.XXXXXXXX)
     iconv -f "$s" -t "$d" "$file" > "$tmp"
 
     if [ $? -eq $RET_OK ]; then
@@ -2133,7 +2154,7 @@ convert_format() {
         return $RET_FAIL
 
     # for the backup
-    local tmp="$(mktemp napi.XXXXXXXX)"
+    local tmp="$(mktemp --tmpdir=${g_tempPath} napi.XXXXXXXX)"
 
     # create backup
     _debug $LINENO "backupuje oryginalny plik jako $tmp"
@@ -2163,7 +2184,7 @@ convert_format() {
     _msg "wolam subotage.sh"
 
     # create ipc file to update the message counter
-    local ipc_file="$(mktemp ipc.XXXXXXXX)"
+    local ipc_file="$(mktemp --tmpdir=${g_tempPath} ipc.XXXXXXXX)"
     local msg_counter=0
 
     # fps_opt must be expanded for the subotage call
@@ -2476,8 +2497,10 @@ process_file() {
         # process hook - only if some processing has been done
         [ "$g_hook" != 'none' ] && [ $status -eq $RET_OK ] &&
             _msg "wywoluje zewnetrzny skrypt" &&
-            $g_hook "$path/${g_pf[$si]}"
-
+            $g_hook "$path/${g_pf[$si]}" "{$g_scriptArg}${g_pf[$si]}"	#do skryptu zewnetrznego przekazujemy dwa parametry
+																		#pierwszy to sciezka do pliku z napisami "/folder/plik_napisow"
+																		#drugi to tekst podany za pomoca -K plus nazwa pliku z napisami
+																		#jesli nie podamy -K to jako drugi parametr do skryptu wchodzi tylko nazwa pliku z napisami
     else
         _status "UNAV" "$media_file"
         g_stats[1]=$(( g_stats[1] + 1 ))
@@ -2558,7 +2581,7 @@ EOF
 #
 spawn_forks() {
     local c=0
-    local stats_file="$(mktemp stats.XXXXXXXX)"
+    local stats_file="$(mktemp --tmpdir=${g_tempPath} stats.XXXXXXXX)"
     local old_msg_cnt=0
 
     # open fd #8 for statistics collection
@@ -2656,7 +2679,9 @@ usage() {
     echo "   -M  | --move - w przypadku opcji (-s) przenos pliki, nie kopiuj"
     echo "   -n  | --nfo - utworz plik z informacjami o napisach (wspierane tylko z id NapiProjektPython/NapiProjekt)"
     echo "   -p  | --pass <passwd> - haslo dla uzytkownika <login>"
-    echo "   -S  | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
+    echo "   -S  | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazan jako argument)"
+    echo "   -K  | --scriptArg - podaj argumenty do przekazania do skryptu zewnetrznego"
+    echo "   -t  | --tempPath - podaj sciezke do folderu tymczasowego (domyslnie: /tmp/)"
     echo "   -s  | --skip - nie sciagaj, jezeli napisy juz sciagniete"
     echo "   -u  | --user <login> - uwierzytelnianie jako uzytkownik"
     echo "   -v  | --verbosity <0..3> - zmien poziom gadatliwosci 0 - cichy, 3 - debug"
