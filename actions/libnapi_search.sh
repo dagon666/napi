@@ -73,7 +73,8 @@ _search_argvDispatcher_GV() {
 }
 
 _search_normalizeOptions() {
-    ___g_movieYear=$(wrappers_ensureNumeric_SO "$___g_movieYear")
+    [ -n "$___g_movieYear" ] &&
+        ___g_movieYear=$(wrappers_ensureNumeric_SO "$___g_movieYear")
 
     case "$___g_titleType" in
         "movie") ___g_titleType=0 ;;

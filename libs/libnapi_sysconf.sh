@@ -31,6 +31,13 @@
 ########################################################################
 ########################################################################
 
+# This module should be used for sharing values between modules. If a variable
+# has a default value which will be accessed from multiple places it should be
+# placed here. For module specific purposes module global variables should be
+# used instead.
+
+########################################################################
+
 # globals
 
 #
@@ -39,43 +46,30 @@
 #
 
 declare -a ___g_sysconf_configuration=( \
-    "napiprojekt.subtitles.extension=txt" \
+    "napiprojekt.subtitles.orig.prefix=ORIG_" \
+    "napiprojekt.subtitles.orig.delete=0" \
+    "napiprojekt.subtitles.format=default" \
+    "napiprojekt.subtitles.encoding=default" \
     "napiprojekt.cover.extension=jpg" \
     "napiprojekt.cover.download=0" \
     "napiprojekt.nfo.extension=nfo" \
     "napiprojekt.nfo.download=0" \
+    "system.hook.executable=" \
+    "system.forks=1" \
 )
 
 ########################################################################
 
 sysconf_setKey_GV() {
     logging_debug $LINENO $"ustawiam wartosc klucza:" "[$1] -> [$2]"
-    ___g_sysconf_configuration="$(assoc_modifyValue_SO \
-        "$1" "$2" "${___g_sysconf_configuration[@]}")"
+    assoc_modifyValue_GV "$1" "$2" "___g_sysconf_configuration"
+    # ___g_sysconf_configuration="$(assoc_modifyValue_SO \
+    #     "$1" "$2" "${___g_sysconf_configuration[@]}")"
 }
 
 sysconf_getKey_SO() {
     assoc_lookupValue_SO "${1}" "${___g_sysconf_configuration[@]}"
 }
-
-# declare -r ___g_sysconfSystem=0
-# declare -r ___g_sysconfNForks=1
-# declare -r ___g_sysconfEncoding=3
-# declare -r ___g_sysconfHook=4
-#
-# 0 - system - detected system type
-# - linux
-# - darwin - mac osx
-#
-# 1 - number of forks
-#
-# 3 - text encoding
-# defines the char-set of the resulting file
-#
-# 4 - external script
-#
-# declare -a ___g_sysConfig=( 'none' '0' 'default' 'none' )
-#
 
 ################################################################################
 

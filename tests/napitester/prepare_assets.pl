@@ -4,19 +4,15 @@ use strict;
 use warnings;
 $|++;
 
-
 use LWP::Simple;
 use Archive::Extract;
 use File::Temp;
-
 
 my $assets_tgz = "napi_testdata.tar.gz";
 my $url = "https://www.dropbox.com/s/x0xzw0b71j0dtop/${assets_tgz}?dl=1";
 my $assets_path = "/opt/napi/testdata";
 
-
 my $wdir = File::Temp::tempdir( CLEANUP => 1 );
-
 
 sub print_status {
     my ($msg, $coderef, $expected) = @_;
@@ -27,12 +23,10 @@ sub print_status {
     return $retval;
 }
 
-
 sub on_success {
     my ($retval, $coderef, $expected) = @_;
     $coderef->() if $retval == $expected;
 }
-
 
 on_success(
     print_status(

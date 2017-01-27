@@ -103,6 +103,9 @@ wrappers_getSystem_SO() {
     uname | wrappers_lcase_SO
 }
 
+#
+# @brief returns true if system is Darwin
+#
 wrappers_isSystemDarwin() {
     [ "$(wrappers_getSystem_SO)" = "darwin" ]
 }
@@ -148,7 +151,7 @@ wrappers_floatEq() {
 }
 
 wrappers_floatDiv() {
-    awk -v n1="$1" -v n2="$2" 'BEGIN { print n1/n2 }'
+    awk -v n1="$1" -v n2="$2" 'BEGIN { print n1/n2 }' 2>/dev/null
 }
 
 wrappers_floatMul() {

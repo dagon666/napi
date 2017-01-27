@@ -83,7 +83,7 @@ language_listLanguages_SO() {
 language_verifyLanguage_SO() {
     local i=0
     local lang="${1:-}"
-    declare -a langArray=( )
+    local langArray=( )
 
     # shellcheck disable=SC2086
     [ "${#lang}" -ne 2 ] && [ "${#lang}" -ne 3 ] && return $G_RETPARAM

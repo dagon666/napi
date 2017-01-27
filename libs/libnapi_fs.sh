@@ -144,6 +144,101 @@ _fs_configureGarbageCollector() {
     trap _fs_garbageCollectorCleaner EXIT
 }
 
+#
+# @brief verify configured fps tool
+#
+_fs_verifyFpsTool() {
+    # don't do anything if the tool has been already marked as unavailable
+    [ "${___g_fsWrappers[$___g_fsFps]}" = 'unavailable' ] &&
+        return $G_RETUNAV
+
+    # verify selected fps tool
+    if [ "${___g_fsWrappers[$___g_fsFps]}" = 'none' ] ||
+        ! tools_isInGroupAndDetected 'fps' \
+        "${___g_fsWrappers[$___g_fsFps]}"; then
+        # choose first available as the default tool
+        local firstav=''
+        firstav=$(tools_getFirstAvailableFromGroup_SO "fps")
+        [ -z "$firstav" ] && return $G_RETPARAM
+        ___g_fsWrappers[$___g_fsFps]="$firstav"
+    fi
+}
+
+#
+# @brief detect fps of the video file
+# @param tool
+# @param filepath
+#
+_fs_getFpsWithTool() {
+    local fps=0
+    local tbr=0
+    local t="${1:-none}"
+
+    local tmp=''
+    declare -a atmp=()
+
+    # don't bother if there's no tool available or not specified
+    if [ -z "$t" ] ||
+        [ "$t" = "none" ] ||
+        [ "$t" = "unavailable" ] ||
+        ! tools_isDetected; then
+        echo $fps
+        # shellcheck disable=SC2086
+        return $G_RETPARAM
+    fi
+
+    case "$t" in
+        'mplayer' | 'mplayer2' )
+        fps=$($t -identify -vo null \
+            -ao null \
+            -frames 0 "$2" 2> /dev/null | \
+            grep ID_VIDEO_FPS | \
+            cut -d '=' -f 2)
+        ;;
+
+        'mediainfo' )
+        fps=$($t --Output='Video;%FrameRate%' "$2")
+        ;;
+
+        'ffmpeg' )
+        tmp=$($t -i "$2" 2>&1 | grep "Video:")
+        tbr=$(echo "$tmp" | \
+            sed 's/, /\n/g' | \
+            tr -d ')(' | \
+            grep tbr | \
+            cut -d ' ' -f 1)
+        fps=$(echo "$tmp" | \
+            sed 's/, /\n/g' | \
+            grep fps | \
+            cut -d ' ' -f 1)
+        [ -z "$fps" ] && fps="$tbr"
+        ;;
+
+        'ffprobe' )
+        tmp=$("$t" -v 0 \
+            -select_streams v \
+            -print_format csv \
+            -show_entries \
+            stream=avg_frame_rate,r_frame_rate -- "$2" | \
+            tr ',' ' ')
+        atmp=( $tmp )
+
+        local i=0
+        for i in 1 2; do
+            local a=$(echo "${atmp[$i]}" | cut -d '/' -f 1)
+            local b=$(echo "${atmp[$i]}" | cut -d '/' -f 2)
+            [ "${atmp[$i]}" != "0/0" ] && fps=$(float_div "$a" "$b")
+        done
+        ;;
+
+        *)
+        ;;
+    esac
+
+    # just a precaution
+    echo "$fps" | cut -d ' ' -f 1
+}
+
 ########################################################################
 
 #
@@ -156,6 +251,7 @@ fs_configure_GV() {
     _fs_configureUnlink_GV
     _fs_configure7z_GV
     _fs_configureGarbageCollector
+    _fs_verifyFpsTool
 }
 
 #
@@ -176,21 +272,21 @@ fs_base64Decode() {
 # @brief md5 wrapper
 #
 fs_md5() {
-    ${___g_fswrappers[$___g_fsMd5]} "$@"
+    ${___g_fsWrappers[$___g_fsMd5]} "$@"
 }
 
 #
 # @brief wrapper for copy function
 #
 fs_cp() {
-    ${___g_fswrappers[$___g_fsCp]} "$@"
+    ${___g_fsWrappers[$___g_fsCp]} "$@"
 }
 
 #
 # @brief set copy executable
 #
 fs_setCp_GV() {
-    ___g_fswrappers[$___g_fsCp]="${1:-cp}"
+    ___g_fsWrappers[$___g_fsCp]="${1:-cp}"
 }
 
 #
@@ -204,7 +300,7 @@ fs_unlink() {
 # @brief 7z wrapper
 #
 fs_7z() {
-    [ "${___g_fswrappers[$___g_fs7z]}" != 'none' ] &&
+    [ "${___g_fsWrappers[$___g_fs7z]}" != 'none' ] &&
         ${___g_fsWrappers[$___g_fs7z]} "$@"
 }
 
@@ -212,7 +308,7 @@ fs_7z() {
 # @brief returns true if 7z is available
 #
 fs_is7zAvailable() {
-    [ "${___g_fswrappers[$___g_fs7z]}" != 'none' ]
+    [ "${___g_fsWrappers[$___g_fs7z]}" != 'none' ]
 }
 
 #
@@ -246,16 +342,30 @@ fs_mktempFile_SO() {
 #
 fs_isVideoFile() {
     local filename=$(basename "$1")
-    local extension=$(get_ext "$filename" | lcase)
-
-    declare -a formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' \
+    local extension=$(wrappers_getExt_SO "$filename" | wrappers_lcase_SO)
+    local formats=( 'avi' 'rmvb' 'mov' 'mp4' 'mpg' 'mkv' \
         'mpeg' 'wmv' '3gp' 'asf' 'divx' \
         'm4v' 'mpe' 'ogg' 'ogv' 'qt' )
 
-    # this function can cope with that kind of input
-    # shellcheck disable=SC2068
-    assoc_lookupKey_SO "$extension" ${formats[@]} >/dev/null
+    assoc_lookupKey_SO "$extension" "${formats[@]}" >/dev/null
 }
 
+#
+# @brief set fps tool
+#
+fs_setFpsTool_GV() {
+    ___g_fsWrappers[$___g_fsFps]="${1:-none}"
+
+    _fs_verifyFpsTool ||
+        ___g_fsWrappers[$___g_fsFps]="unavailable"
+}
+
+#
+# @brief get fps of a media file
+#
+fs_getFps() {
+    [ "${___g_fsWrappers[$___g_fsFps]}" = 'none' ] && return $G_RETUNAV
+    _fs_getFpsWithTool "${___g_fsWrappers[$___g_fsFps]}" "$@"
+}
 
 # EOF

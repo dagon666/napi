@@ -1,46 +1,4 @@
 #
-# @brief get the number of configured forks
-#
-system_get_forks() {
-    if [ "${___g_system[$___GSYSTEM_NFORKS]}" -eq 0 ]; then
-        local cores=1
-
-        # establish the number of cores
-        cores=$(get_cores "$(system_get_system)")
-
-        # sanity checks
-        [ "${#cores}" -eq 0 ] && cores=1
-        [ "$cores" -eq 0 ] && cores=1
-
-        # two threads on one core should be safe enough
-        system_set_forks $(( cores * 2 ))
-    fi
-
-    echo "${___g_system[$___GSYSTEM_NFORKS]}"
-}
-
-
-#
-# @brief set the number of forks
-#
-system_set_forks() {
-    ___g_system[$___GSYSTEM_NFORKS]=$(ensure_numeric "$1")
-}
-
-
-#
-# @brief get system type
-#
-system_get_system() {
-    if [ "${___g_system[$___GSYSTEM_SYSTEM]}" = 'none' ]; then
-        ___g_system[$___GSYSTEM_SYSTEM]="$(get_system)"
-    fi
-
-    echo "${___g_system[$___GSYSTEM_SYSTEM]}"
-}
-
-
-#
 # @brief set the desired output file encoding
 #
 system_set_encoding() {
@@ -52,14 +10,12 @@ system_set_encoding() {
     return $RET_OK
 }
 
-
 #
 # @brief get the output file encoding
 #
 system_get_encoding() {
     echo "${___g_system[$___GSYSTEM_ENCODING]}"
 }
-
 
 #
 # @brief checks if the given encoding is supported
@@ -77,13 +33,6 @@ system_verify_encoding() {
     return $?
 }
 
-
-system_set_hook() {
-    ___g_system[$___GSYSTEM_HOOK]="$1"
-    system_verify_hook
-}
-
-
 system_verify_hook() {
     ___g_system[$___GSYSTEM_HOOK]="$1"
 
@@ -94,7 +43,6 @@ system_verify_hook() {
     fi
     return $RET_OK
 }
-
 
 system_execute_hook() {
     local filepath="$1"

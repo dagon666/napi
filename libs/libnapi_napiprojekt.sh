@@ -113,6 +113,14 @@ napiprojekt_setNapiprojektId_GV() {
 }
 
 #
+# @brief true if configured napiprojekt id is legacy id
+#
+napiprojekt_isNapiprojektIdLegacy() {
+    [ "$___g_sysconf_napiprojektId" = "pynapi" ] ||
+        [ "$___g_sysconf_napiprojektId" = "other" ]
+}
+
+#
 # @brief configures napiprojekt username
 #
 napiprojekt_setNapiprojektUserName_GV() {
@@ -153,6 +161,17 @@ napiprojekt_f_SO() {
         b="${b}${z}"
     done
     echo "$b"
+}
+
+#
+# @brief calculate md5 hash from video file
+#
+napiprojekt_calculateMd5VideoFile_SO() {
+    local file="${1:-}"
+    [ -e "$file" ] || return $G_RETFAIL
+    dd if="$file" bs=1024k count=10 2> /dev/null | \
+        fs_md5 | \
+        cut -d ' ' -f 1
 }
 
 #
@@ -219,7 +238,7 @@ napiprojekt_downloadXml() {
 
     # shellcheck disable=SC2086
     if [ "$status" -ne $G_RETOK ]; then
-        logging_error $"blad wgeta. nie mozna pobrac pliku" "[$of]"
+        logging_error $"blad wgeta. nie mozna pobrac pliku" "[$outputFile]"
         # ... and exit
         return $G_RETFAIL
     fi
@@ -439,6 +458,134 @@ napiprojekt_extractTitleFromXml_SO() {
     # extract the movie data
     local xmlMovie=$(xml_extractXmlTag 'movie' "$xmlPath")
     echo "$xmlMovie" | xml_extractXmlTag "title"
+}
+
+########################################################################
+
+# legacy API
+
+#
+# @brief downloads subtitles
+#
+# @param md5 sum of the video file
+# @param hash of the video file
+# @param output filepath
+# @param requested subtitles language
+#
+napiprojekt_downloadSubtitlesLegacy() {
+    local videoMd5sum="${1:-0}"
+    local videoHash="${2:-0}"
+    local outputFile="$3"
+    local lang="${4:-PL}"
+
+    local downloadFileName="$of"
+    local status=$RET_FAIL
+
+    napiprojekt_isNapiprojektIdLegacy || {
+        logging_error $"To API dziala jedynie w trybie legacy"
+        logging_error $"Ustaw NapiId na pynapi lub other"
+        return $G_RETFAIL
+    }
+
+    # url construction
+    local url="${g_napiprojektBaseUrl}${g_napiprojektApiLegacyUri}"
+    url="${url}?l=${lang}&f=${videoMd5sum}"
+    url="${url}&t=${videoHash}&v=${___g_sysconf_napiprojektId}"
+    url="${url}&kolejka=false&napios=posix"
+    url="${url}&nick=${___g_napiprojektCredentials[0]}"
+    url="${url}&pass=${___g_napiprojektCredentials[1]}"
+
+    # log the url with all the variables
+    logging_debug $LINENO $"URL" "[$url]"
+
+    [ "other" = "$___g_sysconf_napiprojektId" ] &&
+        downloadFileName="$(fs_mktempFile_SO)"
+
+    local httpCodes=$(http_downloadUrl_SOSE "$url" \
+        "$downloadFileName" 2>&1)
+    status=$?
+
+    logging_info $LINENO $"otrzymane odpowiedzi http:" "[$httpCodes]"
+    # shellcheck disable=SC2086
+    if [ "$status" -ne $G_RETOK ]; then
+        logging_error $"blad wgeta. nie mozna pobrac pliku" "[$downloadFileName]"
+        # ... and exit
+        return $G_RETFAIL
+    fi
+
+    # it seems that we've got the file perform some verifications on it
+    case "$___g_sysconf_napiprojektId" in
+        "pynapi" ) # no need to do anything
+            ;;
+
+        "other")
+        fs_7z x \
+            -y -so \
+            -p"$g_napiprojektPassword" \
+            "$downloadFileName" 2> /dev/null > "$outputFile" || {
+
+            logging_error $"7z zwraca blad. nie mozna rozpakowac napisow"
+            [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
+            return $G_RETFAIL
+        }
+        ;;
+    esac
+
+    # check if the file was downloaded successfully by checking
+    # if it exists at all
+    [ -s "$outputFile" ] || {
+        logging_error $"sciagniety plik nie istnieje, nieznany blad"
+        [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
+        return $G_RETFAIL
+    }
+
+    # count lines in the file
+    logging_debug $LINENO $"licze linie w pliku" "[$outputFile]"
+    local lines=$(cat "$outputFile" | wrappers_countLines_SO)
+    local minLines=3
+
+    logging_debug $LINENO $"lines/minLines:" "[$lines/$minLines]"
+
+    [ "$lines" -lt "$min_lines" ] || {
+        logging_info $LINENO $"plik uszkodzony. niepoprawna ilosc linii"
+        logging_debug $LINENO "$(<"$outpuFile")"
+        fs_garbageCollect "$outputFile"
+        return $G_RETFAIL
+    }
+}
+
+#
+# @brief: retrieve cover (probably deprecated okladka_pobierz doesn't exist - 404)
+# @param: md5sum
+# @param: outputfile
+#
+napiprojekt_downloadCoverLegacy() {
+    local videoMd5sum="${1:-}"
+    local outputFile="${2:-}"
+
+    local httpCodes=
+    local status=
+
+    local url="${g_napiprojektBaseUrl}${g_napiprojektCoverUri}"
+    url="${url}?id=${videoMd5sum}&oceny=-1"
+
+    httpCodes=$(http_downloadUrl_SOSE "$url" "$outputFile" 2>&1)
+    status=$?
+
+    logging_info $LINENO $"otrzymane odpowiedzi http:" "[$httpCodes]"
+
+    # shellcheck disable=SC2086
+    if [ "$status" -ne $G_RETOK ]; then
+        logging_error $"blad wgeta. nie mozna pobrac pliku" "[$outputFile]"
+        # ... and exit
+        return $G_RETFAIL
+    fi
+
+    # if file doesn't exist or has zero size
+    [ -s "$2" ] || {
+        [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
+        rv=$G_RETUNAV
+    }
 }
 
 # EOF

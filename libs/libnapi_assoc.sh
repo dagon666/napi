@@ -43,15 +43,44 @@ _assoc_groupLookupGeneric_SO() {
     local group="${1}" && shift
     local extractor="${1}" && shift
 
-    for i in $*; do
-        local tg=$(assoc_getGroup_SO "$i")
+    for i in "$@"; do
+        local tg=
+        tg=$(assoc_getGroup_SO "$i")
         if [ -n "$tg" ] && [ "$tg" = "$group" ]; then
-            local tk=$("$extractor" "$i")
-            results="$results $tk"
+            local tk=
+            tk=$("$extractor" "$i")
+
+            [ -z "$results" ] &&
+                results="$tk" ||
+                results="$results $tk"
         fi
     done
 
     [ -n "$results" ] && echo "$results"
+}
+
+#
+# @brief generic key lookup function
+# @param key name
+# @param extractor function
+# @param array
+#
+_assoc_lookupKeyGeneric_SO() {
+    local key="$1" && shift
+    local extractor="$1" && shift
+    local i=''
+    local tk=''
+
+    # shellcheck disable=SC2048
+    # TODO $* should be dropped in order to fix white character support
+    for i in "$@"; do
+        tk="$(assoc_getKey_SO "$i")"
+        if [ "$tk"  = "$key" ]; then
+            "$extractor" "$i"
+            return $G_RETOK
+        fi
+    done
+    return $G_RETFAIL
 }
 
 ########################################################################
@@ -61,22 +90,22 @@ _assoc_groupLookupGeneric_SO() {
 #
 assoc_getGroup_SO() {
     local k="${1%=*}"
-    echo "${k%%:*}"
+	local g="${k%%:*}"
+    [ "$k" != "$g" ] && echo "$g"
 }
-
 
 #
 # @brief get the value from strings like group:key=value or key=value
 #
 assoc_getValue_SO() {
-    echo "${1##*=}"
+    echo "${1#*=}"
 }
 
 #
 # @brief get the key from strings like group:key=value or key=value
 #
 assoc_getKey_SO() {
-    local k="${1%=*}"
+    local k="${1%%=*}"
     echo "${k#*:}"
 }
 
@@ -86,67 +115,115 @@ assoc_getKey_SO() {
 # @param array
 #
 assoc_lookupValue_SO() {
-    local i=''
     local key="$1" && shift
-    local tk=''
-
-    # using $* is deliberate to allow parsing either array or space delimited strings
-
-    # shellcheck disable=SC2048
-    for i in $*; do
-        tk=$(assoc_getKey_SO "$i")
-        if [ "$tk"  = "$key" ]; then
-            assoc_getValue_SO "$i"
-            return $G_RETOK
-        fi
-    done
-
-    return $G_RETFAIL
+    _assoc_lookupKeyGeneric_SO "$key" "assoc_getValue_SO" "$@"
 }
 
 #
 # @brief modify value in the array (it will be added if the key doesn't exist)
+#
+# WARNING: Due to specifics of bash it's impossible to return an
+# array with containing white characters in elements thus this
+# function only works if your groups,keys and values don't contain
+# any spaces
+#
 # @param key
 # @param value
 # @param array
 #
 assoc_modifyValue_SO() {
-    local key=$1 && shift
-    local value=$1 && shift
+    local key="$1" && shift
+    local value="$1" && shift
 
     local i=0
-    local k=''
-    declare -a rv=()
+    local k=
+    local g=
+    local rv=()
+
 
     # shellcheck disable=SC2048
     for i in $*; do
         k=$(assoc_getKey_SO "$i")
+
         # unfortunately old shells don't support rv+=( "$i" )
         [ "$k" != "$key" ] && rv=( "${rv[@]}" "$i" )
+        [ "$k" = "$key" ] && g=$(assoc_getGroup_SO "$i")
     done
 
-    rv=( "${rv[@]}" "$key=$value" )
+    if [ -n "$g" ]; then
+        rv=( "${rv[@]}" "${g}:${key}=${value}" )
+    else
+        rv=( "${rv[@]}" "${key}=${value}" )
+    fi
     echo ${rv[*]}
 }
 
 #
-# @brief lookup index in the array for given value
-# returns the index of the value and 0 on success
+# @brief modify value in the array (it will be added if the key doesn't exist)
+#
+# This function expects global variable name as parameter. It will
+# modify the array in place.
+#
+# @param key
+# @param value
+# @param array name
+#
+assoc_modifyValue_GV() {
+    local key="$1"
+    local value="$2"
+    local arrayName="$3"
+
+    local i=0
+    local k=
+    local g=
+    local tmp=()
+    local rv=()
+
+    # copy global to local
+    eval tmp=\( \"\${${arrayName}[@]}\" \)
+
+    for i in "${tmp[@]}"; do
+        k=$(assoc_getKey_SO "$i")
+
+        # unfortunately old shells don't support rv+=( "$i" )
+        [ "$k" != "$key" ] && rv=( "${rv[@]}" "$i" )
+        [ "$k" = "$key" ] && g=$(assoc_getGroup_SO "$i")
+    done
+
+    if [ -n "$g" ]; then
+        rv=( "${rv[@]}" "${g}:${key}=${value}" )
+    else
+        rv=( "${rv[@]}" "${key}=${value}" )
+    fi
+
+    # re-assign
+    eval "$arrayName"=\( \"\${rv[@]}\" \)
+}
+
+#
+# @brief lookup index in the array for given key
+# returns the index of the value and 0 on success,
+# @param key
+# @param array
 #
 assoc_lookupKey_SO() {
     local i=''
     local idx=0
-    local rv=$G_RETFAIL
     local key="$1"
+    local tk=
 
     shift
     for i in "$@"; do
-        [ "$i" = "$key" ] && rv=$G_RETOK && break
+        tk="$(assoc_getKey_SO "$i")"
+        [ "$tk" = "$key" ] && {
+            echo "$idx"
+            return $G_RETOK
+        }
         idx=$(( idx + 1 ))
     done
 
-    echo $idx
-    return $rv
+    echo "-1"
+    return $G_RETFAIL
 }
 
 #
@@ -160,10 +237,20 @@ assoc_lookupGroupKeys_SO() {
 }
 
 #
+# @brief given a key extract it's group (if it has any)
+# @param key
+# @param array
+#
+assoc_lookupKeysGroup_SO() {
+    local group="${1}" && shift
+    _assoc_lookupKeyGeneric_SO "$group" "assoc_getGroup_SO" "$@"
+}
+
+#
 # @brief extract a key=value from an entry of form [group:]key=value
 #
 assoc_getKvPair_SO() {
-    echo "${1##*:}"
+    echo "${1#*:}"
 }
 
 #

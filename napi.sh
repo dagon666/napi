@@ -49,6 +49,7 @@ fi
 . "${G_NAPISHAREPATH}/libs/libnapi_logging.sh"
 . "${G_NAPISHAREPATH}/libs/libnapi_napiprojekt.sh"
 . "${G_NAPISHAREPATH}/libs/libnapi_retvals.sh"
+. "${G_NAPISHAREPATH}/libs/libnapi_subs.sh"
 . "${G_NAPISHAREPATH}/libs/libnapi_sysconf.sh"
 . "${G_NAPISHAREPATH}/libs/libnapi_tools.sh"
 . "${G_NAPISHAREPATH}/libs/libnapi_wrappers.sh"
@@ -203,6 +204,24 @@ _executeAction() {
 }
 
 #
+# @brief detect system details and configure appropriate settings
+#
+_configureSystem() {
+    local cores=1
+    cores="$(wrappers_getCores_SO)"
+
+    logging_debug $LINENO $"wykryto rdzeni" "[$cores]"
+
+    # sanity checks
+    [ -z "${cores}" ] ||
+        [ "${#cores}" -eq 0 ] ||
+        [ "$cores" -eq 0 ] && cores=1
+
+    # two threads on one core should be safe enough
+    sysconf_setKey_GV system.forks $(( cores * 2 ))
+}
+
+#
 # @brief main function
 #
 _main() {
@@ -230,6 +249,12 @@ _main() {
     # configure the rest of libraries
     fs_configure_GV
     http_configure_GV
+
+    # perform system configuration
+    _configureSystem
+
+    logging_msg "system: $(wrappers_getSystem_SO)," \
+        "forkow: $(sysconf_getKey_SO system.forks), wersja: $g_revision"
 
     local action="$1" && shift
 

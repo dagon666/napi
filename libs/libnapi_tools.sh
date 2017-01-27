@@ -115,13 +115,14 @@ tools_verify_SO() {
     for t in "$@"; do
         local key=$(assoc_getKey_SO "$t")
         local mandatory=$(assoc_getValue_SO "$t")
+        local group="$(assoc_getGroup_SO "$t")"
         local tool=''
         local counter=0
 
         for tool in ${key//|/ }; do
             local p=1
             tools_verifyToolPresence "$tool" || p=0
-            ret=( "${ret[@]}" "$tool=$p" )
+            ret=( "${ret[@]}" "${group}:${tool}=${p}" )
             counter=$(( counter + 1 ))
         done
 
@@ -139,13 +140,14 @@ tools_verify_SO() {
 tools_isDetected() {
     # this function can cope with that kind of input
     # shellcheck disable=SC2068
-    local t="$(assoc_lookupValue_SO $1 ${___g_tools[@]} )"
+    local t=
+    t="$(assoc_lookupValue_SO "$1" "${___g_tools[@]}" )"
     t=$(wrappers_ensureNumeric_SO "$t")
     [ "$t" -eq 1 ]
 }
 
 #
-#
+# @brief get first available tool from given group
 #
 tools_getFirstAvailableFromGroup_SO() {
     local t=''
@@ -158,7 +160,7 @@ tools_getFirstAvailableFromGroup_SO() {
 }
 
 #
-#
+# @brief check if given tool belongs to given group
 #
 tools_isInGroup() {
     local t=''
@@ -173,7 +175,7 @@ tools_isInGroup() {
 }
 
 #
-#
+# @brief return first detected tool from a given group
 #
 tools_isInGroupAndDetected() {
     local t=''
@@ -231,14 +233,14 @@ tools_toList_SO() {
 # @brief concat the group members to single line
 #
 tools_groupToString_SO() {
-    assoc_lookupGroupKv_SO "$1"
+    assoc_lookupGroupKv_SO "$1" "${___g_tools[@]}"
 }
 
 #
 # @brief concat the group members to list
 #
 tools_groupToList_SO() {
-    local a=( $(assoc_lookupGroupKv_SO "$1") )
+    local a=( $(assoc_lookupGroupKv_SO "$1" "${___g_tools[@]}") )
     ( IFS=$'\n'; echo "${a[*]}" )
 }
 

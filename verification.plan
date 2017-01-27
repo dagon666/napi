@@ -1,0 +1,15 @@
+# Verification plan
+
+## No conversion
+For legacy,xml modes:
+    - verification of response if subs don't exist
+        - verify statistics
+    - verification of response if subs exist
+        - verify statistics
+        - verify file naming & location
+        - verify delete orig
+        - verify skip
+        - verify abbreviations
+        - verify bigger than
+        - verify prefix
+
