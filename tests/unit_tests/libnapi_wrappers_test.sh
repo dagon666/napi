@@ -38,6 +38,17 @@
 # module under test
 . ../../libs/libnapi_wrappers.sh
 
+setUp() {
+    export SCPMOCKER_DB_PATH="$(mktemp -d -p "$SHUNIT_TMPDIR")"
+    export MOCK_BIN="$(mktemp -d -p "$SHUNIT_TMPDIR")"
+    export PATH_ORIG="$PATH"
+    export PATH="${MOCK_BIN}:${PATH}"
+}
+
+tearDown() {
+    export PATH="${PATH_ORIG}"
+}
+
 test_wrappers_ensureNumeric_SO_convertsStringToNumerics() {
     for i in {1..16}; do
         assertEquals "checking $i" \
@@ -193,6 +204,56 @@ test_floatMulOperations() {
         0 "$?"
     assertEquals "mul by 0.25 - result" \
         1 "$result"
+}
+
+test_wrappers_getSystem_returnsLowerCaseSystemName() {
+    scpmocker -c uname program -s "Linux"
+    scpmocker -c uname program -s "Darwin"
+
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+
+    assertEquals "check system for linux" \
+        "linux" "$(wrappers_getSystem_SO)"
+
+    assertEquals "check system for darwin" \
+        "darwin" "$(wrappers_getSystem_SO)"
+}
+
+test_wrappers_isSystemDarwin_returnsTrueForDarwin() {
+    scpmocker -c uname program -s "Darwin"
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+
+    assertTrue "check for rv for Darwin" \
+        wrappers_isSystemDarwin
+}
+
+test_wrappers_getCores_returnsCoresFromProcOnLinux() {
+    scpmocker -c sysctl program -s "123"
+    scpmocker -c uname program -s "Linux"
+
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/sysctl"
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+
+    wrappers_getCores_SO >/dev/null
+
+    assertEquals "check sysctl mock call count" \
+        0 "$(scpmocker -c sysctl status -C)"
+}
+
+test_wrappers_getCores_returnsCoresFromSysctlOnDarwin() {
+    scpmocker -c sysctl program -s "123"
+    scpmocker -c uname program -s "Darwin"
+
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+    ln -sf "$(which scpmocker)" "${MOCK_BIN}/sysctl"
+
+    local cores=$(wrappers_getCores_SO)
+
+    assertEquals "check cores value" \
+        123 "$cores"
+
+    assertEquals "check sysctl mock call count" \
+        1 "$(scpmocker -c sysctl status -C)"
 }
 
 # shunit call
