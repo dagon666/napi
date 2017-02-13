@@ -27,6 +27,14 @@ RUN apt-get install -y \
         texinfo \
         install-info
 
+# set-up environment
+ENV NAPITESTER_HOME /home/napitester
+ENV NAPITESTER_BIN $NAPITESTER_HOME/bin
+ENV INSTALL_DIR /tmp/install
+
+RUN useradd -m -U napitester -d /home/napitester
+RUN mkdir -p $INSTALL_DIR
+
 # kcov dependencies
 RUN apt-get update -y
 RUN apt-get install -y --fix-missing \
@@ -43,10 +51,7 @@ RUN apt-get install -y \
         python-minimal \
         git
 
-ENV NAPITESTER_HOME /home/napitester
-ENV NAPITESTER_BIN $NAPITESTER_HOME/bin
-ENV INSTALL_DIR /tmp/install
-
+# kcov installation
 RUN git clone https://github.com/SimonKagstrom/kcov.git $INSTALL_DIR/kcov && \
         cd $INSTALL_DIR/kcov && \
         git reset --hard v33 && \
@@ -56,14 +61,22 @@ RUN git clone https://github.com/SimonKagstrom/kcov.git $INSTALL_DIR/kcov && \
         make && \
         make install
 
-RUN useradd -m -U napitester -d /home/napitester
-RUN mkdir -p $INSTALL_DIR
-WORKDIR $INSTALL_DIR
+# scpmocker dependencies
+RUN apt-get install -y \
+        python-setuptools
 
+# scpmocker installation
+RUN git clone https://github.com/dagon666/scpmocker.git $INSTALL_DIR/scpmocker && \
+        cd $INSTALL_DIR/scpmocker && \
+        python setup.py install
+
+# setup shells and test assets
+WORKDIR $INSTALL_DIR
 ADD napitester $INSTALL_DIR/napitester
 RUN ./napitester/prepare_shells.pl
 RUN ./napitester/prepare_assets.pl
 
+# switch to test user
 WORKDIR $NAPITESTER_HOME
 USER napitester
 RUN mkdir -p $NAPITESTER_BIN
