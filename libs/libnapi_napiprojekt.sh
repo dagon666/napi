@@ -170,7 +170,7 @@ napiprojekt_calculateMd5VideoFile_SO() {
     local file="${1:-}"
     [ -e "$file" ] || return $G_RETFAIL
     dd if="$file" bs=1024k count=10 2> /dev/null | \
-        fs_md5 | \
+        fs_md5_SO | \
         cut -d ' ' -f 1
 }
 
@@ -296,11 +296,11 @@ napiprojekt_extractSubsFromXml() {
     local tmp7zArchive=$(fs_mktempFile_SO)
     echo "$subsContent" | \
         xml_extractCdataTag | \
-        fs_base64Decode > "$tmp7zArchive"
+        fs_base64Decode_SO > "$tmp7zArchive"
 
     if [ -s "$tmp7zArchive" ]; then
         logging_debug $LINENO $"rozpakowuje archiwum ..."
-        fs_7z x \
+        fs_7z_SO x \
             -y -so \
             -p"$g_napiprojektPassword" \
             "$tmp7zArchive" 2>/dev/null > "$subsPath" || {
@@ -519,7 +519,7 @@ napiprojekt_downloadSubtitlesLegacy() {
             ;;
 
         "other")
-        fs_7z x \
+        fs_7z_SO x \
             -y -so \
             -p"$g_napiprojektPassword" \
             "$downloadFileName" 2> /dev/null > "$outputFile" || {

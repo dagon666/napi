@@ -264,14 +264,14 @@ fs_stat_SO() {
 #
 # @brief base64 wrapper
 #
-fs_base64Decode() {
+fs_base64Decode_SO() {
     ${___g_fsWrappers[$___g_fsBase64]} "$@"
 }
 
 #
 # @brief md5 wrapper
 #
-fs_md5() {
+fs_md5_SO() {
     ${___g_fsWrappers[$___g_fsMd5]} "$@"
 }
 
@@ -299,7 +299,7 @@ fs_unlink() {
 #
 # @brief 7z wrapper
 #
-fs_7z() {
+fs_7z_SO() {
     [ "${___g_fsWrappers[$___g_fs7z]}" != 'none' ] &&
         ${___g_fsWrappers[$___g_fs7z]} "$@"
 }
@@ -363,7 +363,7 @@ fs_setFpsTool_GV() {
 #
 # @brief get fps of a media file
 #
-fs_getFps() {
+fs_getFps_SO() {
     [ "${___g_fsWrappers[$___g_fsFps]}" = 'none' ] && return $G_RETUNAV
     _fs_getFpsWithTool "${___g_fsWrappers[$___g_fsFps]}" "$@"
 }

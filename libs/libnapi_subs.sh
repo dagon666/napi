@@ -200,7 +200,7 @@ subs_convertFormat() {
     fi
 
     # detect video file framerate
-    fps=$(fs_getFps "$videoFilePath")
+    fps=$(fs_getFps_SO "$videoFilePath")
 
     if [ -n "$fps" ] && [ "$fps" != "0" ]; then
         logging_msg $"wykryty fps" "$fps"
