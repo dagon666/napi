@@ -36,7 +36,7 @@
 . ../../libs/libnapi_retvals.sh
 
 # fakes/mocks
-. fake/libnapi_logging_mock.sh
+. fake/libnapi_logging_fake.sh
 
 # module under test
 . ../../libs/libnapi_sysconf.sh
