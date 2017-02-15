@@ -36,19 +36,17 @@
 
 # fakes/mocks
 . fake/libnapi_logging_fake.sh
+. mock/scpmocker.sh
 
 # module under test
 . ../../libs/libnapi_fs.sh
 
 setUp() {
-    export SCPMOCKER_DB_PATH="$(mktemp -d -p "$SHUNIT_TMPDIR")"
-    export MOCK_BIN="$(mktemp -d -p "$SHUNIT_TMPDIR")"
-    export PATH_ORIG="$PATH"
-    export PATH="${MOCK_BIN}:${PATH}"
+    scpmocker_setUp
 }
 
 tearDown() {
-    export PATH="${PATH_ORIG}"
+    scpmocker_tearDown
 }
 
 _genericForwardTest() {
@@ -59,7 +57,7 @@ _genericForwardTest() {
 
     # set-up mock
     scpmocker -c "$cmd" program -s "$cmdOutput"
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/${cmd}"
+    scpmocker_patchCommand "$cmd"
 
     # set-up fs
     # shellcheck disable=SC2034
@@ -114,8 +112,9 @@ test_fs_7z_doesntForwardCallIf7zIsNotDetected() {
     # set-up mock
     scpmocker -c "7z" program
     scpmocker -c "7za" program
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/7z"
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/7za"
+
+    scpmocker_patchCommand "7z"
+    scpmocker_patchCommand "7za"
 
     # set-up fs
     # shellcheck disable=SC2034

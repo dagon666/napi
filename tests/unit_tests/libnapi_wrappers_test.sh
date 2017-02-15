@@ -34,19 +34,17 @@
 # module dependencies
 
 # fakes/mocks
+. mock/scpmocker.sh
 
 # module under test
 . ../../libs/libnapi_wrappers.sh
 
 setUp() {
-    export SCPMOCKER_DB_PATH="$(mktemp -d -p "$SHUNIT_TMPDIR")"
-    export MOCK_BIN="$(mktemp -d -p "$SHUNIT_TMPDIR")"
-    export PATH_ORIG="$PATH"
-    export PATH="${MOCK_BIN}:${PATH}"
+    scpmocker_setUp
 }
 
 tearDown() {
-    export PATH="${PATH_ORIG}"
+    scpmocker_tearDown
 }
 
 test_wrappers_ensureNumeric_SO_convertsStringToNumerics() {
@@ -210,7 +208,7 @@ test_wrappers_getSystem_returnsLowerCaseSystemName() {
     scpmocker -c uname program -s "Linux"
     scpmocker -c uname program -s "Darwin"
 
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+    scpmocker_patchCommand "uname"
 
     assertEquals "check system for linux" \
         "linux" "$(wrappers_getSystem_SO)"
@@ -221,7 +219,7 @@ test_wrappers_getSystem_returnsLowerCaseSystemName() {
 
 test_wrappers_isSystemDarwin_returnsTrueForDarwin() {
     scpmocker -c uname program -s "Darwin"
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+    scpmocker_patchCommand "uname"
 
     assertTrue "check for rv for Darwin" \
         wrappers_isSystemDarwin
@@ -231,8 +229,8 @@ test_wrappers_getCores_returnsCoresFromProcOnLinux() {
     scpmocker -c sysctl program -s "123"
     scpmocker -c uname program -s "Linux"
 
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/sysctl"
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
+    scpmocker_patchCommand "sysctl"
+    scpmocker_patchCommand "uname"
 
     wrappers_getCores_SO >/dev/null
 
@@ -244,8 +242,8 @@ test_wrappers_getCores_returnsCoresFromSysctlOnDarwin() {
     scpmocker -c sysctl program -s "123"
     scpmocker -c uname program -s "Darwin"
 
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/uname"
-    ln -sf "$(which scpmocker)" "${MOCK_BIN}/sysctl"
+    scpmocker_patchCommand "sysctl"
+    scpmocker_patchCommand "uname"
 
     local cores=$(wrappers_getCores_SO)
 
