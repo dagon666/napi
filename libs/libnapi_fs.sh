@@ -57,7 +57,7 @@ _fs_configureStat_GV() {
     if wrappers_isSystemDarwin; then
         # stat may be installed through macports, check if
         # there's a need to reconfigure it to BSD flavour
-        "${___g_fsWrappers[$___g_fsStat]}" "$0" > /dev/null 2>&1 &&
+        ${___g_fsWrappers[$___g_fsStat]} "$0" >/dev/null 2>&1 ||
             ___g_fsWrappers[$___g_fsStat]="stat -f%z "
     fi
 }
@@ -227,7 +227,7 @@ _fs_getFpsWithTool() {
         for i in 1 2; do
             local a=$(echo "${atmp[$i]}" | cut -d '/' -f 1)
             local b=$(echo "${atmp[$i]}" | cut -d '/' -f 2)
-            [ "${atmp[$i]}" != "0/0" ] && fps=$(float_div "$a" "$b")
+            [ "${atmp[$i]}" != "0/0" ] && fps=$(wrappers_floatDiv "$a" "$b")
         done
         ;;
 
@@ -364,7 +364,8 @@ fs_setFpsTool_GV() {
 # @brief get fps of a media file
 #
 fs_getFps_SO() {
-    [ "${___g_fsWrappers[$___g_fsFps]}" = 'none' ] && return $G_RETUNAV
+    [ "${___g_fsWrappers[$___g_fsFps]}" = 'none' ] &&
+        return "$G_RETUNAV"
     _fs_getFpsWithTool "${___g_fsWrappers[$___g_fsFps]}" "$@"
 }
 

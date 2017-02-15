@@ -36,7 +36,7 @@
 ########################################################################
 
 declare -r \
-    SCPMOCKER_FUNCTION_CMD_PREFIX="_scpmocker_functionMock."
+    SCPMOCKER_FUNCTION_CMD_PREFIX="func_"
 declare -r \
     SCPMOCKER_FUNCTION_ORIG_FUNC_PREFIX="___scpmocker_original_implementation."
 
@@ -58,7 +58,7 @@ scpmocker_patchCommand() {
 }
 
 scpmocker_resetCommand() {
-    rm -rf -sf "$(which scpmocker)" "${SCPMOCKER_BIN_PATH}/${1}"
+    rm -rf "${SCPMOCKER_BIN_PATH}/${1}"
 }
 
 _scpmocker_functionMock() {
@@ -72,9 +72,11 @@ scpmocker_patchFunction() {
     local cmd="${SCPMOCKER_FUNCTION_CMD_PREFIX}${funcName}"
     scpmocker_patchCommand "$cmd"
 
-    # save original function's code under different name
-    eval "$(echo "${SCPMOCKER_FUNCTION_ORIG_FUNC_PREFIX}${funcName}()"; \
-        declare -f "$funcName" | tail -n +2)"
+    # save original function's code under different name (only if it exists)
+    local symbolType="$(builtin type -t "$funcName" 2>/dev/null)"
+    [ -n "$symbolType" ] && [ "function" = "$symbolType" ] &&
+        eval "$(echo "${SCPMOCKER_FUNCTION_ORIG_FUNC_PREFIX}${funcName}()"; \
+            declare -f "$funcName" | tail -n +2)"
 
     # replace with a mock
     eval "${funcName}() { _scpmocker_functionMock \"${funcName}\" \"\$@\"; }"
@@ -85,7 +87,13 @@ scpmocker_resetFunction() {
     local cmd="${SCPMOCKER_FUNCTION_CMD_PREFIX}${funcName}"
     local origFuncName="${SCPMOCKER_FUNCTION_ORIG_FUNC_PREFIX}${funcName}"
 
-    [ -n "$funcName"  ] && {
+    # reset the symbol
+    unset -f "$funcName"
+
+    # restore the original code
+    local symbolType="$(builtin type -t "$origFuncName" 2>/dev/null)"
+
+    [ -n "$funcName"  ] && [ -n "$symbolType" ] && {
         # restore original function's code
         eval "$(echo "${funcName}()"; \
             declare -f "$origFuncName" | tail -n +2)"
