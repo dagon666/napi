@@ -81,8 +81,26 @@ http_isPostRequestSupported() {
 # @brief extract http status code
 #
 http_getHttpStatus() {
-    # grep -o "HTTP/[\.0-9]* [0-9]*"
-    awk '{ m = match($0, /HTTP\/[\.0-9]* [0-9]*/); if (m) print substr($0, m, RLENGTH) }'
+    local awkCode=
+    read -r -d "" awkCode << 'EOF'
+/HTTP/ {
+    m = match($0, /HTTP\/[\.0-9]* [0-9]*/);
+
+    if (m)
+        responses[length(responses)+1] = substr($2, m, RLENGTH)
+}
+
+END {
+    responseString=responses[1]
+    for (i = 2; i<=length(responses); i++) {
+        responseString = responseString " " responses[i]
+    }
+
+    if (length(responseString))
+        print responseString
+}
+EOF
+    awk "$awkCode"
 }
 
 #
@@ -113,7 +131,7 @@ http_downloadUrl_SOSE() {
     http_wget "$output" \
         "${postParams[@]}" \
         "$url" \
-        2> >(http_getHttpStatus | cut -d ' ' -f 2 >&2)
+        2> >(http_getHttpStatus >&2)
 }
 
 ########################################################################
