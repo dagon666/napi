@@ -92,7 +92,6 @@ language_verifyLanguage_SO() {
     eval langArray=\( \${${langArrayName}[@]} \)
 
     i=$(assoc_lookupKey_SO "$lang" "${langArray[@]}")
-    local found=$?
 
     [ $? -eq $G_RETOK ] && {
         echo "$i"
@@ -123,14 +122,15 @@ language_setLanguage_GV() {
     local idx=0
     ___g_language_napiprojektLanguage="${1}"
 
-    idx=$(language_verifyLanguage_SO "$___g_language_napiprojektLanguage") || {
+    if idx=$(language_verifyLanguage_SO "$___g_language_napiprojektLanguage")
+    then
+        ___g_language_napiprojektLanguage=$(language_normalizeLanguage_SO "$idx")
+        logging_debug $LINENO $"jezyk skonfigurowany jako" \
+            "[$___g_language_napiprojektLanguage]"
+    else
         logging_error $"niepoprawny kod jezyka" "[$1]"
         ___g_language_napiprojektLanguage="PL"
-    }
-
-    ___g_language_napiprojektLanguage=$(language_normalizeLanguage_SO "$idx")
-    logging_debug $LINENO $"jezyk skonfigurowany jako" \
-        "[$___g_language_napiprojektLanguage]"
+    fi
 }
 
 #
