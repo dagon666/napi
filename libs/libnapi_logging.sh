@@ -60,7 +60,7 @@ declare -a ___g_output=( 1 'none' 0 1 0 )
 # @brief produce output
 #
 _logging_blit() {
-    printf "#%02d:%04d %s\n" \
+    printf "%02d:%04d %s\n" \
         "${___g_output[$___g_output_forkid]}" \
         "${___g_output[$___g_output_msgcnt]}" "$*"
     ___g_output[$___g_output_msgcnt]=$(( ___g_output[___g_output_msgcnt] + 1 ))
@@ -82,8 +82,9 @@ _logging_toStderr() {
 # @brief set insane verbosity
 #
 _logging_debugInsane() {
-    PS4='+ [${LINENO}] ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-    set -x
+    # PS4='+ [${LINENO}] ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    # set -x
+    :
 }
 
 #
@@ -93,14 +94,14 @@ _logging_verifyVerbosity() {
     # make sure first that the printing functions will work
     logging_debug $LINENO $'sprawdzam poziom gadatliwosci'
     case "${___g_output[$___g_output_verbosity]}" in
-        0 | 1 | 2 | 3 | 4)
+        "0"|"1"|"2"|"3"|"4")
             ;;
 
         *)
             logging_error \
                 $"poziom gadatliwosci moze miec jedynie wartosci z zakresu (0-4)"
             # shellcheck disable=SC2086
-            return $RET_PARAM
+            return $G_RETPARAM
             ;;
     esac
 }
@@ -118,14 +119,14 @@ _logging_verifyLogFile() {
             logging_error \
                 $"plik loga istnieje, podaj inna nazwe pliku aby nie stracic danych"
             # shellcheck disable=SC2086
-            return $RET_PARAM
+            return $G_RETPARAM
         else
             logging_warning $"plik loga istnieje, zostanie nadpisany"
         fi
     fi
 
     # shellcheck disable=SC2086
-    return $RET_OK
+    return $G_RETOK
 }
 
 #
@@ -138,7 +139,7 @@ _logging_setLogOverwrite() {
 #
 # @brief redirect stdout to logfile
 #
-_logging_redirectToStdout() {
+_logging_redirectToLogFile() {
     if [ -n "${___g_output[$___g_output_logfile]}" ] &&
         [ "${___g_output[$___g_output_logfile]}" != "none" ]; then
 
@@ -153,11 +154,12 @@ _logging_redirectToStdout() {
 #
 # @brief redirect output to stdout
 #
-_logging_redirectToLogFile() {
+_logging_redirectToStdout() {
     # restore everything
     [ -n "${___g_output[$___g_output_logfile]}" ] &&
-    [ "${___g_output[$___g_output_logfile]}" != "none" ] &&
+        [ "${___g_output[$___g_output_logfile]}" != "none" ] && {
         exec 1>&3 2>&4 4>&- 3>&-
+    }
 }
 
 ################################################################################
@@ -169,6 +171,7 @@ logging_debug() {
     local line="${1:-0}" && shift
     [ "${___g_output[$___g_output_verbosity]}" -ge 3 ] &&
         _logging_blit "--- $line: $*"
+    return $G_RETOK
 }
 
 #
@@ -178,6 +181,7 @@ logging_info() {
     local line=${1:-0} && shift
     [ "${___g_output[$___g_output_verbosity]}" -ge 2 ] &&
         _logging_blit "-- $line: $*"
+    return $G_RETOK
 }
 
 #
