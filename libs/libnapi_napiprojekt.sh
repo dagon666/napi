@@ -42,7 +42,7 @@ declare -a ___g_napiprojektCredentials=( '' '' )
 # - other - identifies itself as other
 # - NapiProjektPython - uses new napiprojekt3 API - NapiProjektPython
 # - NapiProjekt - uses new napiprojekt3 API - NapiProjekt
-___g_sysconf_napiprojektId='NapiProjektPython'
+___g_napiprojekt_napiprojektId='NapiProjektPython'
 
 ########################################################################
 
@@ -52,9 +52,9 @@ ___g_sysconf_napiprojektId='NapiProjektPython'
 # 7z is required when using specific API type.
 #
 _napiprojekt_is7zRequired() {
-    [ "$___g_sysconf_napiprojektId" = 'other' ] ||
-        [ "$___g_sysconf_napiprojektId" = 'NapiProjektPython' ] ||
-        [ "$___g_sysconf_napiprojektId" = 'NapiProjekt' ]
+    [ "$___g_napiprojekt_napiprojektId" = 'other' ] ||
+        [ "$___g_napiprojekt_napiprojektId" = 'NapiProjektPython' ] ||
+        [ "$___g_napiprojekt_napiprojektId" = 'NapiProjekt' ]
 }
 
 #
@@ -62,14 +62,14 @@ _napiprojekt_is7zRequired() {
 # it's not.
 #
 _napiprojekt_verifyNapiprojektId() {
-    case "$___g_sysconf_napiprojektId" in
+    case "$___g_napiprojekt_napiprojektId" in
         'pynapi' | 'other' | 'NapiProjektPython' | 'NapiProjekt' )
             ;;
 
         *) # any other - revert to napi projekt 'classic'
             logging_warning "Nieznany napiprojekt API id"
             # shellcheck disable=SC2086
-            return $RET_PARAM
+            return $G_RETPARAM
             ;;
     esac
 }
@@ -95,10 +95,10 @@ _napiprojekt_verifyNapiprojektCredentials() {
 #
 napiprojekt_verifyArguments_GV() {
     # 7z check
-    _napiprojekt_is7zRequired && ! fs_is7zAvailable && {
+    if _napiprojekt_is7zRequired && ! fs_is7zAvailable; then
         logging_error $"Tryb legacy: 7z nie jest dostepny. id = 'pynapi'"
-        ___g_sysconf_napiprojektId='pynapi'
-    }
+        ___g_napiprojekt_napiprojektId='pynapi'
+    fi
 
     _napiprojekt_verifyNapiprojektCredentials ||
         ___g_napiprojektCredentials=( '' '' )
@@ -108,16 +108,16 @@ napiprojekt_verifyArguments_GV() {
 # @brief configures napiprojekt id value
 #
 napiprojekt_setNapiprojektId_GV() {
-    ___g_sysconf_napiprojektId="${1:-pynapi}"
-    _napiprojekt_verifyNapiprojektId || ___g_sysconf_napiprojektId='pynapi'
+    ___g_napiprojekt_napiprojektId="${1:-pynapi}"
+    _napiprojekt_verifyNapiprojektId || ___g_napiprojekt_napiprojektId='pynapi'
 }
 
 #
 # @brief true if configured napiprojekt id is legacy id
 #
 napiprojekt_isNapiprojektIdLegacy() {
-    [ "$___g_sysconf_napiprojektId" = "pynapi" ] ||
-        [ "$___g_sysconf_napiprojektId" = "other" ]
+    [ "$___g_napiprojekt_napiprojektId" = "pynapi" ] ||
+        [ "$___g_napiprojekt_napiprojektId" = "other" ]
 }
 
 #
@@ -193,8 +193,6 @@ napiprojekt_normalizeHash_SO() {
 # done in mode 17 (whatever it means)
 #
 napiprojekt_downloadXml() {
-    # should be something like NapiProjektPython
-
     # input data
     local md5sum=${1:-0}
     local movieFile="${2:-}"
@@ -210,26 +208,26 @@ napiprojekt_downloadXml() {
     [ -z "$movieFile" ] && [ "$byteSize" = "0" ] && mode=17
 
     local data="mode=$mode&\
-        client=${___g_sysconf_napiprojektId}&\
-        client_ver=${g_napiprojektClientVersion}&\
-        user_nick=${___g_napiprojektCredentials[0]}&\
-        user_password=${___g_napiprojektCredentials[1]}&\
-        downloaded_subtitles_id=$md5sum&\
-        downloaded_subtitles_lang=$lang&"
+client=${___g_napiprojekt_napiprojektId}&\
+client_ver=${g_napiprojektClientVersion}&\
+user_nick=${___g_napiprojektCredentials[0]}&\
+user_password=${___g_napiprojektCredentials[1]}&\
+downloaded_subtitles_id=$md5sum&\
+downloaded_subtitles_lang=$lang&"
 
     # in mode 31 we deliver the file details as well
-    [ "$mode" = "31" ] &&
-        data="$data\
-        downloaded_cover_id=$md5sum&\
-        advert_type=flashAllowed&\
-        video_info_hash=$md5sum&\
-        nazwa_pliku=$movieFile&\
-        rozmiar_pliku_bajty=$byteSize&"
+    [ "$mode" = "31" ] && data="${data}\
+downloaded_cover_id=$md5sum&\
+advert_type=flashAllowed&\
+video_info_hash=$md5sum&\
+nazwa_pliku=$movieFile&\
+rozmiar_pliku_bajty=$byteSize&"
 
     # append the end query marker
     data="${data}the=end"
 
-    local httpCodes=$(http_downloadUrl_SOSE \
+    local httpCodes=
+    httpCodes=$(http_downloadUrl_SOSE \
         "${g_napiprojektBaseUrl}${g_napiprojektApi3Uri}" \
         "$outputFile" "$data" 2>&1)
     local status=$?
@@ -250,8 +248,7 @@ napiprojekt_downloadXml() {
 napiprojekt_verifyXml() {
     local xmlPath="${1:-}"
     local minSize=32
-    [ -e "${xmlPath}" ] &&
-        [ "$(fs_stat_SO "$xmlPath")" -gt "$minSize" ]
+    [ -e "${xmlPath}" ] && [ "$(fs_stat_SO "$xmlPath")" -gt "$minSize" ]
 }
 
 #
@@ -282,7 +279,7 @@ napiprojekt_extractSubsFromXml() {
 	# check if the subtitles tag exist in the output
 	# it's possible that the downloaded XML contains only
 	# the cover and metadata
-	if [ -z "$xmlSubs" ]; then
+	if [ -z "${xmlSubs}" ]; then
 		logging_debug $LINENO $"plik xml nie zawiera taga subtitles"
 		logging_info $LINENO $"napisy niedostepne"
         # shellcheck disable=SC2086
@@ -326,7 +323,7 @@ napiprojekt_extractSubsFromXml() {
 #
 # @brief extract cover out of xml
 # @param xml file path
-# @param subs file path
+# @param cover file path
 #
 napiprojekt_extractCoverFromXml() {
     local xmlPath="${1:-}"
@@ -349,10 +346,17 @@ napiprojekt_extractCoverFromXml() {
     # extract the cover data
     local xmlCover=$(xml_extractXmlTag 'cover' "$xmlPath")
 
+	if [ -z "$xmlCover" ]; then
+		logging_debug $LINENO $"plik xml nie zawiera taga cover"
+		logging_info $LINENO $"okladka niedostepne"
+        # shellcheck disable=SC2086
+        return $G_RETUNAV
+	fi
+
     # write archive data
     echo "$xmlCover" | \
         xml_extractCdataTag | \
-        fs_base64Decode > "$coverPath" 2>/dev/null
+        fs_base64Decode_SO > "$coverPath" 2>/dev/null
 
     [ -s "$coverPath" ] || {
         logging_info $LINENO $"okladka ma zerowy rozmiar, zostanie usunieta"
@@ -373,7 +377,7 @@ napiprojekt_extractNfoFromXml() {
     local xmlPath="${1:-}"
     local nfoPath="${2:-}"
     local xmlStatus=0
-    local rv=$RET_OK
+    local rv=$G_RETOK
 
     local k=
     local v=
@@ -392,7 +396,7 @@ napiprojekt_extractNfoFromXml() {
     if [ "$xmlStatus" -eq 0 ]; then
         logging_error $"napiprojekt zglasza niepowodzenie - informacje niedostepne"
         # shellcheck disable=SC2086
-        return $RET_UNAV
+        return $G_RETUNAV
     fi
 
     # extract the subs data
@@ -405,10 +409,10 @@ napiprojekt_extractNfoFromXml() {
     echo "nfo generated by napi $g_revision" > "$nfoPath"
 
     # extract data from subtitles tag
-    for k in "${subsTags[@]}"; do
+    [ -n "$xmlSubs" ] && for k in "${subsTags[@]}"; do
         v=$(echo "$xmlSubs" | \
-            xml_extractXmlTag "$k" | xml_stripXmlTag "$k")
-        echo "$k: $v" >> "$nfoPath"
+            xml_extractXmlTag "$k" | xml_stripXmlTag "$k") &&
+            echo "$k: $v" >> "$nfoPath"
     done
 
     local cdata=0
@@ -416,7 +420,7 @@ napiprojekt_extractNfoFromXml() {
     local pl=
 
     # extract data from movie tag
-    for k in "${movieTags[@]}"; do
+    [ -n "$xmlMovie" ] && for k in "${movieTags[@]}"; do
         v=$(echo "$xmlMovie" | xml_extractXmlTag "$k")
 
         cdata=$(echo "$v" | grep 'CDATA' | wrappers_countLines_SO)
@@ -444,7 +448,6 @@ napiprojekt_extractNfoFromXml() {
 napiprojekt_extractTitleFromXml_SO() {
     local xmlPath="${1:-}"
     local xmlStatus=0
-    local rv=$RET_OK
 
     # I've got the xml, extract Interesting parts
     xmlStatus=$(xml_extractXmlTag 'status' "$xmlPath" \
@@ -452,11 +455,17 @@ napiprojekt_extractTitleFromXml_SO() {
 
     if [ "$xmlStatus" -eq 0 ]; then
         # shellcheck disable=SC2086
-        return $RET_UNAV
+        return $G_RETUNAV
     fi
 
     # extract the movie data
     local xmlMovie=$(xml_extractXmlTag 'movie' "$xmlPath")
+
+    [ -z "$xmlMovie" ] && {
+        logging_debug $LINENO $"brak taga movie"
+        return $G_RETUNAV
+    }
+
     echo "$xmlMovie" | xml_extractXmlTag "title"
 }
 
@@ -478,8 +487,8 @@ napiprojekt_downloadSubtitlesLegacy() {
     local outputFile="$3"
     local lang="${4:-PL}"
 
-    local downloadFileName="$of"
-    local status=$RET_FAIL
+    local downloadFileName="${outputFile}"
+    local status=$G_RETFAIL
 
     napiprojekt_isNapiprojektIdLegacy || {
         logging_error $"To API dziala jedynie w trybie legacy"
@@ -490,7 +499,7 @@ napiprojekt_downloadSubtitlesLegacy() {
     # url construction
     local url="${g_napiprojektBaseUrl}${g_napiprojektApiLegacyUri}"
     url="${url}?l=${lang}&f=${videoMd5sum}"
-    url="${url}&t=${videoHash}&v=${___g_sysconf_napiprojektId}"
+    url="${url}&t=${videoHash}&v=${___g_napiprojekt_napiprojektId}"
     url="${url}&kolejka=false&napios=posix"
     url="${url}&nick=${___g_napiprojektCredentials[0]}"
     url="${url}&pass=${___g_napiprojektCredentials[1]}"
@@ -498,7 +507,7 @@ napiprojekt_downloadSubtitlesLegacy() {
     # log the url with all the variables
     logging_debug $LINENO $"URL" "[$url]"
 
-    [ "other" = "$___g_sysconf_napiprojektId" ] &&
+    [ "other" = "${___g_napiprojekt_napiprojektId}" ] &&
         downloadFileName="$(fs_mktempFile_SO)"
 
     local httpCodes=$(http_downloadUrl_SOSE "$url" \
@@ -514,21 +523,20 @@ napiprojekt_downloadSubtitlesLegacy() {
     fi
 
     # it seems that we've got the file perform some verifications on it
-    case "$___g_sysconf_napiprojektId" in
+    case "$___g_napiprojekt_napiprojektId" in
         "pynapi" ) # no need to do anything
             ;;
 
         "other")
-        fs_7z_SO x \
-            -y -so \
-            -p"$g_napiprojektPassword" \
-            "$downloadFileName" 2> /dev/null > "$outputFile" || {
-
-            logging_error $"7z zwraca blad. nie mozna rozpakowac napisow"
-            [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
-            return $G_RETFAIL
-        }
-        ;;
+            fs_7z_SO x \
+                -y -so \
+                -p"$g_napiprojektPassword" \
+                "$downloadFileName" 2>/dev/null > "$outputFile" || {
+                logging_error $"7z zwraca blad. nie mozna rozpakowac napisow"
+                [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
+                return $G_RETFAIL
+            }
+            ;;
     esac
 
     # check if the file was downloaded successfully by checking
@@ -546,12 +554,14 @@ napiprojekt_downloadSubtitlesLegacy() {
 
     logging_debug $LINENO $"lines/minLines:" "[$lines/$minLines]"
 
-    [ "$lines" -lt "$min_lines" ] || {
+    [ "$lines" -lt "$minLines" ] && {
         logging_info $LINENO $"plik uszkodzony. niepoprawna ilosc linii"
-        logging_debug $LINENO "$(<"$outpuFile")"
+        logging_debug $LINENO "[$(<"${outputFile}")]"
         fs_garbageCollect "$outputFile"
         return $G_RETFAIL
     }
+
+    return $G_RETOK
 }
 
 #
@@ -572,7 +582,7 @@ napiprojekt_downloadCoverLegacy() {
     httpCodes=$(http_downloadUrl_SOSE "$url" "$outputFile" 2>&1)
     status=$?
 
-    logging_info $LINENO $"otrzymane odpowiedzi http:" "[$httpCodes]"
+    logging_info $LINENO $"otrzymane odpowiedzi http:" "[$httpCodes] [$status]"
 
     # shellcheck disable=SC2086
     if [ "$status" -ne $G_RETOK ]; then
@@ -582,10 +592,12 @@ napiprojekt_downloadCoverLegacy() {
     fi
 
     # if file doesn't exist or has zero size
-    [ -s "$2" ] || {
-        [ -e "$outputFile" ] && fs_garbageCollect "$outputFile"
-        rv=$G_RETUNAV
+    [ -s "$outputFile" ] || {
+        fs_garbageCollect "$outputFile"
+        return $G_RETUNAV
     }
+
+    return $G_RETOK
 }
 
 # EOF

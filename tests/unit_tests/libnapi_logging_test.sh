@@ -249,8 +249,6 @@ test_logging_setLogFile_redirectsOutputToLogFile() {
 
     assertEquals "check file contents" \
         "00:0002 ERROR -> $msg" "$(<${logFile})"
-
-
 }
 
 # shunit call

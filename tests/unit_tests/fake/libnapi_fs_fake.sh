@@ -31,19 +31,18 @@
 ########################################################################
 ########################################################################
 
-logging_debug() {
-    echo " -- FAKE ${FUNCNAME[0]} $*"
+fs_md5_SO() {
+    md5sum
 }
 
-logging_info() {
-    echo " -- FAKE ${FUNCNAME[0]} $*"
+fs_stat_SO() {
+    stat -c%s "$@"
 }
 
-logging_warning() {
-    echo " -- FAKE ${FUNCNAME[0]} $*"
+fs_base64Decode_SO() {
+    base64 -d
 }
 
-logging_error() {
-    echo " -- FAKE ${FUNCNAME[0]} $*"
+fs_7z_SO() {
+    7z "$@"
 }
-

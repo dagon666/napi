@@ -30,6 +30,9 @@ RUN apt-get install -y \
 # set-up environment
 ENV NAPITESTER_HOME /home/napitester
 ENV NAPITESTER_BIN $NAPITESTER_HOME/bin
+ENV NAPITESTER_OPT /opt/napi
+ENV NAPITESTER_TESTDATA $NAPITESTER_OPT/testdata
+ENV NAPITESTER_SHELLS $NAPITESTER_OPT/bash
 ENV INSTALL_DIR /tmp/install
 
 RUN useradd -m -U napitester -d /home/napitester
@@ -73,8 +76,8 @@ RUN git clone https://github.com/dagon666/scpmocker.git $INSTALL_DIR/scpmocker &
 # setup shells and test assets
 WORKDIR $INSTALL_DIR
 ADD napitester $INSTALL_DIR/napitester
-RUN ./napitester/prepare_shells.pl
-RUN ./napitester/prepare_assets.pl
+RUN ./napitester/prepare_shells.pl $NAPITESTER_SHELLS
+RUN ./napitester/prepare_assets.pl $NAPITESTER_TESTDATA
 
 # switch to test user
 WORKDIR $NAPITESTER_HOME
