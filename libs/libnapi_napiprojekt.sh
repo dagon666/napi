@@ -411,7 +411,7 @@ napiprojekt_extractNfoFromXml() {
     # extract data from subtitles tag
     [ -n "$xmlSubs" ] && for k in "${subsTags[@]}"; do
         v=$(echo "$xmlSubs" | \
-            xml_extractXmlTag "$k" | xml_stripXmlTag "$k") &&
+            xml_extractXmlTag "$k" | xml_stripXmlTag) &&
             echo "$k: $v" >> "$nfoPath"
     done
 
@@ -424,15 +424,15 @@ napiprojekt_extractNfoFromXml() {
         v=$(echo "$xmlMovie" | xml_extractXmlTag "$k")
 
         cdata=$(echo "$v" | grep 'CDATA' | wrappers_countLines_SO)
-        en=$(echo "$v" | xml_extractXmlTag "en" | xml_stripXmlTag "en")
-        pl=$(echo "$v" | xml_extractXmlTag "pl" | xml_stripXmlTag "pl")
+        en=$(echo "$v" | xml_extractXmlTag "en" | xml_stripXmlTag)
+        pl=$(echo "$v" | xml_extractXmlTag "pl" | xml_stripXmlTag)
 
         if [ "$cdata" != "0" ]; then
             v=$(echo "$v" | xml_extractCdataTag | tr -d "\r\n")
         elif [ -n "$en" ] || [ -n "$pl" ]; then
             v="$pl/$en"
         else
-            v=$(echo "$v" | xml_stripXmlTag "$k")
+            v=$(echo "$v" | xml_stripXmlTag)
         fi
 
         echo "$k: $v" >> "$nfoPath"

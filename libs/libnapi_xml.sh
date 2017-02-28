@@ -32,7 +32,7 @@
 ########################################################################
 
 #
-# @brief extracts xml tag contents
+# @brief extracts xml tag contents (embraced with the tag itself)
 # @param tag name
 # @param file name (optional)
 #
@@ -76,22 +76,9 @@ EOF
 
 #
 # @brief strip xml tag
-# @param tag name (if used with file given)
-# @param file name or a tag name (if used as a stream filter)
+# @param file name (optional - can be used as a stream filter)
 #
 xml_stripXmlTag() {
-    local tag="$1"
-    local filePath="${2:-/dev/stdin}"
-    local awkScript=
-
-# embed small awk program to extract the tag contents
-read -d "" awkScript << EOF
-BEGIN {
-    FS="[><]"
+    local filePath="${1:-/dev/stdin}"
+    sed 's/<[^>]\+>//g' "$filePath"
 }
-/$tag/ { print \$3 }
-EOF
-
-    awk "$awkScript" "$filePath"
-}
-
