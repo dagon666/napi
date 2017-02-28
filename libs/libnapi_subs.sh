@@ -70,9 +70,6 @@ _subs_convertEncoding() {
 #
 subs_getSubFormatExtension_SO() {
     declare -a fmte=( 'subrip=srt' 'subviewer2=sub' )
-
-    # this function can cope with that kind of input
-    # shellcheck disable=SC2068
     assoc_lookupValue_SO "$1" "${fmte[@]}" ||
         echo "$___g_subs_defaultExtension"
 }
@@ -137,6 +134,7 @@ subs_convertEncoding() {
 
 #
 # @brief checks if the provided format is valid & supported
+# @param format to be verified
 #
 subs_verifySubsFormat() {
     local format="$1"
@@ -144,7 +142,7 @@ subs_verifySubsFormat() {
 
     # this function can cope with that kind of input
     # shellcheck disable=SC2068
-    lookup_key "$format" ${___g_subs_formats[@]} > /dev/null ||
+    assoc_lookupKey_SO "$format" "${___g_subs_formats[@]}" >/dev/null ||
         return $G_RETPARAM
 }
 

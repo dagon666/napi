@@ -71,8 +71,6 @@ _assoc_lookupKeyGeneric_SO() {
     local i=''
     local tk=''
 
-    # shellcheck disable=SC2048
-    # TODO $* should be dropped in order to fix white character support
     for i in "$@"; do
         tk="$(assoc_getKey_SO "$i")"
         if [ "$tk"  = "$key" ]; then

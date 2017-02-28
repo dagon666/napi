@@ -39,6 +39,10 @@ logging_info() {
     echo " -- FAKE ${FUNCNAME[0]} $*"
 }
 
+logging_msg() {
+    echo " -- FAKE ${FUNCNAME[0]} $*"
+}
+
 logging_warning() {
     echo " -- FAKE ${FUNCNAME[0]} $*"
 }
