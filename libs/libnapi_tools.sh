@@ -55,27 +55,23 @@ declare -a ___g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
 tools_configure_GV() {
     # this function can cope with that kind of input
     # shellcheck disable=SC2068
-    ___g_tools=( $(tools_verify_SO ${___g_tools[@]}) )
+    ___g_tools=( $(tools_verify_SO "${___g_tools[@]}") )
 }
 
 #
 # @brief check function presence
+# @param function name
 #
 tools_verifyFunctionPresence() {
     local tool=$(builtin type -t "$1")
-    local rv=$G_RETUNAV
-    local status=0
 
     # make sure it's really there
     if [ -z "$tool" ]; then
-        type "$1" > /dev/null 2>&1;
-        status=$?
-        [ "$status" -ne $G_RETOK ] && tool='empty'
+        type "$1" >/dev/null 2>&1 || tool='empty'
     fi
 
     # check the output
-    [ "$tool" = "function" ] && rv=$G_RETOK
-    return $rv
+    [ "$tool" = "function" ]
 }
 
 #
@@ -87,7 +83,7 @@ tools_verifyToolPresence() {
 
     # make sure it's really there
     if [ -z "$tool" ]; then
-        type "$1" > /dev/null 2>&1
+        type "$1" >/dev/null 2>&1
         rv=$?
     else
         rv=$G_RETOK
@@ -97,6 +93,8 @@ tools_verifyToolPresence() {
 
 #
 # @brief append given tool to tools array
+# @param tool name
+# @param requirement (optional): 1 - required (default), 0 - optional
 #
 tools_addTool_GV() {
     logging_debug $LINENO $"dodaje narzedzie: " "[$1]"
@@ -109,25 +107,41 @@ tools_addTool_GV() {
 # @brief perform tools presence verification
 #
 tools_verify_SO() {
-    declare -a ret=()
+    local ret=()
     local t=''
 
     for t in "$@"; do
+        # obtain each tool's attributes
         local key=$(assoc_getKey_SO "$t")
         local mandatory=$(assoc_getValue_SO "$t")
         local group="$(assoc_getGroup_SO "$t")"
-        local tool=''
+
+        local tool=
         local counter=0
 
+        # iterate over group optionals
         for tool in ${key//|/ }; do
-            local p=1
-            tools_verifyToolPresence "$tool" || p=0
-            ret=( "${ret[@]}" "${group}:${tool}=${p}" )
-            counter=$(( counter + 1 ))
+            local presence=1
+            local entry=
+
+            tools_verifyToolPresence "$tool" || presence=0
+            entry="${tool}=${presence}"
+
+            # if group definition is present prepend it to the entry
+            [ -n "$group" ] &&
+                entry="${group}:${entry}"
+
+            # append the entry to the array
+            ret=( "${ret[@]}" "$entry" )
+
+            # increment detected counter if tool is present
+            [ "$presence" -eq 1 ] &&
+                counter=$(( counter + 1 ))
         done
 
         # break if mandatory tool is missing
-        [ "$mandatory" -eq 1 ] && [ "$counter" -eq 0 ] && return $G_RETFAIL
+        [ "$mandatory" -eq 1 ] && [ "$counter" -eq 0 ] &&
+            return $G_RETFAIL
     done
 
     # shellcheck disable=SC2086
@@ -136,6 +150,7 @@ tools_verify_SO() {
 
 #
 # @brief check if given tool has been detected
+# @param tool name
 #
 tools_isDetected() {
     # this function can cope with that kind of input
@@ -148,19 +163,26 @@ tools_isDetected() {
 
 #
 # @brief get first available tool from given group
+# @param group name
+# @param
 #
 tools_getFirstAvailableFromGroup_SO() {
     local t=''
     for t in $(assoc_lookupGroupKeys_SO "${1:-none}" "${___g_tools[@]}"); do
-        tools_isDetected "$t" && echo "$t" && break
+        tools_isDetected "$t" && {
+            echo "$t"
+            return $G_RETOK
+        }
     done
 
     # shellcheck disable=SC2086
-    return $G_RETOK
+    return $G_RETUNAV
 }
 
 #
 # @brief check if given tool belongs to given group
+# @param group name
+# @param tool name
 #
 tools_isInGroup() {
     local t=''
@@ -195,6 +217,7 @@ tools_isInGroupAndDetected() {
 
 #
 # @brief returns the number of tools in the group
+# @param group name
 #
 tools_countGroupMembers_SO() {
     local a=( $(assoc_lookupGroupKeys_SO "${1:-none}" "${___g_tools[@]}") )
@@ -231,6 +254,7 @@ tools_toList_SO() {
 
 #
 # @brief concat the group members to single line
+# @param group name
 #
 tools_groupToString_SO() {
     assoc_lookupGroupKv_SO "$1" "${___g_tools[@]}"
@@ -238,6 +262,7 @@ tools_groupToString_SO() {
 
 #
 # @brief concat the group members to list
+# @param group name
 #
 tools_groupToList_SO() {
     local a=( $(assoc_lookupGroupKv_SO "$1" "${___g_tools[@]}") )
