@@ -8,13 +8,15 @@ DOCKER_IMAGE="napitester"
 [ -z "$(docker images -q "$DOCKER_IMAGE")" ] &&
     docker build -t "$DOCKER_IMAGE" -f "Dockerfile-${DOCKER_IMAGE}" .
 
+RESULT="failed"
+
 #
 # execute the unit tests
 #
 # shellcheck disable=SC2016
 docker run -v "$PWD"/..:/mnt \
     -w /mnt/tests/unit_tests \
-    -i napitester bash <<CMD_EOF
+    -i napitester bash <<CMD_EOF && RESULT="succeeded"
 
     # make an array of unit tests
     tests=( ./*test.sh )
@@ -29,3 +31,6 @@ docker run -v "$PWD"/..:/mnt \
             exit \$?
     done
 CMD_EOF
+
+# send notifications
+notify-send "Tests ${RESULT}"
