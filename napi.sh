@@ -31,7 +31,9 @@
 ########################################################################
 ########################################################################
 
-export G_NAPISHAREPATH=.
+[ -z "$G_NAPISHAREPATH" ] &&
+    export G_NAPISHAREPATH=.
+
 if [ -z "$G_NAPISHAREPATH" ] || [ ! -d "${G_NAPISHAREPATH}" ]; then
     echo $"Skrypt nie zostal poprawnie zainstalowany! Uzyj instalatora (install.sh)"
     exit -1
