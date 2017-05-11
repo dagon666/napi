@@ -83,16 +83,19 @@ http_isPostRequestSupported() {
 http_getHttpStatus() {
     local awkCode=
     read -r -d "" awkCode << 'EOF'
+BEGIN{
+    respMax = 0
+}
+
 /HTTP/ {
     m = match($0, /HTTP\/[\.0-9]* [0-9]*/);
-
     if (m)
-        responses[length(responses)+1] = substr($2, m, RLENGTH)
+        responses[respMax++] = substr($2, m, RLENGTH)
 }
 
 END {
-    responseString=responses[1]
-    for (i = 2; i<=length(responses); i++) {
+    responseString=responses[0]
+    for (i = 1; i<respMax; i++) {
         responseString = responseString " " responses[i]
     }
 
