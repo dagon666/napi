@@ -44,7 +44,7 @@ declare -r g_napiprojektClientVersion="2.2.0.2399"
 #
 # base address of the napiprojekt service
 #
-declare -r g_napiprojektBaseUrl='http://napiprojekt.pl'
+declare -r g_napiprojektBaseUrl="${NAPIPROJEKT_BASEURL:-http://napiprojekt.pl}"
 
 #
 # XML API URI
