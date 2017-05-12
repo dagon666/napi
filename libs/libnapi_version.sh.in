@@ -32,37 +32,6 @@
 ########################################################################
 
 #
-# client version which will be presented to remote services
+# version for the whole bundle (napi.sh & subotage.sh)
 #
-declare -r g_napiprojektClientVersion="2.2.0.2399"
-
-#
-# base address of the napiprojekt service
-#
-declare -r g_napiprojektBaseUrl="${NAPIPROJEKT_BASEURL:-http://napiprojekt.pl}"
-
-#
-# XML API URI
-#
-declare -r g_napiprojektApi3Uri='/api/api-napiprojekt3.php'
-
-#
-# Legacy API URI
-#
-declare -r g_napiprojektApiLegacyUri='/unit/napisy/dl.php'
-
-#
-# password to napiprojekt archives
-#
-declare -r g_napiprojektPassword='iBlm8NTigvru0Jr0'
-
-#
-# Cover download service URI
-#
-declare -r g_napiprojektCoverUri='/okladka_pobierz.php'
-
-#
-# Movie catalogue search
-#
-declare -r g_napiprojektMovieCatalogueSearchUri='/ajax/search_catalog.php'
-
+declare -r g_revision="v@NAPI_VERSION_MAJOR@.@NAPI_VERSION_MINOR@.@NAPI_VERSION_SUB@"

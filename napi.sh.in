@@ -31,31 +31,33 @@
 ########################################################################
 ########################################################################
 
-[ -z "$G_NAPISHAREPATH" ] &&
-    export G_NAPISHAREPATH=.
+export G_NAPIPREFIX="@NAPI_PREFIX@"
 
-if [ -z "$G_NAPISHAREPATH" ] || [ ! -d "${G_NAPISHAREPATH}" ]; then
-    echo $"Skrypt nie zostal poprawnie zainstalowany! Uzyj instalatora (install.sh)"
+if [ -z "$G_NAPIPREFIX" ] ||
+    [ ! -d "${G_NAPIPREFIX}" ] ||
+    [ ! -d "${G_NAPIPREFIX}/lib/napi" ]; then
+    echo $"Skrypt nie zostal poprawnie zainstalowany!"
     exit -1
 fi
 
 ########################################################################
 
 # libraries
-. "${G_NAPISHAREPATH}/libs/libnapi_argv.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_assoc.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_constants.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_fs.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_http.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_language.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_logging.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_napiprojekt.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_retvals.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_subs.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_sysconf.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_tools.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_wrappers.sh"
-. "${G_NAPISHAREPATH}/libs/libnapi_xml.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_argv.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_assoc.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_constants.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_fs.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_http.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_language.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_logging.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_napiprojekt.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_retvals.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_subs.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_sysconf.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_tools.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_version.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_wrappers.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_xml.sh"
 
 ########################################################################
 

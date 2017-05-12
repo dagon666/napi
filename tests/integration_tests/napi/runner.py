@@ -2,13 +2,14 @@
 
 import os
 import shutil
+import subprocess
 import tempfile
 
 class Runner(object):
-    def __init__(self, shell, awk):
+
+    def __init__(self, bash = None):
         self.sandbox = tempfile.mkdtemp()
-        self.shell = shell
-        self.awk = awk
+        self.bash = bash if bash else '/bin/bash'
         self._prepareLayout()
         self._setupPaths()
         self._install()
@@ -31,7 +32,14 @@ class Runner(object):
         os.environ['PATH'] += os.pathsep + self._getPath('usr', 'bin')
 
     def _install(self):
+        # TODO wip - installer needed
         pass
 
-    def execute(self, *args, **kwargs):
-        pass
+    def execute(self, *args):
+        return subprocess.Popen(
+                'napi.sh',
+                *args,
+                executable = self.bash,
+                shell = True,
+                stderr = subprocess.PIPE,
+                stdout = subprocess.PIPE)

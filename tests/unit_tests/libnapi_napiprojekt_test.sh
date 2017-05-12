@@ -39,6 +39,7 @@
 # fakes/mocks
 . fake/libnapi_fs_fake.sh
 . fake/libnapi_logging_fake.sh
+. fake/libnapi_version_fake.sh
 . mock/scpmocker.sh
 
 # module under test
