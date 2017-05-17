@@ -6,6 +6,9 @@ ENV NAPI_HOME /home/napi
 RUN apt-get update -y
 RUN apt-get install -y \
         wget \
+        p7zip-full \
+        libav-tools \
+        mediainfo \
         make \
         cmake
 
