@@ -1,0 +1,14 @@
+FROM napi
+
+USER root
+RUN apt-get update -y
+RUN apt-get install -y \
+        python-pip \
+        python-setuptools
+
+ADD napiserver $INSTALL_DIR/napiserver
+
+WORKDIR $INSTALL_DIR
+RUN ./napiserver/prepare_pretenders.sh
+ENTRYPOINT []
+CMD []

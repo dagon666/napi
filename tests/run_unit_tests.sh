@@ -1,22 +1,14 @@
 #!/bin/bash
 
-DOCKER_IMAGE="napitester"
-
-#
-# build image if it doesn't exist
-#
-[ -z "$(docker images -q "$DOCKER_IMAGE")" ] &&
-    docker build -t "$DOCKER_IMAGE" -f "Dockerfile-${DOCKER_IMAGE}" .
-
 RESULT="failed"
 
 #
 # execute the unit tests
 #
-# shellcheck disable=SC2016
-docker run -v "$PWD"/..:/mnt \
+docker-compose run \
+    --rm \
     -w /mnt/tests/unit_tests \
-    -i napitester bash <<CMD_EOF && RESULT="succeeded"
+    napitester bash -s <<CMD_EOF && RESULT="succeeded"
 
     # make an array of unit tests
     tests=( ./*test.sh )
@@ -30,6 +22,7 @@ docker run -v "$PWD"/..:/mnt \
             ../coverage "\$tc" ||
             exit \$?
     done
+    exit 0
 CMD_EOF
 
 # send notifications

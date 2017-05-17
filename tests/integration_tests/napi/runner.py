@@ -1,39 +1,23 @@
 #!/usr/bin/python
 
 import os
-import shutil
 import subprocess
-import tempfile
+
+NAPIPROJEKT_BASEURL_DEFAULT = 'http://napiprojekt.pl'
 
 class Runner(object):
 
-    def __init__(self, bash = None):
-        self.sandbox = tempfile.mkdtemp()
+    def __init__(self,
+            napiprojektUrl = NAPIPROJEKT_BASEURL_DEFAULT,
+            bash = None):
         self.bash = bash if bash else '/bin/bash'
-        self._prepareLayout()
-        self._setupPaths()
-        self._install()
+        self.napiprojektUrl = napiprojektUrl
 
-    def __enter__(self):
-        return self
+        self._prepareEnv()
 
-    def __exit__(self, *args, **kwargs):
-        shutil.rmtree(self.sandbox)
-
-    def _prepareLayout(self):
-        for d in [ [ 'bin' ], [ 'usr', 'share' ], [ 'usr', 'bin' ] ]:
-            os.makedirs(self._getPath(*d))
-
-    def _getPath(self, *paths):
-        return os.path.join(self.sandbox, *paths)
-
-    def _setupPaths(self):
-        os.environ['PATH'] += os.pathsep + self._getPath('bin')
-        os.environ['PATH'] += os.pathsep + self._getPath('usr', 'bin')
-
-    def _install(self):
-        # TODO wip - installer needed
-        pass
+    def _prepareEnv(self):
+        if self.napiprojektUrl != NAPIPROJEKT_BASEURL_DEFAULT:
+            os.environ['NAPIPROJEKT_BASEURL'] = self.napiprojektUrl
 
     def execute(self, *args):
         return subprocess.Popen(

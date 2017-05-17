@@ -5,3 +5,35 @@ services:
         build:
             context: .
             dockerfile: Dockerfile-napiserver
+
+        volumes:
+            - opt-napi:/opt/napi
+
+    napitester:
+        build:
+            context: .
+            dockerfile: Dockerfile-napitester
+
+        volumes:
+            - opt-napi:/opt/napi
+            - ..:/mnt
+
+        stdin_open: true
+
+    napiclient:
+        build:
+            context: .
+            dockerfile: Dockerfile-napiclient
+
+        volumes:
+            - opt-napi:/opt/napi
+            - ..:/mnt
+
+        links:
+            - napiserver:napiserver
+
+        depends_on:
+            - napiserver
+
+volumes:
+    opt-napi:

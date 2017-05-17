@@ -59,15 +59,11 @@ RUN apt-get install -y \
 
 # setup shells and test assets
 ADD napitester $INSTALL_DIR/napitester
-ADD napiserver $INSTALL_DIR/napiserver
 WORKDIR $INSTALL_DIR
 RUN ./napitester/prepare_kcov.pl
 RUN ./napitester/prepare_scpmocker.pl
 RUN ./napitester/prepare_shells.pl $NAPITESTER_SHELLS
 RUN ./napitester/prepare_assets.pl $NAPITESTER_TESTDATA
-
-# napiserver specific
-RUN ./napiserver/prepare_pretenders.sh
 
 # switch to test user
 WORKDIR $NAPITESTER_HOME
