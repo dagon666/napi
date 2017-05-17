@@ -156,6 +156,7 @@ _napi_globalArgvDispatcher() {
 _parseArgv_GV() {
     logging_debug $LINENO $"parsuje opcje globalne"
     argv_argvParser_GV _napi_globalArgvDispatcher "$@"
+    napiprojekt_verifyArguments_GV
 }
 
 #
