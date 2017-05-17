@@ -20,10 +20,15 @@ class Runner(object):
             os.environ['NAPIPROJEKT_BASEURL'] = self.napiprojektUrl
 
     def execute(self, *args):
+        cmd = ('napi.sh',) + args
+        print cmd
         return subprocess.Popen(
-                'napi.sh',
-                *args,
+                cmd,
                 executable = self.bash,
                 shell = True,
+                bufsize = 1024,
                 stderr = subprocess.PIPE,
                 stdout = subprocess.PIPE)
+
+    def scan(self, *args):
+        return self.execute('scan', *args)
