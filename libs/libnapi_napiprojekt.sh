@@ -510,7 +510,8 @@ napiprojekt_downloadSubtitlesLegacy() {
     [ "other" = "${___g_napiprojekt_napiprojektId}" ] &&
         downloadFileName="$(fs_mktempFile_SO)"
 
-    local httpCodes=$(http_downloadUrl_SOSE "$url" \
+    local httpCodes=
+    httpCodes=$(http_downloadUrl_SOSE "$url" \
         "$downloadFileName" 2>&1)
     status=$?
 
