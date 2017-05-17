@@ -43,7 +43,7 @@ declare -a ___g_tools=( 'tr=1' 'printf=1' 'mktemp=1' 'wget=1' \
     'cut=1' 'base64=1' 'unlink=0' 'stat=1' \
     'basename=1' 'dirname=1' 'cat=1' 'cp=1' \
     'mv=1' 'awk=1' 'file=0' 'subotage.sh=0' \
-    '7z=0|7za=0' 'iconv=0' 'fps:mediainfo=0' \
+    '7z|7za=0' 'iconv=0' 'fps:mediainfo=0' \
     'fps:mplayer|mplayer2=0' 'fps:ffmpeg|ffprobe=0' \
     'md5|md5sum=1' )
 
