@@ -90,7 +90,7 @@ BEGIN{
 /HTTP/ {
     m = match($0, /HTTP\/[\.0-9]* [0-9]*/);
     if (m)
-        responses[respMax++] = substr($2, m, RLENGTH)
+        responses[respMax++] = $2
 }
 
 END {
