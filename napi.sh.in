@@ -181,7 +181,7 @@ _executeAction() {
     local action="$1" && shift
 
     logging_debug $"wykonuje" "$action"
-    source "${G_NAPISHAREPATH}/actions/libnapi_${action}.sh"
+    source "${G_NAPIPREFIX}/lib/napi/actions/libnapi_${action}.sh"
 
     # if no arguments are given, then print action specific help and exit
     # shellcheck disable=SC2086

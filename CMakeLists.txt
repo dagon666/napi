@@ -39,3 +39,12 @@ install(FILES "${PROJECT_BINARY_DIR}/libnapi_version.sh"
     PERMISSIONS
         OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
+
+# install actions
+install(DIRECTORY actions/
+    DESTINATION lib/napi/actions
+    PATTERN "libs/*sh"
+    PERMISSIONS
+        OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
