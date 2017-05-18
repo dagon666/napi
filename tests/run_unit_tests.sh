@@ -7,7 +7,6 @@ RESULT="failed"
 #
 docker-compose run \
     --rm \
-    -w /mnt/tests/unit_tests \
     napitester bash -s <<CMD_EOF && RESULT="succeeded"
 
     # make an array of unit tests

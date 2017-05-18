@@ -19,6 +19,7 @@ services:
             - ..:/mnt
 
         stdin_open: true
+        working_dir: /mnt/tests/unit_tests
 
     napiclient:
         build:
