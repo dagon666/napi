@@ -1,21 +1,55 @@
-*bashnapi* comes with it's own test suite and environment. It relies on a couple of dependencies
+# Test suite
 
-- vagrant
-- shunit2
-- virtualbox
-- perl with Test::More and prove installed
+bashnapi comes with a comprehensive test suite and test environment. In order
+to use it you'll need [Docker](https://www.docker.com).
 
-The suite creates a dedicated virtual machine basing on a UBUNTU presice 12.04 32 bit box. It must be available in vagrant. 
-In order to add execute:
+## Containers
 
-	`$ vagrant box add hashicorp/precise32`
+In order to support the environment you'll need to build images for the
+_Docker_ containers. The following _Docker_ files have been provided:
 
-In order to prepare the environment and run the tests bring the vagrant box first:
+- `Dockerfile-napitester` - an image containing all the dependencies and
+libraries for unit testing.
 
-    `$ vagrant up`
+- `Dockerfile-napiserver` - an image running
+[Pretenders](https://github.com/pretenders/pretenders) used for integration
+testing and acting as [napiprojekt.pl](http://napiprojekt.pl) mock.
 
-After this has been done use the *run_tests.sh* wrapper to start the environment preparations and execute the tests themselves. When run for the first time it will try to download and compile all the necessary packages - be prepared that it may take some time.
+- `Dockerfile-napiclient` - this image is extending a napi image from the main
+directory - (you'll have to build it first), and is used for integration
+testing. It contains an installation of napi.sh along with integration tests
+dependencies.
 
-The test suite is divided in two. There is a set of unit tests under unit_napi.sh (only for napi.sh at the moment). The idea behind those is to verify the implementation of the given fragments of code (functions) and test them independently of the rest of the code. Unit tests are implemented with shuni2 framework.
+## Preparations
 
-The system tests are implemented as a Perl test scripts and they are doing the actual verification of the script. They are exercising various script options and retrieving real data from live napiprojekt servers.
+Assuming that the current working directory is the root of the project, build
+the napi _Docker_ image:
+
+    docker build -t napi .
+
+Once that's done, proceed to the `tests` directory to build the rest of the
+images:
+
+    cd tests
+    docker-compose build
+
+If the last step was successful, all the required images have been built and
+are ready to use.
+
+## Unit tests
+
+To run all unit tests, simply invoke
+
+    ./run_unit_tests.sh
+
+in the `tests` directory. It's possible to run a selected test only as well.
+Just provide the file name:
+
+    ./run_unit_tests.sh libnapi_http_test.sh
+
+Each unit tests execution generates coverage report which can be found in
+`tests/converage` directory. Navigate your browser there to get more details.
+
+## Integration tests
+
+TODO update this section
