@@ -347,11 +347,11 @@ _scan_downloadAssetsLegacy() {
         logging_warning $LINENO $"plik nfo nie jest wspierany w trybie legacy"
     }
 
-    napiprojekt_downloadSubtitlesLegacy \
+    if napiprojekt_downloadSubtitlesLegacy \
         "$fileHash" \
         "$(napiprojekt_f_SO "$fileHash")" \
         "${subsPath}" \
-        "${lang}" && {
+        "${lang}"; then
         logging_success $"napisy pobrano pomyslne" "[$fileName]"
 
         [ "$getCover" -eq 1 ] && {
@@ -363,9 +363,9 @@ _scan_downloadAssetsLegacy() {
                 logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
             fi
         }
-    } || {
+    else
         logging_error $"nie udalo sie pobrac napisow" "[$fileName]"
-    }
+    fi
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
 }
@@ -391,9 +391,9 @@ _scan_downloadAssetsXml() {
     logging_debug $LINENO $"plik xml" "[$xmlPath]"
     fs_garbageCollect "$xmlPath"
 
-    napiprojekt_downloadXml \
+    if napiprojekt_downloadXml \
         "$fileHash" "$fileName" "$fileSize" "$xmlPath" "$lang" &&
-        napiprojekt_verifyXml "$xmlPath" && {
+        napiprojekt_verifyXml "$xmlPath"; then
         logging_debug $LINENO $"XML pobrany pomyslnie"
 
         napiprojekt_extractSubsFromXml "$xmlPath" \
@@ -425,9 +425,10 @@ _scan_downloadAssetsXml() {
                     logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
                 fi
             }
-    } || {
-        logging_error $"Blad podczas pobierania, lub XML uszkodzony"
-    }
+    else
+        logging_error $"Blad podczas pobierania, lub XML uszkodzony" \
+            "[$fileName]"
+    fi
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
 }
