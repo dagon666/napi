@@ -9,7 +9,7 @@ use Archive::Extract;
 use File::Temp;
 
 my $assets_tgz = "napi_testdata.tar.gz";
-my $url = "https://www.dropbox.com/s/x0xzw0b71j0dtop/${assets_tgz}?dl=1";
+my $url = "https://www.dropbox.com/s/9v8vz21odxkm60c/${assets_tgz}?dl=1";
 my $assets_path = shift // "/opt/napi/testdata";
 
 my $wdir = File::Temp::tempdir( CLEANUP => 1 );
