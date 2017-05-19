@@ -352,17 +352,19 @@ _scan_downloadAssetsLegacy() {
         "$(napiprojekt_f_SO "$fileHash")" \
         "${subsPath}" \
         "${lang}" && {
-        logging_msg $LINENO $"napisy pobrano pomyslne" "[$fileName]"
+        logging_success $"napisy pobrano pomyslne" "[$fileName]"
 
         [ "$getCover" -eq 1 ] && {
             local coverExt=$(sysconf_getKey_SO napiprojekt.cover.extension)
             if napiprojekt_downloadCoverLegacy "$fileHash" \
                 "${fileDir}/${fileNameNoExt}.${coverExt}"; then
-                logging_msg $LINENO $"okladka pobrana pomyslne" "[$fileName]"
+                logging_success $"okladka pobrana pomyslne" "[$fileName]"
             else
-                logging_msg $LINENO $"nie udalo sie pobrac okladki" "[$fileName]"
+                logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
             fi
         }
+    } || {
+        logging_error $"nie udalo sie pobrac napisow" "[$fileName]"
     }
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
@@ -396,7 +398,7 @@ _scan_downloadAssetsXml() {
 
         napiprojekt_extractSubsFromXml "$xmlPath" \
             "$subsPath" &&
-            logging_msg $"napisy pobrano pomyslnie" "[$fileName]"
+            logging_success $"napisy pobrano pomyslnie" "[$fileName]"
 
             [ "$getNfo" -eq 1 ] && {
                 local nfoExt=$(sysconf_getKey_SO \
@@ -405,9 +407,9 @@ _scan_downloadAssetsXml() {
 
                 if napiprojekt_extractNfoFromXml "$xmlFile" \
                     "${fileDir}/${fileNameNoExt}.${nfoExt}"; then
-                    logging_msg $"plik nfo utworzony pomyslnie" "[$fileName]"
+                    logging_success $"plik nfo utworzony pomyslnie" "[$fileName]"
                 else
-                    logging_msg $"nie udalo sie utworzyc pliku nfo" "[$fileName]"
+                    logging_error $"nie udalo sie utworzyc pliku nfo" "[$fileName]"
                 fi
             }
 
@@ -418,11 +420,13 @@ _scan_downloadAssetsXml() {
 
                 if napiprojekt_extractCoverFromXml "$xmlFile" \
                     "${fileDir}/${fileNameNoExt}.${coverExt}"; then
-                    logging_msg $"okladka pobrana pomyslnie" "[$fileName]"
+                    logging_success $"okladka pobrana pomyslnie" "[$fileName]"
                 else
-                    logging_msg $LINENO $"nie udalo sie pobrac okladki" "[$fileName]"
+                    logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
                 fi
             }
+    } || {
+        logging_error $"Blad podczas pobierania, lub XML uszkodzony"
     }
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
