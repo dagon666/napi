@@ -1,5 +1,9 @@
 FROM napi
 
+ENV NAPICLIENT_OPT /opt/napi
+ENV NAPICLIENT_TESTDATA $NAPICLIENT_OPT/testdata
+ENV NAPICLIENT_SHELLS $NAPICLIENT_OPT/bash
+
 USER root
 RUN apt-get update -y
 RUN apt-get install -y \
