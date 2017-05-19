@@ -10,9 +10,12 @@ RUN apt-get install -y \
         python-pip \
         python-setuptools
 
+ADD napiclient $INSTALL_DIR/napiclient
 ADD napiserver $INSTALL_DIR/napiserver
 
 WORKDIR $INSTALL_DIR
 RUN ./napiserver/prepare_pretenders.sh
+RUN ./napiclient/prepare_python.sh
+
 ENTRYPOINT []
 CMD []
