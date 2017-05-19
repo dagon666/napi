@@ -202,6 +202,13 @@ logging_error() {
 }
 
 #
+# @brief log a status of action which completed successfully
+#
+logging_success() {
+    logging_status "OK" "$*"
+}
+
+#
 # @brief print standard message
 #
 logging_msg() {
