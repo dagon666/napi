@@ -55,6 +55,13 @@ class BasicFetchTest(unittest.TestCase):
             self.assertEquals(req.url, '/api/api-napiprojekt3.php')
             self.assertTrue(re.search(r'napisy pobrano pomyslnie', stdout))
 
+            if len(stderr):
+                print "STDOUT"
+                print stdout
+                print "STDERR"
+                print stderr
+
+            self.assertEquals(0, len(stderr))
 
 if __name__ == '__main__':
 
