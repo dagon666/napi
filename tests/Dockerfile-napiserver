@@ -11,7 +11,7 @@ EXPOSE $NAPISERVER_PORT
 # napiserver specific
 ADD napiserver $INSTALL_DIR/napiserver
 WORKDIR $INSTALL_DIR
-RUN ./napiserver/prepare_pretenders.sh
+RUN ./napiserver/bin/prepare_pretenders.sh
 
 ENTRYPOINT ["python", "-m", "pretenders.server.server", "--host", "0.0.0.0"]
 CMD ["--port", "8000"]

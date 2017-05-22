@@ -14,8 +14,8 @@ ADD napiclient $INSTALL_DIR/napiclient
 ADD napiserver $INSTALL_DIR/napiserver
 
 WORKDIR $INSTALL_DIR
-RUN ./napiserver/prepare_pretenders.sh
-RUN ./napiclient/prepare_python.sh
+RUN ./napiserver/bin/prepare_pretenders.sh
+RUN ./napiclient/bin/prepare_python.sh
 
 ENTRYPOINT []
 CMD []
