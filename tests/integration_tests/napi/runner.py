@@ -4,6 +4,8 @@ import os
 import subprocess
 import logging
 
+from . import output as napiOutput
+
 NAPIPROJEKT_BASEURL_DEFAULT = 'http://napiprojekt.pl'
 
 class Runner(object):
@@ -24,12 +26,15 @@ class Runner(object):
     def execute(self, *args):
         cmd = (self.bash, 'napi.sh',) + args
         self.logger.error(cmd)
-        return subprocess.Popen(
+        process = subprocess.Popen(
                 cmd,
                 shell = False,
                 bufsize = 1024,
                 stderr = subprocess.PIPE,
                 stdout = subprocess.PIPE)
+
+        output = process.communicate()
+        return napiOutput.Parser(*output)
 
     def scan(self, *args):
         return self.execute('scan', '-v', '3', *args)
