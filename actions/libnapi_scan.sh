@@ -563,7 +563,7 @@ _scan_processFile() {
     fi
 
     # increment total processed counter
-    ___g_scan_stats[10]=$((___g_scan_stats + 1))
+    ___g_scan_stats[10]=$(( ${___g_scan_stats[10]} + 1 ))
 }
 
 #
