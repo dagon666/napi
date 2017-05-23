@@ -1,6 +1,8 @@
 #!/usr/bin/python2
 
+import StringIO
 import hashlib
+import logging
 import os
 import subprocess
 import tempfile
@@ -10,9 +12,11 @@ class Subtitles(object):
     """
     Abstraction around a subtitles file
     """
+
     def __init__(self, asset, data):
         self.asset = asset
         self.data = data
+        self.logger = logging.getLogger()
 
     def getId(self):
         return self.asset['md5']
@@ -42,6 +46,7 @@ class CompressedSubtitles(Subtitles):
     """
     Abstraction around subtitles stored in the 7z archive
     """
+
     PASSWORD = 'iBlm8NTigvru0Jr0'
 
     def __init__(self, asset, data):
@@ -64,13 +69,31 @@ class CompressedSubtitles(Subtitles):
                     uuid.uuid4().hex)
 
             passwdArg = "-p%s" % (self.PASSWORD)
-            subprocess.call([ '7z', 'a', passwdArg,
-                '-m01=bzip2',
-                archiveName,
-                subsName])
 
-            with open(archiveName + '.7z', 'rb') as archiveFile:
-                self.compressedData = archiveFile.read()
+            # initialize attribute
+            self.compressedData = None
+
+            # capture output
+            with tempfile.TemporaryFile() as cStdout, tempfile.TemporaryFile() as cStderr:
+                try:
+                    subprocess.check_call([ '7z', 'a', passwdArg,
+                        '-m01=bzip2',
+                        archiveName,
+                        subsName],
+                        stdout=cStdout,
+                        stderr=cStderr)
+
+                    with open(archiveName + '.7z', 'rb') as archiveFile:
+                        self.compressedData = archiveFile.read()
+
+                except subprocess.CalledProcessError as e:
+                    self.logger.error("Unable to prepare subtitles: " +
+                            str(e))
+                    self.logger.info(cStdout.read())
+                    self.logger.info(cStderr.read())
+
+                else:
+                    self.logger.info("OK")
 
     def getSize(self):
         return len(self.compressedData)
