@@ -1,16 +1,20 @@
 #!/bin/bash
 
 updateInstallation() {
+    local containerName="tests_napiclient"
+
     echo "Updating napi installation..."
     docker-compose run \
         --name napiclient_update \
         napiclient \
         napiclient/bin/update_installation.sh
 
+    echo "Commiting changes..."
     containerId=$(docker ps -a -q -f "name=napiclient_update")
-    docker commit "$containerId" napiclient
+    docker commit "$containerId" "$containerName"
 
     # remove the container
+    echo "Cleanup..."
     docker rm "$containerId"
 }
 
