@@ -17,5 +17,7 @@ WORKDIR $INSTALL_DIR
 RUN ./napiserver/bin/prepare_pretenders.sh
 RUN ./napiclient/bin/prepare_python.sh
 
+# go back to non-root user
+USER napi
 ENTRYPOINT []
 CMD []
