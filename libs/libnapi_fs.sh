@@ -140,7 +140,7 @@ _fs_garbageCollectorCleaner() {
 #
 _fs_configureGarbageCollector() {
     [ -n "$___g_fsGarbageCollectorLog" ] && return
-    ___g_fsGarbageCollectorLog=$(mktemp napi.gclog.XXXXXXXX)
+    ___g_fsGarbageCollectorLog=$(mktemp -t napi.gclog.XXXXXXXX)
     trap _fs_garbageCollectorCleaner EXIT
 }
 
