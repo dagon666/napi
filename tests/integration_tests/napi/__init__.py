@@ -14,4 +14,4 @@ def prepareLogging(logLevel):
     logger.setLevel(logLevel)
     logger.addHandler(handler)
 
-prepareLogging(logging.DEBUG)
+prepareLogging(logging.INFO)

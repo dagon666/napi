@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-import base64
 import datetime
-import hashlib
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -14,10 +12,16 @@ class XmlResult(object):
     NAPIID = 'NapiProjekt'
     URL = 'http://pobierz.napiprojekt.pl'
 
-    def __init__(self, subtitles, success):
-        self.subtitles = subtitles
-        self.success = success
+    def __init__(self, subtitles = None, cover = None, movieDetails = None):
         self.logger = logging.getLogger()
+        self.subtitles = subtitles
+        self.movieDetails = movieDetails
+
+        # don't set the cover if no subs
+        self.cover = cover if subtitles else None
+
+        # set "success" flag if subs provided
+        self.success = True if subtitles else False
 
     def _makeSubtitlesElement(self, parent):
         subtitles = ET.SubElement(parent, 'subtitles')
@@ -43,7 +47,9 @@ class XmlResult(object):
             subtitlesId.text, subtitlesHash.text, filesize.text))
 
         contents = ET.SubElement(subtitles, 'content')
+        contents.text = self._makeNapiCdata(self.subtitles)
 
+    def _makeNapiCdata(self, blob):
         # !!! Hack Alert !!!
         # Original napi xml file holds CDATA in <>
         # which is probably wrong, but it's impossible to use these in
@@ -51,11 +57,19 @@ class XmlResult(object):
         #
         # These custom markers will be replaced later on once the xml is
         # produced
-        contents.text = '[OPEN_TAG]' + self._makeCdata(
-                self.subtitles.getData()) + '[CLOSE_TAG]'
+        return '[OPEN_TAG]' + self._makeCdata(blob) + '[CLOSE_TAG]'
 
-    def _makeCdata(self, data):
-        return '![CDATA[' + base64.b64encode(data) + ']]'
+    def _makeCdata(self, blob):
+        return '![CDATA[' + blob.getBase64() + ']]'
+
+    def _normalizeCdata(self, xmlStr):
+        def tagReplace(mathObj):
+            return ('<' if mathObj.group(0) == "[OPEN_TAG]" else '>')
+	# - Excuse me Sir, is this the second part of the previously
+        # mentioned hack?
+        # - Good eye! Yes, it is, indeed!
+        return re.sub(r'\[(OPEN|CLOSE)_TAG\]',
+                tagReplace, xmlStr)
 
     def _makeResponseTime(self, parent):
         # fake response time
@@ -97,29 +111,32 @@ NapiProjekt 2.1.1.2310 (2013-06-13)&#xD;
 - Usuni&#x119;to zg&#x142;oszone b&#x142;&#x119;dy&#xD;
 &#xD;"""
 
+    def _makeCover(self, parent):
+        if self.cover:
+            cover = ET.SubElement(parent, 'cover')
+            # HACK AGAIN
+            cover.text = '[OPEN_TAG]' + self._makeCdata(
+                    self.cover.getData()) + '[CLOSE_TAG]'
+
     def _makeMovie(self, parent):
-        # keep it empty
         movie = ET.SubElement(parent, 'movie')
+        self._makeStatus(movie)
+        if self.success:
+            self._makeCover(movie)
+
+    def _makeStatus(self, parent):
+        status = ET.SubElement(parent, 'status')
+        status.text = 'success' if self.success else 'failed'
 
     def toString(self):
         result = ET.Element('result')
-
-        status = ET.SubElement(result, 'status')
-        status.text = 'success' if self.success else 'failure'
-
-        self._makeSubtitlesElement(result)
         self._makeMovie(result)
+
+        if self.success:
+            self._makeStatus(result)
+            self._makeSubtitlesElement(result)
+
         self._makeAdvertisment(result)
         self._makeUpdateInfo(result)
         self._makeResponseTime(result)
-
-        def tagReplace(mathObj):
-            return ('<' if mathObj.group(0) == "[OPEN_TAG]" else '>')
-
-	# - Excuse me Sir, is this the second part of the previously
-        # mentioned hack?
-        # - Good eye! Yes, it is, indeed!
-        return re.sub(r'\[(OPEN|CLOSE)_TAG\]',
-                tagReplace,
-                ET.tostring(result, 'utf-8'),
-                count = 2)
+        return self._normalizeCdata(ET.tostring(result, 'utf-8'))
