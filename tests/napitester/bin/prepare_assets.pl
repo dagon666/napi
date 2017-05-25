@@ -6,6 +6,7 @@ $|++;
 
 use LWP::Simple;
 use Archive::Extract;
+use File::Find;
 use File::Temp;
 
 my $assets_tgz = "napi_testdata.tar.gz";
@@ -45,7 +46,13 @@ on_success(
                 my $archive = $wdir . '/' . $assets_tgz;
                 my $ae = Archive::Extract->new(
                     archive => $archive );
-                $ae->extract( to => $assets_path )
+
+                if ($ae->extract( to => $assets_path )) {
+                    File::Find::find(sub { chmod(0755, $_); }, ($assets_path));
+                    return 1;
+                }
+
+                return 0;
             },
             1
         );
