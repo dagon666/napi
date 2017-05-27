@@ -164,6 +164,20 @@ test_fs_garbageCollect_CollectsTheFileIfItExists() {
         "$tmpFile" "$(<"$garbageLog")"
 }
 
+test_fs_garbageCollectUnexisting_CollectsTheFileCreatedLater() {
+    local tmpFile="${SHUNIT_TMPDIR}/fakeFile"
+    local garbageLog="$(mktemp -p "$SHUNIT_TMPDIR")"
+
+    assertFalse "check if exists initially" \
+        "[ -e $tmpFile ]"
+
+    ___g_fsGarbageCollectorLog="$garbageLog"
+    fs_garbageCollectUnexisting "$tmpFile"
+
+    assertEquals "check log contents" \
+        "$tmpFile" "$(<"$garbageLog")"
+}
+
 test_fs_garbageCollect_doesntCollectTheFileIfItDoesntExists() {
     local tmpFile="$(mktemp -p "$SHUNIT_TMPDIR")"
     local garbageLog="$(mktemp -p "$SHUNIT_TMPDIR")"

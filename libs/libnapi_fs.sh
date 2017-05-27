@@ -319,6 +319,14 @@ fs_garbageCollect() {
 }
 
 #
+# @brief adds a given file to be garbage collected at exit
+# The file does not have to exist when being added
+#
+fs_garbageCollectUnexisting() {
+    echo "$1" >> "$___g_fsGarbageCollectorLog"
+}
+
+#
 # @brief create temporary directory
 #
 fs_mktempDir_SO() {

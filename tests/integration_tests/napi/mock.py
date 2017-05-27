@@ -26,12 +26,18 @@ class NapiprojektMock(object):
         return self.http.get_request(n)
 
     def programXmlRequest(self,
+            media,
             subtitles = None,
             cover = None,
             movieDetails = None,
             times = 1):
         status = 200
-        self.http.when('POST /api/api-napiprojekt3.php').reply(
+        # pretenders matches body from the beginning of the string - due to
+        # that body filtering at the moment is out of question
+        body = None
+        self.http.when(
+                'POST /api/api-napiprojekt3.php',
+                body = body).reply(
                 xml_result.XmlResult(subtitles, cover, movieDetails).toString(),
                 status = status,
                 headers = self.defaultHeaders,

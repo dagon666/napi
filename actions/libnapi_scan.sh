@@ -397,7 +397,7 @@ _scan_downloadAssetsXml() {
     local rv=$G_RETOK
 
     logging_debug $LINENO $"plik xml" "[$xmlPath]"
-    fs_garbageCollect "$xmlPath"
+    fs_garbageCollectUnexisting "$xmlPath"
 
     if napiprojekt_downloadXml \
         "$fileHash" "$fileName" "$fileSize" "$xmlPath" "$lang" &&
