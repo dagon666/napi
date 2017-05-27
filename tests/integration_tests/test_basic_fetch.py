@@ -7,6 +7,7 @@ import unittest
 
 # integration testing helpers
 import napi.assets
+import napi.cover
 import napi.mock
 import napi.movie_details
 import napi.runner
@@ -26,9 +27,12 @@ class BasicFetchTest(unittest.TestCase):
                 'testdata',
                 'media')
         self.assets = napi.assets.Assets(self.assetsPath)
+        self.output = None
 
     def tearDown(self):
-        pass
+        if self.output and self.output.hasErrors():
+            self.output.printStdout()
+            self.output.printStderr()
 
     def test_ifObtainsAvailableSubtitlesForSingleFile(self):
         asset = None
@@ -42,19 +46,15 @@ class BasicFetchTest(unittest.TestCase):
                         asset['media'], "test subtitles"))
 
             # call napi
-            op = self.runner.scan(os.path.join(sandbox.path, asset['name']))
+            self.output = self.runner.scan(
+                    os.path.join(sandbox.path, asset['name']))
 
             # check assertions
             req = self.napiMock.getRequest()
             self.assertEquals(req.method, "POST")
             self.assertEquals(req.url, '/api/api-napiprojekt3.php')
-            self.assertTrue(op.stdoutContains(re.compile(r'napisy pobrano pomyslnie')))
-
-            if op.hasErrors():
-                op.printStdout()
-                op.printStderr()
-
-            self.assertFalse(op.hasErrors())
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
 
     def test_ifObtainsAvailableSubtitlesForMediaInDirectory(self):
         assets = []
@@ -81,7 +81,7 @@ class BasicFetchTest(unittest.TestCase):
                 self.napiMock.programXmlRequest()
 
             # call napi
-            op = self.runner.scan('--stats', sandbox.path)
+            self.output = self.runner.scan('--stats', sandbox.path)
 
             # check assertions
             for n in xrange(nTotal):
@@ -90,11 +90,46 @@ class BasicFetchTest(unittest.TestCase):
                 self.assertEquals(req.url, '/api/api-napiprojekt3.php')
 
             # check statistics
-            stats = op.parseStats()
+            stats = self.output.parseStats()
             self.assertEquals(nAvailable, stats['ok'])
             self.assertEquals(nUnavailable, stats['unav'])
             self.assertEquals(nTotal, stats['total'])
 
+    def test_ifDownloadsCoverFilesForSingleMedia(self):
+        asset = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # obtain an asset
+            asset = self.assets.prepareRandomMedia(sandbox)
+
+            # program napiprojekt mock
+            self.napiMock.programXmlRequest(
+                    napi.subtitles.CompressedSubtitles.fromString(
+                        asset['media'], "test subtitles"),
+                    napi.cover.Cover.fromString(
+                        asset['media'], "test cover data"))
+
+            # call napi
+            self.output = self.runner.scan("-c", "--stats",
+                    os.path.join(sandbox.path, asset['name']))
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "POST")
+            self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+
+            # check for subs success
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            # check for cover success
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'okladka pobrana pomyslnie')))
+
+            # check statistics
+            stats = self.output.parseStats()
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['cover_ok'])
+            self.assertEquals(1, stats['total'])
 
 if __name__ == '__main__':
 

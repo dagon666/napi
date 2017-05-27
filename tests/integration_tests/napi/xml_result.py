@@ -114,9 +114,7 @@ NapiProjekt 2.1.1.2310 (2013-06-13)&#xD;
     def _makeCover(self, parent):
         if self.cover:
             cover = ET.SubElement(parent, 'cover')
-            # HACK AGAIN
-            cover.text = '[OPEN_TAG]' + self._makeCdata(
-                    self.cover.getData()) + '[CLOSE_TAG]'
+            cover.text = self._makeNapiCdata(self.cover)
 
     def _makeMovie(self, parent):
         movie = ET.SubElement(parent, 'movie')

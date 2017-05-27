@@ -361,8 +361,10 @@ _scan_downloadAssetsLegacy() {
             if napiprojekt_downloadCoverLegacy "$fileHash" \
                 "${fileDir}/${fileNameNoExt}.${coverExt}"; then
                 logging_success $"okladka pobrana pomyslne" "[$fileName]"
+                ___g_scan_stats[4]=$(( ___g_scan_stats[4] + 1 ))
             else
                 logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
+                ___g_scan_stats[5]=$(( ___g_scan_stats[5] + 1 ))
             fi
         }
     else
@@ -410,11 +412,13 @@ _scan_downloadAssetsXml() {
                     napiprojekt.nfo.extension)
                 logging_debug $LINENO $"tworze plik nfo"
 
-                if napiprojekt_extractNfoFromXml "$xmlFile" \
+                if napiprojekt_extractNfoFromXml "$xmlPath" \
                     "${fileDir}/${fileNameNoExt}.${nfoExt}"; then
                     logging_success $"plik nfo utworzony pomyslnie" "[$fileName]"
+                    ___g_scan_stats[7]=$(( ___g_scan_stats[7] + 1 ))
                 else
                     logging_error $"nie udalo sie utworzyc pliku nfo" "[$fileName]"
+                    ___g_scan_stats[8]=$(( ___g_scan_stats[8] + 1 ))
                 fi
             }
 
@@ -423,11 +427,13 @@ _scan_downloadAssetsXml() {
                     napiprojekt.cover.extension)
                 logging_debug $LINENO $"wypakowuje okladke z XML"
 
-                if napiprojekt_extractCoverFromXml "$xmlFile" \
+                if napiprojekt_extractCoverFromXml "$xmlPath" \
                     "${fileDir}/${fileNameNoExt}.${coverExt}"; then
                     logging_success $"okladka pobrana pomyslnie" "[$fileName]"
+                    ___g_scan_stats[4]=$(( ___g_scan_stats[4] + 1 ))
                 else
                     logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
+                    ___g_scan_stats[5]=$(( ___g_scan_stats[5] + 1 ))
                 fi
             }
         else
