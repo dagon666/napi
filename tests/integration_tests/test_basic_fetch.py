@@ -35,19 +35,19 @@ class BasicFetchTest(unittest.TestCase):
             self.output.printStderr()
 
     def test_ifObtainsAvailableSubtitlesForSingleFile(self):
-        asset = None
+        media = None
         with napi.sandbox.Sandbox() as sandbox:
-            # obtain an asset
-            asset = self.assets.prepareRandomMedia(sandbox)
+            # generate a media file
+            media = self.assets.prepareRandomMedia(sandbox)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
                     napi.subtitles.CompressedSubtitles.fromString(
-                        asset['media'], "test subtitles"))
+                        media['asset'], "test subtitles"))
 
             # call napi
             self.output = self.runner.scan(
-                    os.path.join(sandbox.path, asset['name']))
+                    os.path.join(sandbox.path, media['name']))
 
             # check assertions
             req = self.napiMock.getRequest()
@@ -57,7 +57,7 @@ class BasicFetchTest(unittest.TestCase):
                 re.compile(r'napisy pobrano pomyslnie')))
 
     def test_ifObtainsAvailableSubtitlesForMediaInDirectory(self):
-        assets = []
+        medias = []
         with napi.sandbox.Sandbox() as sandbox:
 
             nAvailable = 3
@@ -66,18 +66,18 @@ class BasicFetchTest(unittest.TestCase):
 
             # prepare responses for available subs
             for _ in xrange(nAvailable):
-                asset = self.assets.prepareRandomMedia(sandbox)
-                assets.append(asset)
+                media = self.assets.prepareRandomMedia(sandbox)
+                medias.append(media)
 
                 # program http mock
                 self.napiMock.programXmlRequest(
                         napi.subtitles.CompressedSubtitles.fromString(
-                            asset['media'], "test subtitles"))
+                            media['asset'], "test subtitles"))
 
             # prepare responses for unavailable subs
             for _ in xrange(nUnavailable):
-                asset = self.assets.prepareRandomMedia(sandbox)
-                assets.append(asset)
+                media = self.assets.prepareRandomMedia(sandbox)
+                medias.append(media)
                 self.napiMock.programXmlRequest()
 
             # call napi
@@ -96,21 +96,21 @@ class BasicFetchTest(unittest.TestCase):
             self.assertEquals(nTotal, stats['total'])
 
     def test_ifDownloadsCoverFilesForSingleMedia(self):
-        asset = None
+        media = None
         with napi.sandbox.Sandbox() as sandbox:
-            # obtain an asset
-            asset = self.assets.prepareRandomMedia(sandbox)
+            # obtain an media
+            media = self.assets.prepareRandomMedia(sandbox)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
                     napi.subtitles.CompressedSubtitles.fromString(
-                        asset['media'], "test subtitles"),
+                        media['asset'], "test subtitles"),
                     napi.cover.Cover.fromString(
-                        asset['media'], "test cover data"))
+                        media['asset'], "test cover data"))
 
             # call napi
             self.output = self.runner.scan("-c", "--stats",
-                    os.path.join(sandbox.path, asset['name']))
+                    os.path.join(sandbox.path, media['name']))
 
             # check assertions
             req = self.napiMock.getRequest()

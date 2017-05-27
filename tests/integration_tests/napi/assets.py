@@ -28,15 +28,17 @@ class Assets(object):
         if self.assets['version'] is not self.VERSION:
             raise exception.RuntimeError("Unsupported assets version")
 
-    def _prepareMedia(self, sandbox, media, name):
+    def _prepareMedia(self, sandbox, asset, name):
         """
-        Copies selected media file to given sandbox under given name
+        Copies selected asset file to given sandbox under given name
         """
 
-        assetPath = os.path.join(self.path, media['filename'])
+        assetPath = os.path.join(self.path, asset['filename'])
         mediaPath = os.path.join(sandbox.path, name)
         shutil.copyfile(assetPath, mediaPath)
-        return { 'name': name, 'path': mediaPath, 'media': media }
+
+        # return a media descriptor
+        return { 'name': name, 'path': mediaPath, 'asset': asset }
 
     def prepareRandomMedia(self, sandbox, name = None):
         """
@@ -65,10 +67,10 @@ class Assets(object):
                 asset,
                 name)
 
-    def prepareMedia(self, sandbox, mediaId, name):
+    def prepareMedia(self, sandbox, assetId, name):
         """
-        Prepare spefific media
+        Prepare media out of specific asset
         """
         return self._prepareMedia(sandbox,
-                self.assets['assets'][mediaId], name)
+                self.assets['assets'][assetId], name)
 
