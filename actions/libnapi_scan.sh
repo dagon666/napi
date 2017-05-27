@@ -343,6 +343,8 @@ _scan_downloadAssetsLegacy() {
     local getNfo=$(sysconf_getKey_SO napiprojekt.nfo.download)
     local getCover=$(sysconf_getKey_SO napiprojekt.cover.download)
 
+    local rv=$G_RETOK
+
     [ "$getNfo" -eq 1 ] && {
         logging_warning $LINENO $"plik nfo nie jest wspierany w trybie legacy"
     }
@@ -365,9 +367,11 @@ _scan_downloadAssetsLegacy() {
         }
     else
         logging_error $"nie udalo sie pobrac napisow" "[$fileName]"
+        rv=G_RETUNAV
     fi
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
+    return $rv
 }
 
 #
@@ -388,6 +392,8 @@ _scan_downloadAssetsXml() {
     local getNfo=$(sysconf_getKey_SO napiprojekt.nfo.download)
     local getCover=$(sysconf_getKey_SO napiprojekt.cover.download)
 
+    local rv=$G_RETOK
+
     logging_debug $LINENO $"plik xml" "[$xmlPath]"
     fs_garbageCollect "$xmlPath"
 
@@ -396,8 +402,7 @@ _scan_downloadAssetsXml() {
         napiprojekt_verifyXml "$xmlPath"; then
         logging_debug $LINENO $"XML pobrany pomyslnie"
 
-        napiprojekt_extractSubsFromXml "$xmlPath" \
-            "$subsPath" &&
+        if napiprojekt_extractSubsFromXml "$xmlPath" "$subsPath"; then
             logging_success $"napisy pobrano pomyslnie" "[$fileName]"
 
             [ "$getNfo" -eq 1 ] && {
@@ -425,12 +430,17 @@ _scan_downloadAssetsXml() {
                     logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
                 fi
             }
+        else
+            rv=$G_RETUNAV
+        fi
     else
         logging_error $"Blad podczas pobierania, lub XML uszkodzony" \
             "[$fileName]"
+        rv=$G_RETUNAV
     fi
 
     logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
+    return $rv
 }
 
 _scan_downloadAssetsForFile() {
@@ -471,6 +481,8 @@ _scan_processFile() {
     local fileSize=$(fs_stat_SO "$filePath")
     local fileHash=$(napiprojekt_calculateMd5VideoFile_SO "$filePath")
 
+    local rv=$RET_OK
+
     logging_debug $LINENO $"plik" "[$fileName]" \
         $", rozmiar:" "[$fileSize]" \
         $", hash:" "[$fileHash]"
@@ -510,7 +522,8 @@ _scan_processFile() {
                 else
                     # unable to get the file
                     logging_debug $LINENO $"napisy niedostepne"
-                    return $G_RETUNAV
+                    ___g_scan_stats[1]=$(( ___g_scan_stats[1] + 1 ))
+                    rv=$G_RETUNAV
                 fi
             ;;
 
@@ -518,7 +531,7 @@ _scan_processFile() {
                 logging_debug $LINENO $"nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
                 # increment skipped counter
                 ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
-                return $G_RETNOACT
+                rv=$G_RETNOACT
             ;;
 
             2|3) # convert
@@ -545,25 +558,29 @@ _scan_processFile() {
 
         # file is not available - download
         if [ ${fileAvailability[0]} -eq 0 ]; then
-            _scan_downloadAssetsForFile \
+            if _scan_downloadAssetsForFile \
                 "$filePath" \
                 "$fileName" \
                 "$fileDir" \
                 "$fileHash" \
                 "$fileSize" \
                 "$lang" \
-                "$fileDir/${___g_pf[1]}" &&
+                "$fileDir/${___g_pf[1]}"; then
                 ___g_scan_stats[0]=$(( ___g_scan_stats[0] + 1 ))
+            else
+                ___g_scan_stats[1]=$(( ___g_scan_stats[1] + 1 ))
+                rv=$G_RETUNAV
+            fi
         else
-
             # increment skipped counter
             ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
-            return $G_RETNOACT
+            rv=$G_RETNOACT
         fi
     fi
 
     # increment total processed counter
     ___g_scan_stats[10]=$(( ${___g_scan_stats[10]} + 1 ))
+    return $rv
 }
 
 #
