@@ -50,6 +50,9 @@ class XmlResult(object):
         contents.text = self._makeNapiCdata(self.subtitles)
 
     def _makeNapiCdata(self, blob):
+        return self._makeNapiCdataString(blob.getBase64())
+
+    def _makeNapiCdataString(self, data):
         # !!! Hack Alert !!!
         # Original napi xml file holds CDATA in <>
         # which is probably wrong, but it's impossible to use these in
@@ -57,10 +60,10 @@ class XmlResult(object):
         #
         # These custom markers will be replaced later on once the xml is
         # produced
-        return '[OPEN_TAG]' + self._makeCdata(blob) + '[CLOSE_TAG]'
+        return '[OPEN_TAG]' + self._makeCdata(data) + '[CLOSE_TAG]'
 
-    def _makeCdata(self, blob):
-        return '![CDATA[' + blob.getBase64() + ']]'
+    def _makeCdata(self, data):
+        return '![CDATA[' + data + ']]'
 
     def _normalizeCdata(self, xmlStr):
         def tagReplace(mathObj):
@@ -116,11 +119,64 @@ NapiProjekt 2.1.1.2310 (2013-06-13)&#xD;
             cover = ET.SubElement(parent, 'cover')
             cover.text = self._makeNapiCdata(self.cover)
 
+    def _makeMovieDetails(self, parent):
+        title = ET.SubElement(parent, 'title')
+        title.text = self._makeNapiCdataString(self.movieDetails.title)
+
+        otherTitle = ET.SubElement(parent, 'other_titles')
+        otherTitle0 = ET.SubElement(otherTitle, 'other_0')
+        otherTitle0.text = self._makeNapiCdataString(self.movieDetails.otherTitle)
+
+        year = ET.SubElement(parent, 'year')
+        year.text = self.movieDetails.year
+
+        country = ET.SubElement(parent, 'country')
+        countryPl = ET.SubElement(country, 'pl')
+        countryPl.text = self.movieDetails.countryPl
+        countryEn = ET.SubElement(country, 'en')
+        countryEn.text = self.movieDetails.countryEn
+
+        genre = ET.SubElement(parent, 'genre')
+        genrePl = ET.SubElement(genre, 'pl')
+        genrePl.text = self.movieDetails.genrePl
+        genreEn = ET.SubElement(genre, 'en')
+        genreEn.text = self.movieDetails.genreEn
+
+        direction = ET.SubElement(parent, 'direction')
+        direction.text = self.movieDetails.direction
+        screenplay = ET.SubElement(parent, 'screenplay')
+        screenplay.text = self.movieDetails.screenplay
+        cinematography = ET.SubElement(parent, 'cinematography')
+        cinematography.text = self.movieDetails.cinematography
+
+        links = ET.SubElement(parent, 'direct_links')
+        imdb = ET.SubElement(links, 'imdb_com')
+        imdb.text = self._makeNapiCdataString(self.movieDetails.imdb)
+        filmweb = ET.SubElement(links, 'filmweb_pl')
+        filmweb.text = self._makeNapiCdataString(self.movieDetails.filmweb)
+        fdb = ET.SubElement(links, 'fdb_pl')
+        fdb.text = self._makeNapiCdataString(self.movieDetails.fdb)
+        stopklatka = ET.SubElement(links, 'stopklatka_pl')
+        stopklatka.text = self._makeNapiCdataString(self.movieDetails.stopklatka)
+        onet = ET.SubElement(links, 'onet_pl')
+        onet.text = self._makeNapiCdataString(self.movieDetails.onet)
+        wp = ET.SubElement(links, 'wp_pl')
+        wp.text = self._makeNapiCdataString(self.movieDetails.wp)
+
+        rating = ET.SubElement(parent, 'rating')
+        rating.text = self.movieDetails.rating
+        votes = ET.SubElement(parent, 'votes')
+        votes.text = self.movieDetails.votes
+
+
     def _makeMovie(self, parent):
         movie = ET.SubElement(parent, 'movie')
         self._makeStatus(movie)
         if self.success:
             self._makeCover(movie)
+
+            if self.movieDetails:
+                self._makeMovieDetails(movie)
 
     def _makeStatus(self, parent):
         status = ET.SubElement(parent, 'status')
