@@ -38,3 +38,12 @@ class Runner(object):
 
     def scan(self, *args):
         return self.execute('scan', '-v', '3', *args)
+
+    def download(self, *args):
+        return self.execute('download', '-v', '3', *args)
+
+    def subtitles(self, *args):
+        return self.execute('subtitles', '-v', '3', *args)
+
+    def search(self, *args):
+        return self.execute('search', '-v', '3', *args)
