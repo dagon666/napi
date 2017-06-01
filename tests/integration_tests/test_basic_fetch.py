@@ -56,10 +56,19 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
     def test_ifObtainsAvailableSubtitlesForMediaInDirectory(self):
         """
         Brief:
+        This test checks if napi is able to scan a directory containing media
+        files, detect the presence of media files and obtain subtitles for each
+        of them.
 
         Procedure:
+        1. Prepare sandbox and media files with random names
+        2. Program napiprojekt mock to reply with success for some of the media
+        files and failure for the others.
+        3. Call napi with the path to the sandbox
 
         Expected Results:
+        Napi should successfully download subtitles for media files for which
+        napiprojekt mock has been programmed to return a successful result.
 
         """
         mediasAvailable = []
@@ -109,10 +118,16 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
     def test_ifDownloadsCoverFilesForSingleMedia(self):
         """
         Brief:
+        This test verifies if napi is able to obtain the cover file for media
 
         Procedure:
+        1. Prepare a sandbox with a media file
+        2. Program napiprojekt mock to return some test cover data
+        3. Call napi with -c parameter
 
         Expected Results:
+        Napi should obtain both the subtitles and the cover file for the media
+        file.
 
         """
         media = None
@@ -160,10 +175,16 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
     def test_ifDownloadsNfoFilesForSingleMedia(self):
         """
         Brief:
+        This test verifies if napi is able to collect movie information from
+        Xml file and collate it into the nfo file.
 
         Procedure:
+        1. Prepare a sandbox with a media file
+        2. Program napiprojekt mock to return some test cover data
+        3. Call napi with -n parameter
 
         Expected Results:
+        napi should obtain both the subtitles and create an nfo file
 
         """
         media = None
@@ -209,10 +230,19 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
     def test_ifSkipsDownloadingIfSubtitlesAlreadyDownloaded(self):
         """
         Brief:
+        This test verifies if napi is skipping the subtitles download for media
+        files for which the subtitles file seems to already exist in the
+        filesystem.
 
         Procedure:
+        1. Prepare a set of media files.
+        2. Program napiprojekt.pl mock to respond with success Xml response.
+        3. Call napi.
+        4. Call napi again.
 
         Expected Results:
+        Check if it skipped the download for media files for which subtitles
+        have been already obtained.
 
         """
         pass
@@ -245,13 +275,21 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
     def test_ifSkipsFilesSmallerThanConfiguredLimit(self):
         """
         Brief:
+        Verify if napi works for specified media directory and skips the files
+        smaller than specified (-b option)
 
         Procedure:
+        1. Prepare some media files with size above and below assumed limit.
+        2. Program napiprojekt.pl mock with success Xml response.
+        3. Call napi with -b and selected assumed size limit.
 
         Expected Results:
+        napi shouldn't download the subtitles for the media files (for which
+        they are available) which are smaller than specified.
 
         """
         pass
+
 # #>TESTSPEC
 # #
 # # Brief:
