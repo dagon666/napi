@@ -237,40 +237,64 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
         Procedure:
         1. Prepare a set of media files.
         2. Program napiprojekt.pl mock to respond with success Xml response.
-        3. Call napi.
-        4. Call napi again.
+        3. Call napi -s.
+        4. Call napi -s again.
 
         Expected Results:
         Check if it skipped the download for media files for which subtitles
         have been already obtained.
 
         """
-        pass
+        medias = []
+        with napi.sandbox.Sandbox() as sandbox:
 
-# #>TESTSPEC
-# #
-# # Brief:
-# #
-# # Verify if napi works for specified media directory and skips downloading if the subtitles file already exist
-# #
-# # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
-# # - prepare a set of test files and a test directory structure
-# # - the subtitles files should exist as well
-# #
-# # Procedure:
-# # - Call napi with the path to the pre-prepared media directory
-# #
-# # Expected results:
-# # - napi shouldn't download the subtitles for the media files (for which they are available) if it detects that the
-# # subtitles file already exist
-# #
-# $output = NapiTest::qx_napi($shell, "--stats -s " . $NapiTest::testspace);
-# %output = NapiTest::parse_summary($output);
-# is ($output{skip}, $total_available, "Total number of skipped");
-# is ($output{skip} + $output{unav}, $output{total}, "Total processed (with skipping)");
-# is ($output{total}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
-# 
+            nTotal = 4
+            nAttempts = 3
+
+            # prepare responses for available subs
+            for _ in xrange(nTotal):
+                media = self.assets.prepareRandomMedia(sandbox)
+                medias.append(media)
+
+                # program http mock
+                self.napiMock.programXmlRequest(
+                        media,
+                        napi.subtitles.CompressedSubtitles.fromString(
+                            media['asset'], "test subtitles"),
+                        None,
+                        None,
+                        nAttempts)
+
+            for attempt in xrange(nAttempts):
+                # call napi
+                self.napiScan('--stats', '-s', sandbox.path)
+
+                stats = self.output.parseStats()
+                if attempt == 0:
+                    for n in xrange(nTotal):
+                        req = self.napiMock.getRequest(n + nTotal*attempt)
+                        self.assertTrue(req)
+                        self.assertEquals(req.method, "POST")
+                        self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+
+                    # check statistics
+                    self.assertEquals(nTotal, stats['ok'])
+                    self.assertEquals(0, stats['skip'])
+                    self.assertEquals(0, stats['unav'])
+                    self.assertEquals(nTotal, stats['total'])
+                else:
+                    for n in xrange(nTotal):
+                        req = self.napiMock.getRequest(n + nTotal*attempt)
+                        self.assertFalse(req)
+
+                    # check statistics
+                    self.assertEquals(0, stats['ok'])
+                    self.assertEquals(nTotal, stats['skip'])
+                    self.assertEquals(0, stats['unav'])
+                    self.assertEquals(nTotal, stats['total'])
+
+                self.assertEqual(nTotal, sum([ 1 for m in medias
+                    if napi.fs.Filesystem(m).subtitlesExists()]))
 
     def test_ifSkipsFilesSmallerThanConfiguredLimit(self):
         """
@@ -309,35 +333,35 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
 # #
 # NapiTest::clean_testspace();
 # prepare_assets();
-# 
+#
 # # prepare big files
 # my $dir_cnt = 0;
 # foreach my $dir (glob ($NapiTest::testspace . '/*')) {
-# 
+#
 # 	my $basepath = $dir . "/test_file";
-# 
+#
 # 	$basepath =~ s/([\<\>\'\"\$\[\]\@\ \&\#\(\)]){1}/\\$1/g;
 # 	# print 'After: ' . $basepath . "\n";
-# 
+#
 # 	system("dd if=/dev/urandom of=" . $basepath .  $_ . ".avi bs=1M count=" . $_)
 # 		foreach(15, 20);
 # 	$dir_cnt++;
 # }
-# 
+#
 # $output = NapiTest::qx_napi($shell, "--stats -b 12 " . $NapiTest::testspace);
 # %output = NapiTest::parse_summary($output);
 # is ($output{unav}, $dir_cnt * 2, "Number of processed files bigger than given size");
-# 
+#
 # $output = NapiTest::qx_napi($shell, "--stats -b 16 " . $NapiTest::testspace);
 # %output = NapiTest::parse_summary($output);
 # is ($output{unav}, $dir_cnt, "Number of processed files bigger than given size 2");
-# 
+#
 # $output = NapiTest::qx_napi($shell, "--stats -b 4 " . $NapiTest::testspace);
 # %output = NapiTest::parse_summary($output);
 # is ($output{total},
 # 	$output{unav} + $output{ok},
 # 	"Number of processed files bigger than given size 2");
-# 
+#
 # NapiTest::clean_testspace();
 # done_testing();
 
