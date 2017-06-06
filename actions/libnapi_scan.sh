@@ -198,10 +198,14 @@ _scan_prepareFileList() {
 
         else
             local fileSize=$(fs_stat_SO "$file")
+            local sizeLimit=$(( ___g_min_size*1024*1024 ))
 
-            # check if the respective file is a video file (by extention)
+            logging_debug $LINENO $"znaleziono plik: " "$file" \
+                $", o rozmiarze: " "$fileSize" \
+                $", limit: " "$sizeLimit"
+
             fs_isVideoFile "$file" &&
-                [ "${fileSize:-0}" -ge $(( ___g_min_size*1024*1024 )) ] && {
+                [ "${fileSize:-0}" -ge "$sizeLimit" ] && {
                 g_scan_files=( "${g_scan_files[@]}" "$file" )
             }
         fi

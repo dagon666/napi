@@ -24,7 +24,7 @@ class Runner(object):
             os.environ['NAPIPROJEKT_BASEURL'] = self.napiprojektUrl
 
     def execute(self, *args):
-        cmd = (self.bash, 'napi.sh',) + args
+        cmd = [self.bash, 'napi.sh',] + map(str, args)
         self.logger.error(cmd)
         process = subprocess.Popen(
                 cmd,

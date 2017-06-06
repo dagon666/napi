@@ -114,10 +114,10 @@ class Assets(object):
             }
 
         with open('/dev/urandom', 'rb') as randomDev:
-            with open(mediaPath, 'rw') as mediaFile:
+            with open(mediaPath, 'wb') as mediaFile:
                 mediaFile.write(randomDev.read(size))
 
-        with open(mediaPath, 'r') as mediaFile:
+        with open(mediaPath, 'rb') as mediaFile:
             md5 = hashlib.md5()
             md5.update(mediaFile.read())
             asset['md5'] = md5.hexdigest()

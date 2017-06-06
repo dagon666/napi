@@ -5,6 +5,7 @@ updateInstallation() {
 
     echo "Updating napi installation..."
     docker-compose run \
+        -u 0 \
         --name napiclient_update \
         napiclient \
         napiclient/bin/update_installation.sh
@@ -15,7 +16,7 @@ updateInstallation() {
 
     # remove the container
     echo "Cleanup..."
-    docker rm "$containerId"
+    docker rm -f "$containerId"
 }
 
 usage() {

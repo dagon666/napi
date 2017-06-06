@@ -312,58 +312,42 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
         they are available) which are smaller than specified.
 
         """
-        pass
+        medias = []
+        with napi.sandbox.Sandbox() as sandbox:
 
-# #>TESTSPEC
-# #
-# # Brief:
-# #
-# # Verify if napi works for specified media directory and skips the files smaller than specified (-b option)
-# #
-# # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
-# # - prepare a set of test files and a test directory structure
-# #
-# # Procedure:
-# # - Call napi with the path to the pre-prepared media directory
-# # - specify various values for the -b option
-# #
-# # Expected results:
-# # - napi shouldn't download the subtitles for the media files (for which they are available) which are smaller than specified
-# #
-# NapiTest::clean_testspace();
-# prepare_assets();
-#
-# # prepare big files
-# my $dir_cnt = 0;
-# foreach my $dir (glob ($NapiTest::testspace . '/*')) {
-#
-# 	my $basepath = $dir . "/test_file";
-#
-# 	$basepath =~ s/([\<\>\'\"\$\[\]\@\ \&\#\(\)]){1}/\\$1/g;
-# 	# print 'After: ' . $basepath . "\n";
-#
-# 	system("dd if=/dev/urandom of=" . $basepath .  $_ . ".avi bs=1M count=" . $_)
-# 		foreach(15, 20);
-# 	$dir_cnt++;
-# }
-#
-# $output = NapiTest::qx_napi($shell, "--stats -b 12 " . $NapiTest::testspace);
-# %output = NapiTest::parse_summary($output);
-# is ($output{unav}, $dir_cnt * 2, "Number of processed files bigger than given size");
-#
-# $output = NapiTest::qx_napi($shell, "--stats -b 16 " . $NapiTest::testspace);
-# %output = NapiTest::parse_summary($output);
-# is ($output{unav}, $dir_cnt, "Number of processed files bigger than given size 2");
-#
-# $output = NapiTest::qx_napi($shell, "--stats -b 4 " . $NapiTest::testspace);
-# %output = NapiTest::parse_summary($output);
-# is ($output{total},
-# 	$output{unav} + $output{ok},
-# 	"Number of processed files bigger than given size 2");
-#
-# NapiTest::clean_testspace();
-# done_testing();
+            nTotal = 16
+            sizeIncrement = 1
+            initialSize = 1
+
+            # prepare responses for available subs
+            for n in xrange(nTotal):
+                mb = 1024 * 1024
+                size = initialSize + sizeIncrement*n
+                media = self.assets.generateMedia(sandbox, size * mb)
+                medias.append(media)
+
+                # program http mock
+                self.napiMock.programXmlRequest(
+                        media,
+                        napi.subtitles.CompressedSubtitles.fromString(
+                            media['asset'], "test subtitles"),
+                        None,
+                        None,
+                        nTotal * (nTotal - n))
+
+            for attempt in reversed(xrange(nTotal)):
+                # call napi
+                size = initialSize + sizeIncrement * attempt
+                self.napiScan('--stats', '-b', size, sandbox.path)
+                stats = self.output.parseStats()
+
+                totalDetected = nTotal - attempt
+                self.assertEquals(totalDetected, stats['ok'])
+                self.assertEquals(totalDetected, stats['total'])
+                self.assertEquals(0, stats['unav'])
+
+                self.assertEqual(totalDetected, sum([ 1 for m in medias
+                    if napi.fs.Filesystem(m).subtitlesExists()]))
 
 if __name__ == '__main__':
     napi.testcase.runTests()
