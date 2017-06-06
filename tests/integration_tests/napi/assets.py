@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import hashlib
 import json
 import os
 import random
@@ -14,6 +15,7 @@ class Assets(object):
     ASSETS_JSON = 'assets.json'
     DEFAULT_EXT = 'avi'
     VERSION = 1
+    DEFAULT_GENERATED_MEDIA_SIZE = 1024*1024*10
 
     def __init__(self, path):
         """
@@ -27,6 +29,25 @@ class Assets(object):
 
         if self.assets['version'] is not self.VERSION:
             raise exception.RuntimeError("Unsupported assets version")
+
+    def _makeFHash(self, md5):
+        tIdx = [ 0xe, 0x3, 0x6, 0x8, 0x2 ]
+        tMul = [ 2, 2, 5, 4, 3 ]
+        tAdd = [ 0, 0xd, 0x10, 0xb, 0x5 ]
+        digest = ""
+
+        for i in xrange(5):
+            a = tAdd[i]
+            m = tMul[i]
+            g = tIdx[i]
+
+            t = int(md5[g:g+1],16) + a
+            v = int(md5[t:t+2],16)
+
+            x = (v * m) % 0x10
+            z = format(x, 'x')
+            digest = digest + z
+        return digest
 
     def _prepareMedia(self, sandbox, asset, name):
         """
@@ -66,6 +87,44 @@ class Assets(object):
         return self._prepareMedia(sandbox,
                 asset,
                 name)
+
+    def generateMedia(self,
+            sandbox,
+            size = DEFAULT_GENERATED_MEDIA_SIZE,
+            name = None):
+        """
+        Prepares a media file with random data inside, with given size.
+        A fake asset descriptor will be built on the fly for the
+        generated media file.
+        """
+
+        ext = self.DEFAULT_EXT
+        if not name:
+            name = '.'.join((uuid.uuid4().hex, ext))
+
+        mediaPath = os.path.join(sandbox.path, name)
+
+        # prepare fake asset descriptor
+        asset = {
+            'filename': 'dev-urandom.dat',
+            'size': size,
+            'f': None,
+            'md5': None,
+            'type': ext,
+            }
+
+        with open('/dev/urandom', 'rb') as randomDev:
+            with open(mediaPath, 'rw') as mediaFile:
+                mediaFile.write(randomDev.read(size))
+
+        with open(mediaPath, 'r') as mediaFile:
+            md5 = hashlib.md5()
+            md5.update(mediaFile.read())
+            asset['md5'] = md5.hexdigest()
+            asset['f'] = self._makeFHash(asset['md5'])
+
+        return { 'name': name, 'path': mediaPath, 'asset': asset }
+
 
     def prepareMedia(self, sandbox, assetId, name):
         """
