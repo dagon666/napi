@@ -54,7 +54,7 @@ declare -a ___g_sysconf_configuration=( \
     "napiprojekt.cover.download=0" \
     "napiprojekt.nfo.extension=nfo" \
     "napiprojekt.nfo.download=0" \
-    "system.hook.executable=" \
+    "system.hook.executable=none" \
     "system.forks=1" \
 )
 
@@ -69,6 +69,23 @@ sysconf_setKey_GV() {
 
 sysconf_getKey_SO() {
     assoc_lookupValue_SO "${1}" "${___g_sysconf_configuration[@]}"
+}
+
+sysconf_callHook_GV() {
+    local subtitlesFile="${1:-}"
+    local hook="$(sysconf_getKey_SO system.hook.executable)"
+
+    [ "${hook:-none}" = "none" ] &&
+        logging_debug $LINENO $"brak skonfigurowanego hooka, ignoruje" &&
+        return $G_RETNOACT
+
+    [ ! -x "${hook}" ] && {
+        logging_error $"podany skrypt jest niedostepny (lub nie ma uprawnien do wykonywania)" "[$hook]"
+        return $G_RETPARAM
+    }
+
+    logging_msg $"wywoluje zewnetrzny skrypt: " "[$hook]"
+    $hook "$subtitlesFile"
 }
 
 ################################################################################

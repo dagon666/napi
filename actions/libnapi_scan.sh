@@ -85,7 +85,8 @@ ___g_stats_print=0
 # 8 - nfos unavailable
 # 9 - nfos skipped
 # 10 - total processed
-declare -a ___g_scan_stats=( 0 0 0 0 0 0 0 0 0 0 0 )
+# 11 - charset converted
+declare -a ___g_scan_stats=( 0 0 0 0 0 0 0 0 0 0 0 0 )
 
 ########################################################################
 
@@ -376,7 +377,6 @@ _scan_downloadAssetsLegacy() {
         rv=G_RETUNAV
     fi
 
-    logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
     return $rv
 }
 
@@ -449,7 +449,6 @@ _scan_downloadAssetsXml() {
         rv=$G_RETUNAV
     fi
 
-    logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
     return $rv
 }
 
@@ -481,7 +480,7 @@ _scan_downloadAssetsForFile() {
 #
 # @brief process file dispatch
 #
-_scan_processFile() {
+_scan_obtainFile() {
     local filePath="${1:-}"
     local lang="${2:-}"
     local format="${3:-}"
@@ -532,7 +531,6 @@ _scan_processFile() {
                 else
                     # unable to get the file
                     logging_debug $LINENO $"napisy niedostepne"
-                    ___g_scan_stats[1]=$(( ___g_scan_stats[1] + 1 ))
                     rv=$G_RETUNAV
                 fi
             ;;
@@ -578,7 +576,6 @@ _scan_processFile() {
                 "$fileDir/${___g_pf[1]}"; then
                 ___g_scan_stats[0]=$(( ___g_scan_stats[0] + 1 ))
             else
-                ___g_scan_stats[1]=$(( ___g_scan_stats[1] + 1 ))
                 rv=$G_RETUNAV
             fi
         else
@@ -588,8 +585,53 @@ _scan_processFile() {
         fi
     fi
 
+    return $rv
+}
+
+_scan_processFile() {
+    local filePath="${1:-}"
+    local fileName="$(basename "$filePath")"
+    local lang="${2:-}"
+    local format="${3:-}"
+    local status=$G_RETOK
+    local rv=$G_RETOK
+
+    # name with abbreviation by default
+    local fileNameIndex=1
+
+    _scan_obtainFile "$filePath" "$lang" "$format"
+    status=$?
+
+    if [ "$status" -eq "$G_RETOK" ] ||
+        [ "$status" -eq "$G_RETNOACT" ]; then
+
+        [ "$format" != 'default' ] && {
+            logging_debug $LINENO $"zadanie konwersji - korekcja nazwy pliku"
+            fileNameIndex=7
+        }
+
+        local charset="$(sysconf_getKey_SO napiprojekt.subtitles.encoding)"
+        local path="$(dirname "$filePath")"
+
+        [ "${charset:-default}" != 'default' ] &&
+            [ "$status" -eq "$G_RETOK" ] && {
+            subs_convertEncoding \
+                "${path}/${___g_pf[$fileNameIndex]}" \
+                "$charset" &&
+                ___g_scan_stats[11]=$(( ___g_scan_stats[11] + 1 ))
+        }
+
+        sysconf_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
+
+    else
+        # unav counter
+        ___g_scan_stats[1]=$(( ___g_scan_stats[1] + 1 ))
+        rv=$G_RETUNAV
+    fi
+
     # increment total processed counter
     ___g_scan_stats[10]=$(( ${___g_scan_stats[10]} + 1 ))
+    logging_debug $LINENO $"przetwarzanie zakonczone dla" "[$fileName]"
     return $rv
 }
 
@@ -655,7 +697,7 @@ EOF
 _scan_printStats() {
     declare -a labels=( 'OK' 'UNAV' 'SKIP' \
         'CONV' 'COVER_OK' 'COVER_UNAV' \
-        'COVER_SKIP' 'NFO_OK' 'NFO_UNAV' 'NFO_SKIP' 'TOTAL' )
+        'COVER_SKIP' 'NFO_OK' 'NFO_UNAV' 'NFO_SKIP' 'TOTAL' 'CONV_CHARSET' )
     local i=0
     logging_msg $"statystyki przetwarzania"
     while [ $i -lt "${#___g_scan_stats[@]}" ]; do

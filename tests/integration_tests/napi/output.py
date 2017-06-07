@@ -14,7 +14,7 @@ class Parser(object):
         """
         tokens = [ 'OK', 'UNAV', 'SKIP', 'CONV',
                 'COVER_OK', 'COVER_UNAV', 'COVER_SKIP',
-                'NFO_OK', 'NFO_UNAV', 'NFO_SKIP', 'TOTAL' ]
+                'NFO_OK', 'NFO_UNAV', 'NFO_SKIP', 'TOTAL', 'CONV_CHARSET' ]
         results = {}
         for token in tokens:
             m = re.search(r'{} -> (\d+)'.format(token),

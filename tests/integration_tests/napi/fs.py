@@ -17,9 +17,11 @@ class Filesystem(object):
     def _fileExists(self, fileName):
         return os.path.exists(os.path.join(self.path, fileName))
 
-    def createSubtitlesFileNames(self):
+    def createSubtitlesFileNames(self, abbreviation = None):
         extensions = [ 'srt', 'sub', 'txt' ]
         noExt = self._basename()
+        if abbreviation:
+            noExit = '.'.join((noExt, abbreviation))
         return map(lambda ext: noExt + '.' + ext, extensions)
 
     def createNfoFileName(self):
@@ -34,10 +36,10 @@ class Filesystem(object):
         noExt = self._basename()
         return noExt + '.xml'
 
-    def subtitlesExists(self):
+    def subtitlesExists(self, abbreviation = None):
         paths = [ os.path.exists(p) for p in map(
             lambda f: os.path.join(self.path, f),
-            self.createSubtitlesFileNames()) ]
+            self.createSubtitlesFileNames(abbreviation)) ]
         return any(paths)
 
     def coverExists(self):

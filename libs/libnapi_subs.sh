@@ -126,9 +126,9 @@ subs_getCharset_SO() {
 subs_convertEncoding() {
     local filePath="$1"
     local encoding="${2:-}"
-    local fileName=$(basename "$filepath")
+    local fileName=$(basename "$filePath")
 
-    logging_msg "[$filename]" $"konwertowanie kodowania do" "$encoding"
+    logging_msg "[$fileName]" $"konwertowanie kodowania do" "$encoding"
     _subs_convertEncoding "$filePath" "$encoding"
 }
 
