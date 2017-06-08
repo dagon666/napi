@@ -52,4 +52,13 @@ Each unit tests execution generates coverage report which can be found in
 
 ## Integration tests
 
-TODO update this section
+Integration test suite will start a dedicated container running python
+pretenders to mock napiprojekt.pl. The test will run in a separate container. To run the tests just invoke:
+
+    ./run_integration_tests.sh
+
+If you change any of napi code, these changes will have to be incorporated into
+Docker container as well, for the test suite to pick it up. In order to quickly
+do that without rebuilding the images, just invoke:
+
+    ./run_integration_tests.sh -u
