@@ -4,6 +4,8 @@ import re
 
 class Parser(object):
 
+    DELIMITER_LEN = 20
+
     def __init__(self, napiStdout, napiStderr):
         self.napiStdout = napiStdout
         self.napiStderr = napiStderr
@@ -34,8 +36,10 @@ class Parser(object):
     def printStdout(self):
         print "STDOUT"
         print self.napiStdout
+        print "=" * self.DELIMITER_LEN
 
     def printStderr(self):
-        print "STDOUT"
+        print "STDERR"
         print self.napiStderr
+        print "=" * self.DELIMITER_LEN
 

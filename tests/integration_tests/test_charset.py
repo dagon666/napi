@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import re
+
 import napi.fs
 import napi.sandbox
 import napi.subtitles
@@ -59,6 +61,32 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
 
         """
         self._commonCharsetTest('ISO_8859-2')
+
+    def test_ifHandlesConversionFailureCorrectly(self):
+        """
+        Brief:
+        Procedure:
+        Expected Results:
+        """
+        media = None
+        charset = 'completely-unsupported-charset-from-space'
+        self.isStderrExpected = True
+
+        with napi.sandbox.Sandbox() as sandbox:
+            media = self.assets.prepareRandomMedia(sandbox)
+
+            # program http mock
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromString(
+                        media['asset'], "test subtitles"))
+
+            self.napiScan('--stats', '-C', charset, media['path'])
+            self.assertTrue(self.output.stderrContains(
+                re.compile(r'konwersja kodowania niepomyslna')))
+
+            napi.fs.Filesystem(media).subtitlesExists()
+
 
 if __name__ == '__main__':
     napi.testcase.runTests()

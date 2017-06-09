@@ -57,7 +57,8 @@ _subs_convertEncoding() {
         sourceEncoding=$(subs_getCharset_SO "$filePath")
 
     local tmp="$(fs_mktempFile_SO)"
-    iconv -f "$sourceEncoding" -t "$destEncoding" "$filePath" > "$tmp" && {
+    iconv -f "$sourceEncoding" -t "$destEncoding" \
+        "$filePath" > "$tmp" 2>/dev/null && {
         logging_debug $LINENO $"konwersja kodowania pomyslna, zamieniam pliki"
         mv "$tmp" "$filePath"
     }

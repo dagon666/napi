@@ -15,7 +15,8 @@ class Filesystem(object):
         return os.path.splitext(self.media['name'])[0]
 
     def _fileExists(self, fileName):
-        return os.path.exists(os.path.join(self.path, fileName))
+        path = os.path.join(self.path, fileName)
+        return os.path.exists(path) and os.path.getsize(path) > 0
 
     def createSubtitlesFileNames(self, abbreviation = None):
         extensions = [ 'srt', 'sub', 'txt' ]

@@ -23,9 +23,12 @@ class NapiTestCase(unittest.TestCase):
 
         # should be used to store the napi output
         self.output = None
+        self.isStderrExpected = False
 
     def tearDown(self):
-        if self.output and self.output.hasErrors():
+        if (self.output and
+                self.output.hasErrors() and
+                not self.isStderrExpected):
             self.output.printStdout()
             self.output.printStderr()
 

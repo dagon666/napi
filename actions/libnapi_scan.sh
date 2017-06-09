@@ -615,10 +615,13 @@ _scan_processFile() {
 
         [ "${charset:-default}" != 'default' ] &&
             [ "$status" -eq "$G_RETOK" ] && {
-            subs_convertEncoding \
+            if subs_convertEncoding \
                 "${path}/${___g_pf[$fileNameIndex]}" \
-                "$charset" &&
+                "$charset"; then
                 ___g_scan_stats[11]=$(( ___g_scan_stats[11] + 1 ))
+            else
+                logging_error $"konwersja kodowania niepomyslna"
+            fi
         }
 
         sysconf_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
