@@ -31,8 +31,6 @@
 ########################################################################
 ########################################################################
 
-___g_subs_defaultExtension='txt'
-
 #
 # supported subtitle file formats
 #
@@ -71,15 +69,14 @@ _subs_convertEncoding() {
 #
 subs_getSubFormatExtension_SO() {
     declare -a fmte=( 'subrip=srt' 'subviewer2=sub' )
-    assoc_lookupValue_SO "$1" "${fmte[@]}" ||
-        echo "$___g_subs_defaultExtension"
+    assoc_lookupValue_SO "$1" "${fmte[@]}" || subs_getDefaultExtension_SO
 }
 
 #
 # @brief echoes default subtitles extensions
 #
 subs_getDefaultExtension_SO() {
-    echo "$___g_subs_defaultExtension"
+    sysconf_getKey_SO napiprojekt.subtitles.extension
 }
 
 #

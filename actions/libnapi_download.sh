@@ -82,7 +82,7 @@ _download_parseArgv_GV() {
 
 _download_getSubtitlesForHashes() {
     local lang="$(language_getLanguage_SO)"
-    local subsExt=$(sysconf_getKey_SO napiprojekt.subtitles.extension)
+    local subsExt=$(subs_getDefaultExtension)
     local coverExt=$(sysconf_getKey_SO napiprojekt.cover.extension)
     local nfoExt=$(sysconf_getKey_SO napiprojekt.nfo.extension)
 

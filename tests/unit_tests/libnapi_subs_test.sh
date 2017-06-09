@@ -34,6 +34,7 @@
 # module dependencies
 . ../../libs/libnapi_assoc.sh
 . ../../libs/libnapi_retvals.sh
+. ../../libs/libnapi_sysconf.sh
 . ../../libs/libnapi_wrappers.sh
 
 # fakes/mocks
@@ -50,6 +51,7 @@ setUp() {
 
     # restore original values
     ___g_subs_defaultExtension='txt'
+    sysconf_setKey_GV napiprojekt.subtitles.extension 'txt'
     scpmocker_setUp
 }
 
@@ -63,8 +65,9 @@ tearDown() {
 test_subs_getSubFormatExtension_SO_returnsExpectedExtensions() {
     local formats=( 'subrip' 'subviewer2' 'other' \
         'non-existing-format' )
+    local defaultExt="$(sysconf_getKey_SO napiprojekt.subtitles.extension)"
     local expected=( 'srt' 'sub' \
-        "$___g_subs_defaultExtension" "$___g_subs_defaultExtension" )
+        "$defaultExt" "$defaultExt" )
 
     local idx=
     for idx in "${!formats[@]}"; do
@@ -79,7 +82,7 @@ test_subs_getSubFormatExtension_SO_returnsExpectedExtensions() {
 test_subs_getDefaultExtension_SO_returnsTheGlobalVariableValue() {
     local value=
     for value in "{a..z}{a..z}"; do
-        ___g_subs_defaultExtension="$value"
+        sysconf_setKey_GV napiprojekt.subtitles.extension "$value"
         assertEquals "check return value" \
             "$value" "$(subs_getDefaultExtension_SO)"
     done
