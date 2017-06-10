@@ -27,7 +27,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, stats['total'])
             self.assertEquals(1, stats['conv_charset'])
             self.assertEquals(0, stats['unav'])
-            napi.fs.Filesystem(media).subtitlesExists()
+            self.assertTrue(napi.fs.Filesystem(media).subtitlesExists())
 
 
     def test_ifIconvInvocationIsCorrectForUtf8(self):
@@ -85,7 +85,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
             self.assertTrue(self.output.stderrContains(
                 re.compile(r'konwersja kodowania niepomyslna')))
 
-            napi.fs.Filesystem(media).subtitlesExists()
+            self.assertTrue(napi.fs.Filesystem(media).subtitlesExists())
 
 
 if __name__ == '__main__':
