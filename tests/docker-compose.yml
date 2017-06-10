@@ -36,6 +36,8 @@ services:
             - opt-napi:/opt/napi
             - ..:/mnt
 
+        working_dir: /mnt/tests
+
         links:
             - napiserver:napiserver
 
