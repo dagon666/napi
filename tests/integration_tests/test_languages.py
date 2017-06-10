@@ -91,7 +91,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.assertEquals(0, stats['unav'])
 
             self.assertTrue(
-                    napi.fs.Filesystem(media).subtitlesExists(None, ext))
+                    napi.fs.Filesystem(media).subtitlesExists(ext))
 
     def test_ifUsesProvidedAbbreviation(self):
         """
@@ -133,7 +133,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.assertEquals(0, stats['unav'])
 
             self.assertTrue(
-                    napi.fs.Filesystem(media).subtitlesExists(abbrev))
+                    napi.fs.Filesystem(media).subtitlesExists(None, abbrev))
 
     def test_ifUsesProvidedAbbreviationAndExtension(self):
         """
@@ -180,7 +180,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.assertEquals(0, stats['unav'])
 
             self.assertTrue(
-                    napi.fs.Filesystem(media).subtitlesExists(abbrev, ext))
+                    napi.fs.Filesystem(media).subtitlesExists(ext, abbrev))
 
 if __name__ == '__main__':
     napi.testcase.runTests()
