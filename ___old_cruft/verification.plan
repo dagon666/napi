@@ -3,13 +3,14 @@
 ## No conversion
 For legacy,xml modes:
     - verification of response if subs don't exist
-        - verify statistics
+        - verify statistics (verified)
+
     - verification of response if subs exist
         - verify statistics
         - verify file naming & location
         - verify delete orig
         - verify skip
         - verify abbreviations
-        - verify bigger than
+        - verify bigger than (verified)
         - verify prefix
 
