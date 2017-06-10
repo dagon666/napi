@@ -624,7 +624,7 @@ _scan_processFile() {
             fi
         }
 
-        sysconf_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
+        hooks_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
 
     else
         # unav counter

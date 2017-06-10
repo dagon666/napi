@@ -47,6 +47,7 @@ fi
 . "${G_NAPIPREFIX}/lib/napi/libnapi_assoc.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_constants.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_fs.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_hooks.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_http.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_language.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_logging.sh"
