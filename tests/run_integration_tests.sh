@@ -23,14 +23,21 @@ usage() {
     echo "run_integration_tests.sh [-u]"
     echo "Options:"
     echo
-    echo "  -u - update napi installation in container"
+    echo "  -u - update napi installation in container and run tests"
+    echo "  -U - update napi installation in container and exit (doesn't run tests)"
     echo
 }
 
-while getopts "uh" option; do
+while getopts "uUh" option; do
     case "$option" in
         u)
             updateInstallation
+            ;;
+
+        U)
+            # only update, don't run tests
+            updateInstallation
+            exit 0
             ;;
 
         h)
