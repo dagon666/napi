@@ -82,7 +82,9 @@ class Assets(object):
             except KeyError:
                 pass
 
-            name = '.'.join((uuid.uuid4().hex, ext))
+            nameWithSpaces = ' '.join(
+                    (uuid.uuid4().hex, uuid.uuid4().hex))
+            name = '.'.join((nameWithSpaces, ext))
 
         return self._prepareMedia(sandbox,
                 asset,

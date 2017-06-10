@@ -49,8 +49,10 @@ class NapiTestCase(unittest.TestCase):
 
 def runTests():
     # inject shell
-    if len(sys.argv) > 1:
-        BasicFetchTest.SHELL = sys.argv.pop()
+    # if len(sys.argv) > 1:
+        # TODO fix this
+        # BasicFetchTest.SHELL = sys.argv.pop()
+
     # run unit tests
     unittest.main()
 

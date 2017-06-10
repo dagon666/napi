@@ -1,6 +1,48 @@
 #!/usr/bin/python2
 
 import os
+import hashlib
+
+class HashedFile(object):
+    """
+    Represents a file with a hash, to be able to detect if file has been
+    modified or not.
+    """
+
+    def __init__(self, path):
+        self.path = path
+        try:
+            self.hash = self._hash()
+        except RuntimeError as e:
+            logging.error(str(e))
+            self.hash = None
+
+    def _hash(self):
+        if not os.path.exists(self.path):
+            raise RuntimeError("Path {} doesn't exist".format(self.path))
+
+        h = hashlib.sha256()
+        with open(self.path, "rb") as fileObj:
+            def readChunk():
+                chunkSize = 2048
+                return fileObj.read(chunkSize)
+
+            for chunk in iter(readChunk, ''):
+                h.update(chunk)
+
+        return h.hexdigest()
+
+    def getHash(self):
+        return self.hash
+
+    def hasChanged(self):
+        if not self.hash:
+            return False
+        return self._hash() != self.hash
+
+    def __eq__(self, other):
+        return self.hash == other.hash
+
 
 class Filesystem(object):
     """
@@ -22,12 +64,29 @@ class Filesystem(object):
         path = os.path.join(self.path, fileName)
         return os.path.exists(path) and os.path.getsize(path) > 0
 
-    def createSubtitlesFileNames(self, abbreviation = None, extension = None):
+    def createSubtitlesFileNames(self, extension = None,
+            abbreviation = None,
+            conversionAbbreviation = None):
         extensions = set([ extension ] if extension else [ 'srt', 'sub', 'txt' ])
-        noExt = ('.'.join((self.noExtension, abbreviation)) if
-                abbreviation else self.noExtension)
 
-        return map(lambda ext: noExt + '.' + ext, extensions)
+        abbreviations = []
+        suffixes = []
+
+        if abbreviation:
+            abbreviations.append(abbreviation)
+
+        if conversionAbbreviation:
+            abbreviations.append(conversionAbbreviation)
+
+        if abbreviation and conversionAbbreviation:
+            abbreviations.append('.'.join(
+                (abbreviation, conversionAbbreviation)))
+
+        suffixes = [ '.'.join((abr, ext)) for ext in extensions
+                for abr in abbreviations ]
+        suffixes.extend(extensions)
+
+        return map(lambda s: self.noExtension + '.' + s, suffixes)
 
     def createNfoFileName(self):
         return self.noExtension + '.nfo'
@@ -38,12 +97,19 @@ class Filesystem(object):
     def createXmlFileName(self):
         return self.noExtension + '.xml'
 
-    def subtitlesExists(self, abbreviation = None, extension = None):
-        paths = [ os.path.exists(p) for p in map(
-            lambda f: os.path.join(self.path, f),
-            self.createSubtitlesFileNames(abbreviation, extension)) ]
+    def subtitlesExists(self, extension = None,
+            abbreviation = None, conversionAbbreviation = None):
+        paths = self.getSubtitlesPaths(extension,
+                abbreviation, conversionAbbreviation)
+        return True if len(paths) > 0 else False
 
-        return any(paths)
+    def getSubtitlesPaths(self, extension = None,
+            abbreviation = None, conversionAbbreviation = None):
+        paths = [ p for p in map(
+            lambda f: os.path.join(self.path, f),
+            self.createSubtitlesFileNames(extension, abbreviation))
+            if os.path.exists(p) ]
+        return paths
 
     def coverExists(self):
         return self._fileExists(self.createCoverFileName())
