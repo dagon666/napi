@@ -3,6 +3,7 @@
 import re
 import unittest
 
+import napi.cover
 import napi.fs
 import napi.sandbox
 import napi.subtitles
@@ -356,99 +357,112 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             movedSubs = napi.fs.HashedFile(subsPaths[0])
             self.assertEquals(origSubs, movedSubs)
 
+    def test_ifSkippingWorksForNfoFiles(self):
+        """
+        Brief:
+        Check nfo file skipping
 
+        Procedure:
+        1. Prepare a media file.
+        2. Program napiprojekt.pl mock
+        3. Call napi with a path to media to obtain the subtitles
+        4. Call napi again with option -s -n
 
-#
-##>TESTSPEC
-##
-## Brief:
-##
-## check nfo skipping
-##
-## Preconditions:
-## - napi.sh & subotage.sh should be visible in public $PATH
-## - media file for which the nfo is available
-##
-## Procedure:
-## - specify the nfo request
-## - specify the skip flag
-## - fetch the nfo file
-## - do another subsequent call
-##
-## Expected results:
-## - the nfo file should be downloaded
-## - subsequent call shouldn't download new nfo, which should be resembled in the stats
-##
-#NapiTest::clean_testspace();
-#copy $NapiTest::assets . '/av1.dat', $test_file_path;
-#
-#$o = NapiTest::qx_napi($shell, " -n --stats -s " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#
-#ok ( -e $test_nfo_path, "check for the nfo file" );
-#
-#is ($o{ok}, 1, "number of downloaded");
-#is ($o{skip}, 0, "number of skipped");
-#is ($o{nfo_ok}, 1, "number of downloaded nfo");
-#is ($o{nfo_skip}, 0, "number of skipped nfo");
-#
-#
-#$o = NapiTest::qx_napi($shell, " -n --stats -s " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#ok ( -e $test_nfo_path, "check for the nfo file" );
-#
-#is ($o{ok}, 0, "number of downloaded");
-#is ($o{skip}, 1, "number of skipped");
-#is ($o{nfo_ok}, 0, "number of downloaded nfo");
-#is ($o{nfo_skip}, 1, "number of skipped nfo");
-#
-#
-##>TESTSPEC
-##
-## Brief:
-##
-## check cover skipping
-##
-## Preconditions:
-## - napi.sh & subotage.sh should be visible in public $PATH
-## - media file for which the cover is available
-##
-## Procedure:
-## - specify the cover request
-## - specify the skip flag
-## - fetch the cover file
-## - do another subsequent call
-##
-## Expected results:
-## - the cover file should be downloaded
-## - subsequent call shouldn't download new cover, which should be resembled in the stats
-##
-#NapiTest::clean_testspace();
-#copy $NapiTest::assets . '/av1.dat', $test_file_path;
-#
-#$o = NapiTest::qx_napi($shell, " -c --stats -s " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#
-#ok ( -e $test_cover_path, "check for the cover file" );
-#
-#is ($o{ok}, 1, "number of downloaded");
-#is ($o{skip}, 0, "number of skipped");
-#is ($o{cover_ok}, 1, "number of downloaded cover");
-#is ($o{cover_skip}, 0, "number of skipped cover");
-#
-#
-#$o = NapiTest::qx_napi($shell, " -c --stats -s " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#ok ( -e $test_cover_path, "check for the cover file" );
-#
-#is ($o{ok}, 0, "number of downloaded");
-#is ($o{skip}, 1, "number of skipped");
-#is ($o{cover_ok}, 0, "number of downloaded cover");
-#is ($o{cover_skip}, 1, "number of skipped cover");
+        Expected Results:
+        1. The nfo file should be downloaded.
+        2. Subsequent call shouldn't download new nfo, which should be
+        resembled in the stats.
+        """
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            media = self.assets.prepareRandomMedia(sandbox)
+            # program http mock
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromString(
+                        media['asset'], "test subtitles"),
+                    None,
+                    None,
+                    1)
 
+            self.napiScan('--stats', '-n', '-s', media['path'])
 
+            stats = self.output.parseStats()
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['nfo_ok'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
 
+            napiFs = napi.fs.Filesystem(media)
+            self.assertTrue(napiFs.subtitlesExists())
+            self.assertTrue(napiFs.nfoExists())
 
+            subsPaths = napiFs.getSubtitlesPaths()
+            self.assertEquals(1, len(subsPaths))
+
+            self.napiScan('--stats', '-n', '-s', media['path'])
+            stats = self.output.parseStats()
+
+            self.assertEquals(0, stats['ok'])
+            self.assertEquals(1, stats['skip'])
+            self.assertEquals(0, stats['nfo_ok'])
+            self.assertEquals(1, stats['nfo_skip'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+
+    def test_ifSkippingWorksForCoverFiles(self):
+        """
+        Brief:
+        Check cover file skipping
+
+        Procedure:
+        1. Prepare a media file.
+        2. Program napiprojekt.pl mock
+        3. Call napi with a path to media to obtain the subtitles
+        4. Call napi again with option -c -n
+
+        Expected Results:
+        1. The cover file should be downloaded.
+        2. Subsequent call shouldn't download new cover, which should be
+        resembled in the stats.
+        """
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            media = self.assets.prepareRandomMedia(sandbox)
+            # program http mock
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromString(
+                        media['asset'], "test subtitles"),
+                    napi.cover.Cover.fromString(
+                        media['asset'], "test cover data"),
+                    None,
+                    1)
+
+            self.napiScan('--stats', '-c', '-s', media['path'])
+
+            stats = self.output.parseStats()
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['cover_ok'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+
+            napiFs = napi.fs.Filesystem(media)
+            self.assertTrue(napiFs.subtitlesExists())
+            self.assertTrue(napiFs.coverExists())
+
+            subsPaths = napiFs.getSubtitlesPaths()
+            self.assertEquals(1, len(subsPaths))
+
+            self.napiScan('--stats', '-c', '-s', media['path'])
+            stats = self.output.parseStats()
+
+            self.assertEquals(0, stats['ok'])
+            self.assertEquals(1, stats['skip'])
+            self.assertEquals(0, stats['cover_ok'])
+            self.assertEquals(1, stats['cover_skip'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
 
 ##>TESTSPEC
 ##

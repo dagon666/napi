@@ -477,6 +477,20 @@ _scan_downloadAssetsForFile() {
             "$subsPath"
 }
 
+_scan_incrementSkipped() {
+    local getNfo=$(sysconf_getKey_SO napiprojekt.nfo.download)
+    local getCover=$(sysconf_getKey_SO napiprojekt.cover.download)
+
+    # increment skipped counter
+    ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
+
+    [ "$getCover" -eq 1 ] &&
+        ___g_scan_stats[6]=$(( ___g_scan_stats[6] + 1 ))
+
+    [ "$getNfo" -eq 1 ] &&
+        ___g_scan_stats[9]=$(( ___g_scan_stats[9] + 1 ))
+}
+
 #
 # @brief process file dispatch
 #
@@ -538,14 +552,14 @@ _scan_obtainFile() {
             1) # unconverted unavailable, converted available
                 logging_debug $LINENO $"nie pobieram, nie konwertuje - dostepna skonwertowana wersja"
                 # increment skipped counter
-                ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
+                _scan_incrementSkipped
                 rv=$G_RETNOACT
             ;;
 
             2|3) # convert
                 logging_debug $LINENO "nie pobieram - dostepna jest nieskonwertowana wersja"
                 # increment skipped counter
-                ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
+                _scan_incrementSkipped
                 shouldConvert=1
             ;;
         esac
@@ -580,7 +594,7 @@ _scan_obtainFile() {
             fi
         else
             # increment skipped counter
-            ___g_scan_stats[2]=$(( ___g_scan_stats[2] + 1 ))
+            _scan_incrementSkipped
             rv=$G_RETNOACT
         fi
     fi
