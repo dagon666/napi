@@ -13,13 +13,21 @@ configure_file(
 )
 
 configure_file(
+    subotage.sh.in
+    subotage.sh
+    @ONLY
+)
+
+configure_file(
     libs/libnapi_version.sh.in
     libnapi_version.sh
     @ONLY
 )
 
 # installation of the main entry point
-install(FILES "${PROJECT_BINARY_DIR}/napi.sh"
+install(FILES
+    "${PROJECT_BINARY_DIR}/napi.sh"
+    "${PROJECT_BINARY_DIR}/subotage.sh"
     DESTINATION bin
     PERMISSIONS
     OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
