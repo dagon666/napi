@@ -51,12 +51,6 @@ guess_format() {
     return $rv
 }
 
-
-convert_dos2unix() {
-    $g_cmd_awk '{ sub("\r$",""); print }'
-}
-
-
 correct_overlaps() {
     local file_path="$1"
     local awk_code=''
@@ -269,7 +263,6 @@ usage() {
 
     return $RET_OK
 }
-
 
 #
 # @brief parse the cli arguments

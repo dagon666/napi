@@ -124,6 +124,13 @@ wrappers_getCores_SO() {
     fi
 }
 
+#
+# @brief converts dos line endings to unix style line endings
+#
+wrappers_dos2unix() {
+    awk '{ sub("\r$",""); print }'
+}
+
 ################################## FLOAT CMP ###################################
 
 wrappers_floatLt() {
