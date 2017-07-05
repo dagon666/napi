@@ -70,10 +70,30 @@ test_wrappers_countLines_SO_normalInput() {
 }
 
 test_wrappers_lcase_SO_normalInput() {
-	local result=0;
+	local result=0
 	result=$(echo -e "UPPER_CASE_STR" | wrappers_lcase_SO)
 	assertEquals "checking lcase output" \
         "upper_case_str" "$result"
+}
+
+test_wrappers_ucase_SO_normalInput() {
+	local result=0
+    result=$(echo -e "lower_case_str" | wrappers_ucase_SO)
+
+    assertEquals "checking ucase output" \
+        "LOWER_CASE_STR" "$result"
+}
+
+test_wrappers_ucaseFirst_SO_normalInput() {
+    local result=
+
+    result=$(wrappers_ucaseFirst_SO "some lower case string")
+    assertEquals "checking ucaseFirst output with lower case string" \
+        "Some lower case string" "$result"
+
+    result=$(wrappers_ucaseFirst_SO "SOME LOWER CASE STRING")
+    assertEquals "checking ucaseFirst output with upper case string" \
+        "SOME LOWER CASE STRING" "$result"
 }
 
 test_wrappers_stripNewLine_SO_normalInput() {

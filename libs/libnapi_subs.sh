@@ -31,12 +31,6 @@
 ########################################################################
 ########################################################################
 
-#
-# supported subtitle file formats
-#
-declare -ar ___g_subs_formats=( "microdvd" "mpl2" "subrip" \
-    "subviewer2" "tmplayer" )
-
 ########################################################################
 
 #
@@ -131,20 +125,6 @@ subs_convertEncoding() {
 }
 
 #
-# @brief checks if the provided format is valid & supported
-# @param format to be verified
-#
-subs_verifySubsFormat() {
-    local format="$1"
-    logging_debug $LINENO $"weryfikuje format napisow:" "$format"
-
-    # this function can cope with that kind of input
-    # shellcheck disable=SC2068
-    assoc_lookupKey_SO "$format" "${___g_subs_formats[@]}" >/dev/null ||
-        return $G_RETPARAM
-}
-
-#
 # @brief convert format
 # @param full path to the media file
 # @param full path of the media file (without filename)
@@ -154,14 +134,9 @@ subs_verifySubsFormat() {
 # @param requested subtitles format
 #
 subs_convertFormat() {
-    # TODO this function needs to be re-written
-    # subotage functionality should be placed in a library
-    # and a thin executable should be created for subotage.
-    # This function should use the subotage library only and not call to
-    # external process.
     local videoFilePath="$1"
     local videoFileDir="$2"
-    local sourceSubsFile="$3"
+    local sourceSubsFileName="$3"
     local originalFileName="$4"
     local destSubsFileName="$5"
     local format="$6"
@@ -169,12 +144,9 @@ subs_convertFormat() {
     local isDeleteOrigSet="$(sysconf_getKey_SO \
         napiprojekt.subtitles.orig.delete)"
 
-    local fps=0
-    local subotageFpsOpt=
-
     # verify original file existence before proceeding further
     # shellcheck disable=SC2086
-    [ -e "${videoFileDir}/${sourceSubsFile}" ] || {
+    [ -e "${videoFileDir}/${sourceSubsFileName}" ] || {
         logging_error $"oryginalny plik nie istnieje"
         return $G_RETFAIL
     }
@@ -184,7 +156,7 @@ subs_convertFormat() {
 
     # create backup
     logging_debug $LINENO $"backupuje oryginalny plik jako" "$tmp"
-    cp "${videoFileDir}/${sourceSubsFile}" "$tmp"
+    cp "${videoFileDir}/${sourceSubsFileName}" "$tmp"
 
     if [ "$isDeleteOrigSet" -eq 1 ]; then
         fs_garbageCollect_GV "${videoFileDir}/${originalFileName}"
@@ -196,65 +168,58 @@ subs_convertFormat() {
     fi
 
     # detect video file framerate
-    fps=$(fs_getFps_SO "$videoFilePath")
+    local fps=
 
+    fps=$(fs_getFps_SO "$videoFilePath")
     if [ -n "$fps" ] && [ "$fps" != "0" ]; then
         logging_msg $"wykryty fps" "$fps"
-        subotageFpsOpt="-fi $fps"
     else
         logging_msg $"fps nieznany, okr. na podstawie napisow albo wart. domyslna"
+        fps=0
     fi
 
-    logging_msg $"wolam subotage.sh"
+    # attempt conversion
+    local convStatus=
+    logging_msg $"wolam subotage"
+    subotage_processFile \
+        "${videoFileDir}/${sourceSubsFile}" \
+        "none" \
+        "0" \
+        "" \
+        "${videoFileDir}/${destSubsFileName}" \
+        "${format}" \
+        "${fps}" \
+        ""
+    convStatus=$?
 
-    # create ipc file to update the message counter
-    local ipcFile="$(fs_mktempFile_SO)"
-    local msgCounter=0
-
-    # fps_opt must be expanded for the subotage call
-    # shellcheck disable=SC2086
-    if subotage.sh \
-        -v "$(output_get_verbosity)" \
-        -i "${videoFileDir}/${sourceSubsFile}" \
-        -of "${format}" \
-        -t "$(output_get_fork_id)" \
-        -m "$(output_get_msg_counter)" \
-        --ipc-file "$ipcFile" \
-        -o "$videoFileDir/${destSubsFileName}" \
-        $subotageFpsOpt; then
-
-        # update the message counter
-        [ -s "$ipcFile" ] &&
-            read msgCounter < "$ipcFile" &&
-            logging_setMsgCounter "$msgCounter"
-
+    if [ "$convStatus" -eq "$G_RETOK" ]; then
         # remove the old format if conversion was successful
         logging_msg $"pomyslnie przekonwertowano do" "$format"
 
-        [ "$sourceSubsFile" != "$destSubsFileName" ] && {
+        [ "$sourceSubsFileName" != "$destSubsFileName" ] && {
             logging_info $LINENO "usuwam oryginalny plik"
-            fs_garbageCollect_GV "${videoFileDir}/${sourceSubsFile}"
+            fs_garbageCollect_GV "${videoFileDir}/${sourceSubsFileName}"
         }
 
-    elif [ $? -eq $G_RETNOACT ]; then
-        logging_msg $"subotage.sh - konwersja nie jest konieczna"
+    elif [ "$convStatus" -eq $G_RETNOACT ]; then
+        logging_msg $"subotage - konwersja nie jest konieczna"
 
-        #copy the backup to converted
-        cp "$tmp" "$path/$conv"
+        # copy the backup to converted
+        cp "$tmp" "${videoFileDir}/${destSubsFileName}"
 
         # get rid of the original file
-        [ "$input" != "$conv" ] &&
-            _msg "usuwam oryginalny plik" &&
-            io_unlink "$path/$input"
+        [ "$sourceSubsFileName" != "$destSubsFileName" ] &&
+            logging_msg "usuwam oryginalny plik" &&
+            io_unlink "${videoFileDir}/${sourceSubsFileName}"
 
     else
         logging_msg $"konwersja do" "$format" $"niepomyslna"
         # restore the backup (the original file may be corrupted due to failed conversion)
-        cp "$tmp" "$videoFileDir/$sourceSubsFile"
+        cp "$tmp" "$videoFileDir/$sourceSubsFileName"
         return $G_RETFAIL
-
     fi
+
+    return $G_RETOK
 }
 
 # EOF
-

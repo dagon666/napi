@@ -1,1 +1,328 @@
 #!/bin/bash
+
+# force indendation settings
+# vim: ts=4 shiftwidth=4 expandtab
+
+########################################################################
+########################################################################
+########################################################################
+
+#  Copyright (C) 2017 Tomasz Wisniewski aka
+#       DAGON <tomasz.wisni3wski@gmail.com>
+#
+#  http://github.com/dagon666
+#  http://pcarduino.blogspot.co.uk
+#
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+########################################################################
+########################################################################
+########################################################################
+
+export G_NAPIPREFIX="@NAPI_PREFIX@"
+
+if [ -z "$G_NAPIPREFIX" ] ||
+    [ ! -d "${G_NAPIPREFIX}" ] ||
+    [ ! -d "${G_NAPIPREFIX}/lib/napi" ]; then
+    echo $"Skrypt nie zostal poprawnie zainstalowany!"
+    exit -1
+fi
+
+########################################################################
+
+# libraries
+. "${G_NAPIPREFIX}/lib/napi/libnapi_argv.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_assoc.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_constants.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_fs.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_logging.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_retvals.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_subotage.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_subs.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_tools.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_version.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_wrappers.sh"
+
+########################################################################
+
+
+
+# globals
+declare -r ___g_subotageIOFPath=0
+declare -r ___g_subotageIOFFormat=1
+declare -r ___g_subotageIOFFps=2
+declare -r ___g_subotageIOFDetails=3
+
+#
+# input file details
+# 0 - file path
+# 1 - format
+# 2 - fps
+# 3 - format specific details
+#
+declare -a ___g_subotageIF=( 'none' 'none' '0' '' )
+
+#
+# output file details
+# 0 - file path
+# 1 - format
+# 2 - fps
+# 3 - format specific details
+#
+declare -a ___g_subotageOF=( 'none' 'subrip' '0' '1 0' )
+
+#
+# if set to one, print output format summary on exit
+#
+___g_subotageGetInfo=0
+
+########################################################################
+
+#
+# @brief prints the help & options overview
+#
+_usage() {
+    echo    "subotage.sh -i <input_file> -o <output_file> [opcje]"
+    echo    "napi bundle version [$g_revision]"
+    echo
+    echo    "Opcje:"
+    echo    "============="
+    echo    "   -i  | --input <input_file>  - plik wejsciowy (wymagany)"
+    echo
+    echo    "   -o  | --output <output_file> - plik wyjsciowy (wymagany)"
+    echo
+    echo    "   -if | --input-format <format> - wymus podany format pliku wejsciowego,"
+    echo    "                                   domyslnie, zostanie wykryty autom."
+    echo
+    echo    "   -of | --output-format <format> - format wyjsciowy (domyslnie subrip)"
+    echo
+    echo    "   -fi | --fps-input <fps> - fps dla pliku wejsciowego (wazne tylko dla formatu microdvd)"
+    echo    "                               (domyslnie: ${g_inf[$___FPS]} fps)"
+    echo
+    echo    "   -fo | --fps-output <fps> - fps dla pliku wyjsciowego (wazne tylko dla formatu microdvd)"
+    echo    "                               (domyslnie: ${g_outf[$___FPS]} fps)"
+    echo
+    echo    "   -l  | --lasting-time <time in ms> - czas wyswietlania linii napisow w milisekundach"
+    echo    "                               (domyslnie: $g_lastingtime ms)"
+    echo
+    echo    "   -gi | --get-info <input_file> - wyswietl informacje o pliku wejsciowym i zakoncz"
+    echo
+    echo	"   -gf | --get-formats - wyswietl obslugiwane formaty i wyjdz"
+    echo
+    echo	"   -gl | --get-formats-long - wyswietl obslugiwane formaty (wraz z opisem) i wyjdz"
+    echo
+    echo    "   -v  | --verbosity <0..3> - poziom gadatliwosci 0 - cichy, 3 - najgadatliwszy"
+    echo
+    echo    "Supported formats:"
+
+    # list formats
+    subotage_listFormats 1
+}
+
+_subotage_globalArgvDispatcher() {
+    case "$1" in
+        "-i" | "--input")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFPath]}"
+            ___g_argvErrorMsg=$"nie określono pliku wejsciowego"
+            ;;
+
+        "-o" | "--output")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFPath]}"
+            ___g_argvErrorMsg=$"nie określono pliku wyjsciowego"
+            ;;
+
+        # input format
+        "-if" | "--input-format")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFFormat]}"
+            ___g_argvErrorMsg=$"nie określono formatu wejsciowego"
+            ;;
+
+        # output format
+        "-of" | "--output-format")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFFormat]}"
+            ___g_argvErrorMsg=$"nie określono formatu wyjsciowego"
+            ;;
+
+        # fps for input file
+        "-fi" | "--fps-input")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFFps]}"
+            ___g_argvErrorMsg=$"nie określono fps pliku wejsciowego"
+            ;;
+
+        # fps for output file
+        "-fo" | "--fps-output")
+            ___g_argvOutputHandlerType="variable"
+            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFFps]}"
+            ___g_argvErrorMsg=$"nie określono fps pliku wyjsciowego"
+            ;;
+
+        # lasting time
+        "-l" | "--lasting-time")
+            ___g_argvOutputHandlerType="func"
+            ___g_argvOutputHandler="subotage_setLastingTime"
+            ___g_argvErrorMsg=$"nie okreslono czasu trwania napisow"
+            ;;
+
+        # verbosity
+        "-v" | "--verbosity")
+        ___g_argvOutputHandlerType="func"
+        ___g_argvOutputHandler="logging_setVerbosity"
+        ___g_argvErrorMsg=$"okresl poziom gadatliwosci (0 - najcichszy, 3 - najbardziej gadatliwy, 4 - insane)"
+        ;;
+
+        # get formats
+        "-gl" | "--get-formats-long")
+            subotage_listFormats 1
+            return $G_RETBREAK
+            ;;
+
+        # get formats
+        "-gf" | "--get-formats")
+            subotage_listFormats
+            return $G_RETBREAK
+            ;;
+
+        # get input info
+        "-gi" | "--get-info")
+            ___g_subotageGetInfo=1
+            ;;
+
+        # sanity check for unknown parameters
+        *)
+            logging_error $"nieznany parametr:" "[$1]"
+            return $G_RETPARAM
+            ;;
+    esac
+}
+
+#
+# @brief verify the collected user input
+#
+_verify_argv() {
+
+    # check input file path
+    logging_debug $"sprawdzam plik wejsciowy"
+    [ -z "${___g_subotageIF[$___g_subotageIOFPath]}" ] || \
+        [ "${___g_subotageIF[$___g_subotageIOFPath]}" = "none" ] || \
+        [ ! -s "${___g_subotageIF[$___g_subotageIOFPath]}" ] && {
+        logging_error $"plik wejsciowy niepoprawny"
+        return $G_RETPARAM
+    }
+
+    # check presence of output file
+    logging_debug $"sprawdzam plik wyjsciowy"
+    [ -z "${___g_subotageOF[$___g_subotageIOFPath]}" ] ||
+    [ "${___g_subotageOF[$___g_subotageIOFPath]}" = "none" ] &&
+    [ "$___g_subotageGetInfo" -eq 0 ] && {
+        logging_error $"nie okreslono pliku wyjsciowego"
+        return $G_RETPARAM
+    }
+
+    # verifying input format
+    if [ "${___g_subotageIF[$___g_subotageIOFFormat]}" != "none" ]; then
+        logging_debug $LINENO $"weryfikuje format wejsciowy"
+        subotage_isFormatSupported \
+            "${___g_subotageIF[$___g_subotageIOFFormat]}" ||
+            return $G_RETPARAM
+    fi
+
+    # verifying output format
+    logging_debug $LINENO $"weryfikuje format wyjsciowy"
+    subotage_isFormatSupported \
+        "${___g_subotageOF[$___g_subotageIOFFormat]}" ||
+        return $G_RETPARAM
+
+    # verify input fps
+    logging_debug $LINENO $"weryfikuje fps wejsciowy"
+    subotage_isFpsValidValue "${___g_subotageIF[$___g_subotageIOFFps]}" ||
+        return $G_RETPARAM
+
+    # verify output fps
+    logging_debug $LINENO $"weryfikuje fps wyjsciowy"
+    subotage_isFpsValidValue "${___g_subotageOF[$___g_subotageIOFFps]}" ||
+        return $G_RETPARAM
+
+    ___g_subotageIF[$___g_subotageIOFFormat]=$(\
+        echo "${___g_subotageIF[$___g_subotageIOFFormat]}" | \
+        wrappers_lcase_SO)
+
+    ___g_subotageOF[$___g_subotageIOFFormat]=$(\
+        echo "${___g_subotageOF[$___g_subotageIOFFormat]}" | \
+        wrappers_lcase_SO)
+
+    return $G_RETOK
+}
+
+#
+# @brief parse the cli arguments
+#
+_parseArgv_GV() {
+    logging_debug $LINENO $"parsuje opcje globalne"
+    argv_argvParser_GV _subotage_globalArgvDispatcher "$@" &&
+        _verify_argv
+}
+
+#
+# @brief main function
+#
+_main() {
+    # if no arguments are given, then print help and exit
+    # shellcheck disable=SC2086
+    [ $# -lt 1 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] && {
+        _usage
+        return $G_RETFAIL
+    }
+
+    logging_msg $"wywolano o" "$(date)"
+
+    # verify tools presence
+    logging_debug $LINENO $"sprawdzam narzedzia ..."
+    tools_configure_GV || {
+        logging_error $"nie wszystkie wymagane narzedzia sa dostepne"
+        logging_debug $LINENO $(tools_toString_SO)
+
+        # shellcheck disable=SC2086
+        return $G_RETFAIL
+    }
+
+    logging_debug $LINENO $(tools_toString_SO)
+
+    # configure the rest of libraries
+    fs_configure_GV
+
+    # parse global arguments
+    _parseArgv_GV "$@" || {
+        logging_error $"blad podczas parsowania argumentow"
+        return $G_RETFAIL
+    }
+
+    # process file
+    subotage_processFile \
+        "${___g_subotageIF[@]}" \
+        "${___g_subotageOF[@]}" \
+        "$___g_subotageGetInfo"
+}
+
+# call the main
+[ "${SHUNIT_TESTS:-0}" -eq 0 ] && {
+    _main "$@"
+}
+
+# EOF

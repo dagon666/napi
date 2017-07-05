@@ -63,7 +63,7 @@ wrappers_countLines_SO() {
 }
 
 #
-# @brief lowercase the input
+# @brief lower-case the input
 #
 wrappers_lcase_SO() {
     # some old busybox implementations have problems with locales
@@ -73,6 +73,24 @@ wrappers_lcase_SO() {
     # deliberately reverted to old syntax
     # shellcheck disable=SC2021
     tr '[A-Z]' '[a-z]'
+}
+
+#
+# @brief upper-case the input
+#
+wrappers_ucase_SO() {
+    # deliberately reverted to old syntax
+    # shellcheck disable=SC2021
+    tr '[a-z]' '[A-Z]'
+}
+
+#
+# @brief make the first letter capital
+#
+wrappers_ucaseFirst_SO() {
+    local h="$(echo ${1:0:1} | wrappers_ucase_SO)"
+    local t="${1:1}"
+    echo "${h}${t}"
 }
 
 #
@@ -129,6 +147,13 @@ wrappers_getCores_SO() {
 #
 wrappers_dos2unix() {
     awk '{ sub("\r$",""); print }'
+}
+
+#
+# @brief filters any non-numeric, non decimal dot characters
+#
+wrappers_filterNumeric() {
+   tr -d '[\n\.0-9]'
 }
 
 ################################## FLOAT CMP ###################################

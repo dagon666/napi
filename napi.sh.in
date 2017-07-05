@@ -53,6 +53,7 @@ fi
 . "${G_NAPIPREFIX}/lib/napi/libnapi_logging.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_napiprojekt.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_retvals.sh"
+. "${G_NAPIPREFIX}/lib/napi/libnapi_subotage.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_subs.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_sysconf.sh"
 . "${G_NAPIPREFIX}/lib/napi/libnapi_tools.sh"

@@ -34,31 +34,13 @@
 # globals
 
 declare -r ___g_subotageNotDetectedMarker="not_detected"
-
-declare -r ___g_subotageIOFPath=0
-declare -r ___g_subotageIOFFormat=1
-declare -r ___g_subotageIOFFps=2
-declare -r ___g_subotageIOFDetails=3
+declare -r ___g_subotageDefaultFps="23.98"
 
 #
-# input details specific information
-# 0 - file path
-# 1 - format
-# 2 - fps
-# 3 - format specific details
+# supported subtitle file formats
 #
-declare -a ___g_subotageIF=( 'none' 'none' '0' '' )
-
-#
-# input details
-# 0 - file path
-# 1 - format
-# 2 - fps
-# 3 - format specific details
-#
-declare -a ___g_subotageOF=( 'none' 'subrip' '0' '1 0' )
-
-
+declare -ar ___g_subotageFormats=( "microdvd" "mpl2" \
+    "subrip" "subviewer2" "tmplayer" )
 
 #
 # @brief defines how long the subtitles should last (in ms)
@@ -169,9 +151,7 @@ EOF
             break
         fi
     done < "$filePath"
-
     echo "$match"
-    return $G_RETOK
 }
 
 # mpl2 format detection routine
@@ -208,9 +188,7 @@ EOF
             break
         fi
     done < "$filePath"
-
     echo "$match"
-    return $G_RETOK
 }
 
 # subrip format detection routine
@@ -268,9 +246,7 @@ EOF
 
         attempts=$(( attempts - 1 ))
     done < "$filePath"
-
     echo "$match"
-    return $G_RETOK
 }
 
 # subviewer2 format check
@@ -315,9 +291,7 @@ EOF
             break
         fi
     done < "$filePath"
-
     echo "$match"
-    return $G_RETOK
 }
 
 # tmplayer format detection routine
@@ -379,7 +353,6 @@ EOF
 
             tmpData=( $matchTmp )
 
-
             # determine the hour digits
             [ "${tmpData[1]}" -eq 10 ] ||
             [ "${tmpData[1]}" -eq 8 ] && hourDigits=1
@@ -397,9 +370,7 @@ EOF
         fi
 
     done < "$filePath"
-
     echo "$match"
-    return $G_RETOK
 }
 
 ###############################################################################
@@ -408,6 +379,8 @@ EOF
 # Input parameters
 # - filename to process
 # - output filename
+# - format details string
+# - file fps (optional if not applicable)
 #
 # Output:
 # - should be written in universal format. Line format
@@ -425,8 +398,11 @@ EOF
 subotage_readFormatSubviewer2() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="${4:-0}"
+
+    local detailsArray=( $details )
     local awkCode=
-    local details=( ${___g_subotageIF[$___g_subotageIOFDetails]} )
 
 read -r -d "" awkCode << 'EOF'
 BEGIN {
@@ -463,20 +439,21 @@ BEGIN {
 }
 EOF
 
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageIF[$___g_subotageIOFDetails]}"
+    logging_info $LINENO $"szczegoly formatu:" "$details"
 
     echo "secs" > "$outFilePath"
-    awk -v __start_line="${details[1]}" \
+    awk -v __start_line="${detailsArray[1]}" \
         "$awkCode" "$inFilePath" >> "$outFilePath"
 }
 
 subotage_readFormatTmplayer() {
     local inFilePath="$1"
     local outFilePath="$2"
-    local awkCode=
+    local details="$3"
+    local fps="${4:-0}"
 
-    local details=( ${___g_subotageIF[$___g_subotageIOFDetails]} )
+    local detailsArray=( $details )
+    local awkCode=
     local delimiter=":"
 
 
@@ -567,23 +544,27 @@ length($0) && NR >= __start_line {
 EOF
 
     logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageIF[$___g_subotageIOFDetails]}"
+        "$details"
 
     # adjust the delimiter
-    [ -n "${details[4]}" ] && delimiter="${details[4]}"
-    logging_info $LINENO $"przystanek" "[$delimiter]"
+    [ -n "${detailsArray[4]}" ] &&
+        delimiter="${detailsArray[4]}"
+    logging_info $LINENO $"znak rozdzielajacy" "[$delimiter]"
 
     echo "hms" > "$outFilePath"
-    awk -F "$delimiter" -v __start_line="${details[1]}" \
+    awk -F "$delimiter" -v __start_line="${detailsArray[1]}" \
         -v __last_time="$___g_subotageLastingTimeMs" \
-        -v __multiline="${details[3]}" \
+        -v __multiline="${detailsArray[3]}" \
         "$awkCode" "$inFilePath" >> "$outFilePath"
 }
 
 subotage_readFormatMicrodvd() {
     local inFilePath="$1"
     local outFilePath="$2"
-    local details=( ${___g_subotageIF[$___g_subotageIOFDetails]} )
+    local details="$3"
+    local fps="${4:-0}"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -614,21 +595,23 @@ NR >= __start_line {
 }
 EOF
 
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageIF[$___g_subotageIOFDetails]}"
+    logging_info $LINENO $"szczegoly formatu:" "$details"
 
     echo "secs" > "$outFilePath"
-    awk -v __start_line="${details[1]}" \
+    awk -v __start_line="${detailsArray[1]}" \
         -v __last_time="$___g_subotageLastingTimeMs" \
-        -v __fps="${___g_subotageIF[$___g_subotageIOFFps]}" \
+        -v __fps="$fps" \
         "$awkCode" "$inFilePath" >> "$outFilePath"
 }
 
 subotage_readFormatMpl2() {
     local inFilePath="$1"
     local outFilePath="$2"
-    local awkCode=''
-    local details=( ${___g_subotageIF[$___g_subotageIOFDetails]} )
+    local details="$3"
+    local fps="${4:-0}"
+
+    local detailsArray=( $details )
+    local awkCode=
 
 read -r -d "" awkCode << 'EOF'
 BEGIN {
@@ -656,11 +639,10 @@ length($0) && NR >= __start_line {
 }
 EOF
 
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageIF[$___g_subotageIOFDetails]}"
+    logging_info $LINENO $"szczegoly formatu:" "$details"
 
     echo "secs" > "$outFilePath"
-    awk -v __start_line="${details[1]}" \
+    awk -v __start_line="${detailsArray[1]}" \
         -v __last_time="$___g_subotageLastingTimeMs" \
         "$awkCode" "$inFilePath" >> "$outFilePath"
 }
@@ -668,7 +650,10 @@ EOF
 subotage_readFormatSubrip() {
     local inFilePath="$1"
     local outFilePath="$2"
-    local details=( ${___g_subotageIF[$___g_subotageIOFDetails]} )
+    local details="$3"
+    local fps="${4:-0}"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -713,14 +698,13 @@ length($0) {
 }
 EOF
 
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageIF[$___g_subotageIOFDetails]}"
+    logging_info $LINENO $"szczegoly formatu:" "$details"
 
-    logging_debug $LINENO $"licznik:" "${details[2]}"
+    logging_debug $LINENO $"licznik:" "${detailsArray[2]}"
 
     echo "hmsms" > "$outFilePath"
-    awk -v __start_line="${details[1]}" \
-        -v __counter_type="${details[2]}" \
+    awk -v __start_line="${detailsArray[1]}" \
+        -v __counter_type="${detailsArray[2]}" \
         "$awkCode" "$inFilePath" >> "$outFilePath"
 }
 
@@ -731,6 +715,10 @@ EOF
 subotage_writeFormatMicrodvd() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="$4"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -763,18 +751,22 @@ NR > 1 {
 }
 EOF
     logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageOF[$___g_subotageIOFDetails]}"
+        "$details"
 
     logging_info $LINENO "fps:" \
-        "${___g_subotageOF[$___g_subotageIOFFps]}"
+        "$fps"
 
-    awk -v __fps="${___g_subotageOF[$___g_subotageIOFFps]}" \
+    awk -v __fps="$fps" \
         "$awkCode" "$inFilePath" > "$outFilePath"
 }
 
 subotage_writeFormatMpl2() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="$4"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -806,15 +798,17 @@ NR > 1 {
     }
 }
 EOF
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageOF[$___g_subotageIOFDetails]}"
-
+    logging_info $LINENO $"szczegoly formatu:" "$details"
     awk "$awkCode" "$inFilePath" > "$outFilePath"
 }
 
 subotage_writeFormatSubrip() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="$4"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -882,13 +876,16 @@ NR > 1 {
     printContent()
 }
 EOF
-
     awk "$awkCode" "$inFilePath" > "$outFilePath"
 }
 
 subotage_writeFormatSubviewer2() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="$4"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -948,11 +945,8 @@ NR > 1 {
 }
 EOF
 
-    logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageOF[$___g_subotageIOFDetails]}"
-
-    logging_info $LINENO "fps:" \
-        "${___g_subotageOF[$___g_subotageIOFFps]}"
+    logging_info $LINENO $"szczegoly formatu:" "$details"
+    logging_info $LINENO "fps:" "$fps"
 
     echo    "[INFORMATION]" > "$outFilePath"
     echo    "[TITLE] none" >> "$outFilePath"
@@ -971,6 +965,10 @@ EOF
 subotage_writeFormatTmplayer() {
     local inFilePath="$1"
     local outFilePath="$2"
+    local details="$3"
+    local fps="$4"
+
+    local detailsArray=( $details )
     local awkCode=
 
 read -r -d "" awkCode << 'EOF'
@@ -1013,9 +1011,467 @@ NR > 1 {
 EOF
 
     logging_info $LINENO $"szczegoly formatu:" \
-        "${___g_subotageOF[$___g_subotageIOFDetails]}"
+        "$details"
 
     awk "$awkCode" "$inFilePath" > "$outFilePath"
+}
+
+################################################################################
+
+#
+# @brief list supported formats
+#
+subotage_listFormats() {
+    local long="${1:-0}"
+    local counter=0
+    local fmt=
+
+    # description for every supported file format
+    desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [${g_inf[$___FPS]}] fps)" \
+           "[start][stop] format. The unit is time based == 0.1 sec" \
+           "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
+           "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
+           "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" )
+
+    if [ "$long" -eq 1 ]; then
+        # display them
+        for fmt in "${___g_subotageFormats[@]}"; do
+            echo -e "\t$fmt - ${desc[$counter]}"
+            counter=$(( counter + 1 ))
+        done
+    else
+        echo "${___g_subotageFormats[@]}"
+    fi
+    return $G_RETOK
+}
+
+#
+# @brief will attempt to remove overlapping subtitles in the
+# universal file format
+#
+# @param filepath containing universal file format
+#
+subotage_correctOverlaps() {
+    local filePath="$1"
+    local fileName=$(basename "$filePath")
+    local awkCode=
+
+    local tmpFile="$(fs_mktempFile_SO)"
+    local numLines=0
+    local status=0
+    local rv=$G_RETOK
+
+read -r -d "" awkCode << 'EOF'
+BEGIN {
+    counter = 0
+    lineCounter = 0
+    previousEnd = 0
+    timeType = "unknown"
+}
+
+NR == 1 {
+    timeType=$0
+    print $0
+}
+
+#
+# convert the timestamp to milliseconds timestamp
+# This function unifies the hms/hmsms/secs format to
+# a milliseconds timestamp
+#
+function convToMs(time, format) {
+    rv = 0
+
+    if ("secs" == format) {
+        rv = (time + 0) * 1000
+    }
+    else if ("hms" == format || "hmsms" == format) {
+        split(time, ts, "[:.]")
+
+        rv = ts[1] * 3600 + ts[2] * 60 + ts[3]
+        rv = rv*1000
+
+        if ("hmsms" == format) rv += ts[4]
+    }
+    return rv
+}
+
+NR > 1 {
+    if (( timeType != "secs" ) &&
+        ( timeType != "hms" ) &&
+        ( timeType != "hmsms" )) {
+        # format unsupported
+        exit 2
+    }
+
+    # memorize the number of fields in the line
+    # in this two-line queue
+    lines[counter,0] = NF
+
+    # buffer the line
+    for (i=1; i<=NF; i++) lines[counter,i] = $i
+
+    # correct the overlapping subtitles
+    # current line index
+    cli = counter == 0 ? 1 : 0
+
+    # previous line index
+    pli = cli == 1 ? 0 : 1
+
+    # current ending time-stamp
+    cets = convToMs(lines[cli, 3], timeType)
+
+    # previous starting time-stamp
+    psts = convToMs(lines[pli, 2], timeType)
+
+    if (cets > psts) lines[cli, 3] = lines[pli, 2]
+
+    # print every second line or if line counter == __num_lines
+    # flush'em both at once
+    do {
+       lineCounter++
+       counter = (counter + 1) % 2
+
+       if ((lineCounter >=2 || lineCounter == __num_lines) && lines[counter,0]>0) {
+
+           # print the line counter, start & stop timestamps
+           printf("%s %s %s ",
+                lines[counter,1], lines[counter,2], lines[counter,3])
+
+           # print the remaining part of the line
+           for (i = 4; i<=lines[counter,0]; i++)
+               printf("%s ", lines[counter,i])
+
+           printf("\n")
+       }
+    } while (lineCounter == __num_lines)
+}
+EOF
+    logging_info $LINENO $"sprawdzam plik uniwersalny i usuwam overlaps"
+
+    numLines=$(cat "$filePath" | wrappers_countLines_SO)
+    numLines=$(( numLines - 1 ))
+
+    awk -v __num_lines="$numLines" \
+        "$awkCode" "$filePath" > "$tmpFile"
+    status=$?
+
+    case "$status" in
+        1)
+            logging_error $"blad przy poprawianiu overlaps. przywracam oryg. pliki"
+            fs_cp "$filePath" "$tmpFile"
+            rv=$G_RETFAIL
+            ;;
+
+        2)
+            logging_warning $"brak korekcji nakladajacych sie napisow, dla formatu we."
+            fs_cp "$filePath" "$tmpFile"
+            rv=$G_RETNOACT
+            ;;
+
+        *)
+            logging_debug $LINENO $"skorygowano nakladajace sie napisy"
+            ;;
+    esac
+
+    logging_info $LINENO $"kopiuje poprawiony plik na oryginalny" \
+        "[$tmpFile] -> [$fileName]"
+
+    fs_cp "$tmpFile" "$filePath"
+    return $rv
+}
+
+#
+# @brief checks if the given fps is a valid numeric value
+#
+subotage_isFpsValidValue() {
+    local fps="$1"
+    local rv=$G_RETOK
+    local stripped=$(echo "$fps" | wrappers_filterNumeric)
+
+    [ -n "$stripped" ] &&
+        rv=$G_RETPARAM
+
+    return $rv
+}
+
+#
+# @brief checks if the provided format is valid & supported
+# @param format to be verified
+#
+subotage_isFormatSupported() {
+    local format="$1"
+    logging_debug $LINENO $"weryfikuje format napisow:" "$format"
+
+    # this function can cope with that kind of input
+    # shellcheck disable=SC2068
+    assoc_lookupKey_SO "$format" "${___g_subotageFormats[@]}" >/dev/null ||
+        return $G_RETPARAM
+}
+
+#
+# @brief list supported formats
+# @param set to true to get verbose output
+#
+subotage_listFormats() {
+    local long="${1:-0}"
+    local counter=0
+    local fmt=
+
+    # description for every supported file format
+    desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [${g_inf[$___FPS]}] fps)" \
+           "[start][stop] format. The unit is time based == 0.1 sec" \
+           "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
+           "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
+           "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" )
+
+    if [ "$long" -eq 1 ]; then
+        # display them
+        for fmt in "${___g_subotageFormats[@]}"; do
+            echo -e "\t$fmt - ${desc[$counter]}"
+            counter=$(( counter + 1 ))
+        done
+    else
+        echo "${___g_subotageFormats[@]}"
+    fi
+
+    return $G_RETOK
+}
+
+#
+# @guess the subtitles file format
+#
+subotage_guessFormat() {
+    local filePath="$1"
+
+    local lc=$(cat "$file_path" 2>/dev/null | wrappers_countLines_SO)
+    local fmt="${___g_subotageNotDetectedMarker}"
+    local detector='none'
+    local f=
+
+    [ -z "$lc" ] || [ "$lc" -eq 0 ] &&
+        return $G_RETFAIL
+
+    for f in "${___g_subotageFormats[@]}"; do
+        detector="check_format_$(wrappers_ucaseFirst_SO $f)"
+
+        # check if detector exists
+        tools_verifyFunctionPresence "$detector" ||
+            return $G_RETFAIL
+
+        fmt=$($detector "$filePath")
+        [ "$fmt" != "${___g_subotageNotDetectedMarker}" ] && break
+    done
+
+    [ "$fmt" = "${___g_subotageNotDetectedMarker}" ] &&
+        return $G_RETFAIL
+
+    echo "$fmt"
+}
+
+#
+# @brief configure the time, the subs are presented
+#
+subotage_setLastingTime() {
+    ___g_subotageLastingTimeMs="$1"
+}
+
+#
+# @brief generates uniform file format summary
+#
+subotage_summariseFile() {
+    local prefix="$1"
+    shift
+    logging_status "${prefix}FILE" "$(basename "$1")"
+    logging_status "${prefix}FORMAT" "$2"
+    logging_status "${prefix}FPS" "$3"
+    logging_status "${prefix}DETAILS" "$4"
+}
+
+#
+# @brief tries to determine file's fps
+#
+subotage_detectFileFps_SO() {
+    local inputFileFormat="$1"
+    local inputFileDetails="$2"
+
+    local fps="${___g_subotageDefaultFps}"
+
+    case "$inputFileFormat" in
+        'microdvd' )
+            # in case of microdvd the format, the
+            # detection routine, should place fps as the last
+            # element
+            local detected=( $inputFileDetails )
+            local numDetails="${#detected[@]}"
+            local fpsIdx=$(( numDetails - 1 ))
+
+            [ "$numDetails" -ge 2 ] &&
+                [ -n "${detected[$fpsIdx]}" ] &&
+                [ "${detected[$fpsIdx]}" -ne 0 ] &&
+                fps="${detected[$fpsIdx]}"
+            ;;
+        *)
+            # do nothin'
+            ;;
+    esac
+
+    echo "$fps"
+}
+
+#
+# @brief checks if the input file is not already in the requested format
+#
+subotage_isConversionNeeded() {
+    local inputFileFormat="$1"
+    local inputFileFps="$2"
+    local inputFileFormatDetails="$3"
+    local outputFileFormat="$4"
+    local outputFileFps="$5"
+
+    # format comparison
+    [ "$inputFileFormat" != "$outputFileFormat" ] && {
+        logging_debug $LINENO $"formaty rozne, konwersja wymagana"
+        return $G_RETOK
+    }
+
+    local rv=$G_RETOK
+    case "$inputFileFormat" in
+        'microdvd')
+            logging_debug $LINENO $"porownuje fps dla formatu microdvd"
+            if wrappers_floatEq "$inputFileFps" "$outputFileFps"; then
+                logging_info $LINENO \
+                    $"konwersja nie jest wymagana, fps pliku wejsciowego jest rowny zadanemu"
+                rv=$G_RETNOACT
+            fi
+            ;;
+
+        *)
+            _debug $LINENO $"formaty zgodne - konwersja nie wymagana"
+            rv=$G_RETNOACT
+            ;;
+    esac
+    return "$rv"
+}
+
+#
+# @brief performs conversion using provided format read/write routines
+#
+subotage_convertFormats() {
+    local readRoutine="$1"
+    local writeRoutine="$2"
+
+    local inputFilePath="$3"
+    local outputFilePath="$4"
+
+    local universalFormatFile="$(fs_mktempFile_SO)"
+    local unixLineEndingsFile"$(fs_mktempFile_SO)"
+
+    wrappers_dos2unix < "$inputFilePath" > "$unixLineEndingsFile"
+
+    $readRoutine "$unixLineEndingsFile" "$universalFormatFile" || {
+        logging_error $"blad podczas konwersji pliku wejsciowego na format uniwersalny"
+        return $G_RETFAIL
+    }
+
+    subotage_correctOverlaps "$universalFormatFile"
+
+    $writeRoutine "$universalFormatFile" "$outputFilePath" || {
+        logging_error $"blad podczas konwersji do formatu docelowego"
+        return $G_RETFAIL
+    }
+
+    return $G_RETOK
+}
+
+#
+# @brief converts the format of given subtitles file
+#
+subotage_processFile() {
+    local inputFilePath="$1"
+    local inputFileFormat="$2"
+    local inputFileFps="$3"
+    local inputFileFormatDetails="$4"
+    local outputFilePath="$5"
+    local outputFileFormat="$6"
+    local outputFileFps="$7"
+    local outputFileFormatDetails="$8"
+    local dryRun="${9:-0}"
+
+    local inputFileName="$(basename "$inputFilePath")"
+
+    # detect input file format if not given
+    [ -z "$inputFileFormat" ] ||
+        [ "$inputFileFormat" = "none" ] && {
+        logging_debug $LINENO $"wykrywam format pliku wejsciowego"
+
+        inputFileFormatDetails=$(subotage_guessFormat "$inputFilePath") || {
+            logging_error $"nie mozna wykryc formatu pliku wejsciowego"
+            return $G_RETFAIL
+        }
+
+        local fmt=( $inputFileFormatDetails )
+        inputFileFormat="${fmt[0]}"
+    }
+
+    # detect input file fps if not given
+    [ -z "$inputFileFps" ] ||
+        [ "none" = "$inputFileFps" ] ||
+        wrappers_floatEq "$inputFileFps" 0 && {
+        inputFileFps="$(subotage_detectFileFps_SO \
+            "$inputFileFormat" "$inputFileDetails")"
+    }
+
+    # set output file fps if not given
+    [ -z "$outputFileFps" ] ||
+        [ "none" = "$outputFileFps" ] ||
+        wrappers_floatEq "$outputFileFps" 0 && {
+
+        logging_info $LINENO \
+            $"nie podano fps pliku wyjsciowego, zakladam taki sam jak wejscie"
+        outputFileFps="$inputFileFps"
+    }
+
+    # print some details if requested
+    [ "$dryRun" -ne 0 ] && {
+        subotage_summariseFile "IN_" \
+            "$inputFilePath" \
+            "$inputFileFormat" \
+            "$inputFileFps" \
+            "$inputFileFormatDetails"
+
+        subotage_summariseFile "OUT_" \
+            "$outputFilePath" \
+            "$outputFileFormat" \
+            "$outputFileFps" \
+            "$outputFileFormatDetails"
+
+        return $G_RETBREAK
+    }
+
+    subotage_isConversionNeeded \
+        "$inputFileFormat" "$inputFileFps" "$inputFileDetails" \
+        "$outputFileFormat" "$outputFileFps" || {
+        logging_status "SKIP" "$inputFileName"
+        return $G_RETNOACT
+    }
+
+    local readRoutine="subotage_readFormat$(wrappers_ucaseFirst_SO "${inputFileFormat}")"
+    local writeRoutine="subotage_writeFormat$(wrappers_ucaseFirst_SO "$outputFileFormat")"
+
+    # check reader exists
+    tools_verifyFunctionPresence "$readRoutine" || {
+        logging_error $"funkcja czytajaca" "$readRoutine" $"nie istnieje"
+        return $G_RETFAIL
+    }
+
+    # check writer exists
+    tools_verifyFunctionPresence "$writeRoutine" || {
+        logging_error $"funkcja zapisujaca" "$writeRoutine" $"nie istnieje"
+        return $G_RETFAIL
+    }
+
+    subotage_convertFormats "$readRoutine" "$writeRoutine"
 }
 
 # EOF

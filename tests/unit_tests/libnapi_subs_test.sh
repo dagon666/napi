@@ -198,25 +198,5 @@ test_subs_convertEncodingReplacesTheFileIfConversionSuccessful() {
     scpmocker_resetFunction fs_mktempFile_SO
 }
 
-test_subs_verifySubsFormatValidatesSupportedFormats() {
-    local validFormats=( "microdvd" "mpl2" "subrip" \
-        "subviewer2" "tmplayer" )
-    local invalidFormats=( "made-up" "other" "abc" "def" )
-    local fmt=
-
-    for fmt in "${validFormats[@]}"; do
-        subs_verifySubsFormat "$fmt"
-        assertTrue "check return value for format [$fmt]" \
-            "$?"
-    done
-
-    for fmt in "${invalidFormats[@]}"; do
-        subs_verifySubsFormat "$fmt"
-        assertFalse "check return value for format [$fmt]" \
-            "$?"
-    done
-}
-
-
 # shunit call
 . shunit2
