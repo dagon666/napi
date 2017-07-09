@@ -145,15 +145,15 @@ wrappers_getCores_SO() {
 #
 # @brief converts dos line endings to unix style line endings
 #
-wrappers_dos2unix() {
+wrappers_dos2unix_SO() {
     awk '{ sub("\r$",""); print }'
 }
 
 #
-# @brief filters any non-numeric, non decimal dot characters
+# @brief filters out numeric and decimal dot characters
 #
-wrappers_filterNumeric() {
-   tr -d '[\n\.0-9]'
+wrappers_filterNumeric_SO() {
+   tr -d '[\r\n\.0-9]'
 }
 
 ################################## FLOAT CMP ###################################

@@ -1187,7 +1187,7 @@ EOF
 subotage_isFpsValidValue() {
     local fps="$1"
     local rv=$G_RETOK
-    local stripped=$(echo "$fps" | wrappers_filterNumeric)
+    local stripped=$(echo "$fps" | wrappers_filterNumeric_SO)
 
     [ -n "$stripped" ] &&
         rv=$G_RETPARAM
