@@ -1340,21 +1340,3 @@ test_obtain_others() {
 
     _restore_globs
 }
-
-
-#
-# test obtain file routine
-#
-test_obtain_file() {
-	# empty for now, will be verified with system tests
-    return 0
-}
-
-
-#
-# test process file routine
-#
-test_process_file() {
-	# empty for now, will be verified with system tests
-    return 0
-}

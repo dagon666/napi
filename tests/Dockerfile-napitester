@@ -1,30 +1,44 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 RUN apt-get update -y
+RUN apt-get install -y --fix-missing \
+        pkg-config
 RUN apt-get install -y \
-        busybox \
-        libssl-dev \
+        autoconf \
+        automake \
+        binutils-dev \
         bison \
+        busybox \
+        cmake \
+        cmake-data \
         flex \
-        patch \
-        shunit2 \
-        mplayer2 \
-        mediainfo \
-        libav-tools \
-        gcc-multilib \
         g++-multilib \
-        ncurses-dev \
+        gawk \
+        gcc-multilib \
+        install-info \
+        libarchive-extract-perl \
+        libav-tools \
+        libcurl4-openssl-dev \
+        libdw-dev \
+        libelf-dev \
+        libssl-dev \
         libwww-perl \
+        make \
+        mawk \
+        mediainfo \
+        mplayer2 \
+        ncurses-dev \
         original-awk \
         p7zip-full \
-        mawk \
-        gawk \
-        wget \
-        automake \
-        autoconf \
-        make \
+        patch \
+        python-minimal \
+        python-pip \
+        python-setuptools \
+        shunit2 \
         texinfo \
-        install-info
+        wget \
+        zlib1g \
+        zlib1g-dev
 
 # set-up environment
 ENV NAPITESTER_HOME /home/napitester
@@ -35,27 +49,8 @@ ENV NAPITESTER_SHELLS $NAPITESTER_OPT/bash
 ENV INSTALL_DIR /tmp/install
 
 RUN useradd -m -U napitester -d $NAPITESTER_HOME
+RUN usermod -a -G sudo napitester
 RUN mkdir -p $INSTALL_DIR
-
-# kcov dependencies
-RUN apt-get install -y --fix-missing \
-        pkg-config
-
-RUN apt-get install -y \
-        zlib1g \
-        libcurl4-openssl-dev \
-        libelf-dev \
-        libdw-dev \
-        cmake \
-        cmake-data \
-        binutils-dev \
-        zlib1g-dev \
-        python-minimal
-
-# scpmocker dependencies
-RUN apt-get install -y \
-        python-pip \
-        python-setuptools
 
 # setup shells and test assets
 ADD napitester $INSTALL_DIR/napitester
