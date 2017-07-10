@@ -6,11 +6,11 @@ class Parser(object):
 
     DELIMITER_LEN = 20
 
-    def __init__(self, napiStdout, napiStderr):
-        self.napiStdout = napiStdout
-        self.napiStderr = napiStderr
+    def __init__(self, scriptStdout, scriptStderr):
+        self.scriptStdout = scriptStdout
+        self.scriptStderr = scriptStderr
 
-    def parseStats(self):
+    def parseNapiStats(self):
         """
         Extracts napi stats from the output stream
         """
@@ -20,26 +20,26 @@ class Parser(object):
         results = {}
         for token in tokens:
             m = re.search(r'{} -> (\d+)'.format(token),
-                    self.napiStdout)
+                    self.scriptStdout)
             results[token.lower()] = int(m.group(1) if m else 0)
         return results
 
     def stdoutContains(self, regex):
-        return re.search(regex, self.napiStdout)
+        return re.search(regex, self.scriptStdout)
 
     def stderrContains(self, regex):
-        return re.search(regex, self.napiStderr)
+        return re.search(regex, self.scriptStderr)
 
     def hasErrors(self):
-        return len(self.napiStderr)
+        return len(self.scriptStderr)
 
     def printStdout(self):
         print "STDOUT"
-        print self.napiStdout
+        print self.scriptStdout
         print "=" * self.DELIMITER_LEN
 
     def printStderr(self):
         print "STDERR"
-        print self.napiStderr
+        print self.scriptStderr
         print "=" * self.DELIMITER_LEN
 

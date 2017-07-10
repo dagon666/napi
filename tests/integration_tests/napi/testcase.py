@@ -33,7 +33,10 @@ class NapiTestCase(unittest.TestCase):
             self.output.printStderr()
 
     def napiExecute(self, *args):
-        self.output = self.runner.execute(*args)
+        self.output = self.runner.executeNapi(*args)
+
+    def subotageExecute(self, *args):
+        self.output = self.runner.executeSubotage(*args)
 
     def napiScan(self, *args):
         self.output = self.runner.scan(*args)

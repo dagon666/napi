@@ -4,7 +4,7 @@ import os
 import subprocess
 import logging
 
-from . import output as napiOutput
+from . import output as OutputParser
 
 NAPIPROJEKT_BASEURL_DEFAULT = 'http://napiprojekt.pl'
 
@@ -23,8 +23,8 @@ class Runner(object):
         if self.napiprojektUrl != NAPIPROJEKT_BASEURL_DEFAULT:
             os.environ['NAPIPROJEKT_BASEURL'] = self.napiprojektUrl
 
-    def execute(self, *args):
-        cmd = [self.bash, 'napi.sh',] + map(str, args)
+    def _execute(self, executable, *args):
+        cmd = [self.bash, executable,] + map(str, args)
         self.logger.error(cmd)
         process = subprocess.Popen(
                 cmd,
@@ -33,17 +33,24 @@ class Runner(object):
                 stderr = subprocess.PIPE,
                 stdout = subprocess.PIPE)
 
-        output = process.communicate()
-        return napiOutput.Parser(*output)
+        return process.communicate()
+
+    def executeNapi(self, *args):
+        output = self._execute('napi.sh', *args)
+        return OutputParser.Parser(*output)
+
+    def executeSubotage(self, *args):
+        output = self._execute('subotage.sh', *args)
+        return OutputParser.Parser(*output)
 
     def scan(self, *args):
-        return self.execute('scan', '-v', '3', *args)
+        return self.executeNapi('scan', '-v', '3', *args)
 
     def download(self, *args):
-        return self.execute('download', '-v', '3', *args)
+        return self.executeNapi('download', '-v', '3', *args)
 
     def subtitles(self, *args):
-        return self.execute('subtitles', '-v', '3', *args)
+        return self.executeNapi('subtitles', '-v', '3', *args)
 
     def search(self, *args):
-        return self.execute('search', '-v', '3', *args)
+        return self.executeNapi('search', '-v', '3', *args)

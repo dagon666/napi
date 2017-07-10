@@ -42,7 +42,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-L', lang, media['path'])
             self.output.stdoutContains(self._makeLanguageDebugRegex(lang))
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
@@ -83,7 +83,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-L', lang, '-e', ext, media['path'])
             self.output.stdoutContains(self._makeLanguageDebugRegex(lang))
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
@@ -125,7 +125,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-L', lang, '-a', abbrev, media['path'])
             self.output.stdoutContains(self._makeLanguageDebugRegex(lang))
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
@@ -172,7 +172,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
 
             self.output.stdoutContains(self._makeLanguageDebugRegex(lang))
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])

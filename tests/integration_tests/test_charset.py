@@ -21,7 +21,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
                         media['asset'], "test subtitles"))
 
             self.napiScan('--stats', '-C', charset, media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])

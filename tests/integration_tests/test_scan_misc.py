@@ -39,7 +39,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -76,7 +76,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -91,7 +91,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             subtitles = napi.fs.HashedFile(subsPaths[0])
 
             self.napiScan('--stats', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -131,7 +131,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -146,7 +146,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             subtitles = napi.fs.HashedFile(subsPaths[0])
 
             self.napiScan('--stats', '-s', '-e', ext, media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -188,7 +188,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-e', ext,
                     '-a', abbrev, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -205,7 +205,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-s', '-e', ext,
                     '-a', abbrev, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
@@ -248,7 +248,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -267,7 +267,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                     convAbbrev,
                     media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
@@ -319,7 +319,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -341,7 +341,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                     '-M',
                     media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
@@ -387,7 +387,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-n', '-s', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['nfo_ok'])
             self.assertEquals(1, stats['total'])
@@ -401,7 +401,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, len(subsPaths))
 
             self.napiScan('--stats', '-n', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -441,7 +441,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-c', '-s', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['cover_ok'])
             self.assertEquals(1, stats['total'])
@@ -455,7 +455,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, len(subsPaths))
 
             self.napiScan('--stats', '-c', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])

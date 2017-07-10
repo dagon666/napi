@@ -106,7 +106,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 self.assertEquals(req.url, '/api/api-napiprojekt3.php')
 
             # check statistics
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(nAvailable, stats['ok'])
             self.assertEquals(nUnavailable, stats['unav'])
             self.assertEquals(nTotal, stats['total'])
@@ -163,7 +163,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 re.compile(r'okladka pobrana pomyslnie')))
 
             # check statistics
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['cover_ok'])
             self.assertEquals(1, stats['total'])
@@ -218,7 +218,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 re.compile(r'plik nfo utworzony pomyslnie')))
 
             # check statistics
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['nfo_ok'])
             self.assertEquals(1, stats['total'])
@@ -269,7 +269,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 # call napi
                 self.napiScan('--stats', '-s', sandbox.path)
 
-                stats = self.output.parseStats()
+                stats = self.output.parseNapiStats()
                 if attempt == 0:
                     for n in xrange(nTotal):
                         req = self.napiMock.getRequest(n + nTotal*attempt)
@@ -339,7 +339,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 # call napi
                 size = initialSize + sizeIncrement * attempt
                 self.napiScan('--stats', '-b', size, sandbox.path)
-                stats = self.output.parseStats()
+                stats = self.output.parseNapiStats()
 
                 totalDetected = nTotal - attempt
                 self.assertEquals(totalDetected, stats['ok'])

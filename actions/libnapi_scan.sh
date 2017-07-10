@@ -801,12 +801,11 @@ scan_usage() {
     echo $"    | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     echo $" -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja"
     echo $" -d | --delete-orig - Delete the original file"
-    echo $" -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+    echo $" -f | --format - konwertuj napisy do formatu"
     echo $" -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
     echo
     echo "Obslugiwane formaty konwersji napisow"
-    # TODO get rid of this and replace with a subs_ library call
-    subotage.sh -gl
+    subotage_listFormats 1
 
     tools_isDetected "iconv" &&
         echo $" -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"
