@@ -27,14 +27,20 @@ directory and deploy that to your device. Below is an example:
 
     $ cd bashnapi
     $ mkdir build
-    $ cmake -DCMAKE_INSTALL_PREFIX=napi_install ..
+    $ cmake -DCMAKE_INSTALL_PREFIX=napi_install -DNAPI_INSTALL_PREFIX=/opt/napi ..
     $ make && install
 
 **bashnapi** is now installed in the `napi_install` directory. Just deploy
 that to your device (with `scp`, `ftp`, or whatever you prefer) and add
-the path to a directory under `napi_install/bin` to your `PATH`.
+the path to a directory under `/opt/napi/bin` to your `PATH`. The variables:
 
-You can use any directory name, `napi_install` has been picked
+    - `CMAKE_INSTALL_PREFIX` - defines the directory on the host to which napi
+    will be installed
+
+    - `NAPI_INSTALL_PREFIX` - defines the directory on the target to which napi
+    should be deployed
+
+You can use any directory names, `napi_install` and `/opt/napi` have been picked
 arbitrarilly without any strict reason.
 
 ## Actions
