@@ -192,7 +192,7 @@ EOF
 }
 
 # subrip format detection routine
-subotage_checkFormatSubrip() {
+subotage_checkFormatSubrip_SO() {
     local filePath="$1"
     local maxAttempts=8
     local firstLine=1
@@ -200,10 +200,10 @@ subotage_checkFormatSubrip() {
 
     local counterType="not_found"
     local match="$___g_subotageNotDetectedMarker"
-    local match_tmp=
-    local match_ts=
+    local matchTmp=
+    local matchTs=
 
-    read -r -d "" match_ts << 'EOF'
+    read -r -s -d "" matchTs << 'EOF'
 {
     ts="[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+[ \r\n]*"
     fullReg =  "^" prefix ts "$"
@@ -211,7 +211,7 @@ subotage_checkFormatSubrip() {
 }
 EOF
 
-    while read -r file_line; do
+    while read -r fileLine; do
         [ "$attempts" -eq 0 ] && break
 
         if [ "$counterType" = "not_found" ]; then
@@ -219,7 +219,7 @@ EOF
                 matchTmp=$(echo "$fileLine" | awk '/^[0-9]+[\r\n]*$/')
 
                 if [ -n "$matchTmp" ]; then
-                    counter_type="newline"
+                    counterType="newline"
                     continue
                 fi
 
@@ -227,7 +227,7 @@ EOF
                 matchTmp=$(echo "$fileLine" | \
                     awk -v prefix="[0-9]+ " "$matchTs")
 
-                if [ "$matchTmp" -ne 0 ]; then
+                if [ "${matchTmp:-0}" -ne 0 ]; then
                     counterType="inline"
                     match="subrip $firstLine inline"
                     break
@@ -283,10 +283,10 @@ EOF
             [ -n "$matchTmp" ] && headerLine="$firstLine"
         fi
 
-        matchTmp=$(echo "$fileLine" | awk "$match_ts")
+        matchTmp=$(echo "$fileLine" | awk "$matchTs")
 
         # we've got a match
-        if [ "$matchTmp" -ne 0 ]; then
+        if [ "${matchTmp:-0}" -ne 0 ]; then
             match="subviewer2 $firstLine $headerLine"
             break
         fi
@@ -295,7 +295,7 @@ EOF
 }
 
 # tmplayer format detection routine
-subotage_checkFormatTmplayer() {
+subotage_checkFormatTmplayer_SO() {
     local filePath="$1"
 
     local maxAttempts=3
@@ -309,8 +309,8 @@ subotage_checkFormatTmplayer() {
     local multiline=0
     local delim=':'
 
-    local genericCheck=''
-    local extractDelim=''
+    local genericCheck=
+    local extractDelim=
 
     read -r -d "" genericCheck << 'EOF'
 {
@@ -334,7 +334,7 @@ EOF
 
     read -r -d "" extractDelim << 'EOF'
 {
-    print substr($0, match_len, 1)
+    print substr($0, matchLen, 1)
 }
 EOF
 

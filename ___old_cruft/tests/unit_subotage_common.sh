@@ -1,41 +1,11 @@
 #!/bin/bash
 
-# force indendation settings
-# vim: ts=4 shiftwidth=4 expandtab
-
-################################################################################
-
-#  Copyright (C) 2014 Tomasz Wisniewski aka 
-#       DAGON <tomasz.wisni3wski@gmail.com>
-#
-#  http://github.com/dagon666
-#  http://pcarduino.blogspot.co.ul
-# 
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 ################################################################################
 
 #
 # source common unit lib
 #
 . lib/unit_common.sh
-
-#
-# source the code of the original script
-#
-. "$g_install_path/subotage.sh" 2>&1 > /dev/null
 
 ################################################################################
 
@@ -56,236 +26,6 @@ oneTimeTearDown() {
 }
 
 ################################################################################
-
-test_check_format_microdvd() {
-	local tmp=$(mktemp test.XXXXXXXX)
-	local match=''
-	_save_subotage_globs
-
-	echo "junk" > "$tmp"
-	echo "{123}{456}first line" >> "$tmp"
-	echo "{123}{456}second line" >> "$tmp"
-
-	match=$(check_format_microdvd "$tmp")
-	assertEquals "checking the first line" "microdvd 2" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	match=$(check_format_microdvd "$tmp")
-	assertEquals "checking the first line" "not_detected" "$match"
-
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
-	assertEquals "checking the first line and fps from real file" "microdvd 1 23.976" "$match"
-
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/2_microdvd.txt")
-	assertEquals "checking the first line" "microdvd 1" "$match"
-
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/3_microdvd.txt")
-	assertEquals "checking the first line" "microdvd 1 23.976" "$match"
-
-	# try with other formats to make sure it doesn't catch any
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
-	assertEquals "checking subrip no detection" "not_detected" "$match"
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
-	assertEquals "checking tmplayer no detection" "not_detected" "$match"
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
-	assertEquals "checking subviewer2 no detection" "not_detected" "$match"
-	match=$(check_format_microdvd "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
-	assertEquals "checking mpl2 no detection" "not_detected" "$match"
-
-	unlink "$tmp"
-	_restore_subotage_globs
-	return 0
-}
-
-
-test_check_format_mpl2() {
-	local tmp=$(mktemp test.XXXXXXXX)
-	local match=''
-	_save_subotage_globs
-
-	echo "junk" > "$tmp"
-	echo "[123][456]first line" >> "$tmp"
-	echo "[123][456]second line" >> "$tmp"
-
-	match=$(check_format_mpl2 "$tmp")
-	assertEquals "checking the first line" "mpl2 2" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	match=$(check_format_mpl2 "$tmp")
-	assertEquals "checking the first line" "not_detected" "$match"
-
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
-	assertEquals "checking the first line and fps from real file" "mpl2 1" "$match"
-
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/2_mpl2.txt")
-	assertEquals "checking the first line 2_mpl2.txt" "mpl2 1" "$match"
-
-	# try with other formats to make sure it doesn't catch any
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
-	assertEquals "checking subrip no detection" "not_detected" "$match"
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
-	assertEquals "checking tmplayer no detection" "not_detected" "$match"
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
-	assertEquals "checking subviewer2 no detection" "not_detected" "$match"
-	match=$(check_format_mpl2 "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
-	assertEquals "checking microdvd no detection" "not_detected" "$match"
-
-	unlink "$tmp"
-	_restore_subotage_globs
-	return 0
-
-}
-
-
-test_check_format_subrip() {
-	local tmp=$(mktemp test.XXXXXXXX)
-	local match=''
-	_save_subotage_globs
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "1 00:00:02,123 --> 00:00:12,234" >> "$tmp"
-	echo "some subs line" >> "$tmp"
-
-	match=$(check_format_subrip "$tmp")
-	assertEquals "checking the first line" "subrip 3 inline" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	match=$(check_format_subrip "$tmp")
-	assertEquals "check not detecting junk" "not_detected" "$match"
-
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_inline_subrip.txt")
-	assertEquals "checking the first line from real file" "subrip 1 inline" "$match"
-
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
-	assertEquals "checking the first line (newline)" "subrip 1 newline" "$match"
-
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/3_subrip.txt")
-	assertEquals "checking the first line (newline)" "subrip 5 newline" "$match"
-
-	# try with other formats to make sure it doesn't catch any
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
-	assertEquals "checking microdvd no detection" "not_detected" "$match"
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
-	assertEquals "checking tmplayer no detection" "not_detected" "$match"
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
-	assertEquals "checking subviewer2 no detection" "not_detected" "$match"
-	match=$(check_format_subrip "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
-	assertEquals "checking mpl2 no detection" "not_detected" "$match"
-
-	unlink "$tmp"
-	_restore_subotage_globs
-	return 0
-}
-
-
-test_check_format_subviewer2() {
-	local tmp=$(mktemp test.XXXXXXXX)
-	local match=''
-	_save_subotage_globs
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "00:00:02.123,00:00:12.234" >> "$tmp"
-	echo "some subs line" >> "$tmp"
-
-	match=$(check_format_subviewer2 "$tmp")
-	assertEquals "checking the first line" "subviewer2 3 0" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	match=$(check_format_subviewer2 "$tmp")
-	assertEquals "check not detecting junk" "not_detected" "$match"
-
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_subviewer2.sub")
-	assertEquals "checking the first line from real file" "subviewer2 11 1" "$match"
-
-	# try with other formats to make sure it doesn't catch any
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
-	assertEquals "checking microdvd no detection" "not_detected" "$match"
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
-	assertEquals "checking tmplayer no detection" "not_detected" "$match"
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_inline_subrip.txt")
-	assertEquals "checking subrip no detection" "not_detected" "$match"
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/2_newline_subrip.txt")
-	assertEquals "checking subrip newline no detection" "not_detected" "$match"
-	match=$(check_format_subviewer2 "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
-	assertEquals "checking mpl2 no detection" "not_detected" "$match"
-
-	unlink "$tmp"
-	_restore_subotage_globs
-	return 0
-
-}
-
-test_check_format_tmplayer() {
-	local tmp=$(mktemp test.XXXXXXXX)
-	local match=''
-	_save_subotage_globs
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "00:00:02=line of subs" >> "$tmp"
-	echo "00:02:02=line of subs" >> "$tmp"
-
-	match=$(check_format_tmplayer "$tmp")
-	assertEquals "checking the first line" "tmplayer 3 2 0 =" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "0:00:02:line of subs" >> "$tmp"
-	echo "0:02:02:line of subs" >> "$tmp"
-
-	match=$(check_format_tmplayer "$tmp")
-	assertEquals "checking the first line" "tmplayer 3 1 0 :" "$match"
-
-	echo "junk" > "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	echo "junk" >> "$tmp"
-	match=$(check_format_tmplayer "$tmp")
-	assertEquals "check not detecting junk" "not_detected" "$match"
-
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/1_tmplayer.txt")
-	assertEquals "checking the first line from real file" "tmplayer 1 2 0 :" "$match"
-
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/2_tmplayer.txt")
-	assertEquals "checking the first line from real file" "tmplayer 1 1 0 :" "$match"
-
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/3_tmplayer.txt")
-	assertEquals "checking the first line from real file" "tmplayer 1 2 1 :" "$match"
-
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/4_tmplayer.txt")
-	assertEquals "checking the first line from real file" "tmplayer 1 2 1 =" "$match"
-
-	# # try with other formats to make sure it doesn't catch any
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/1_microdvd.txt")
-	assertEquals "checking microdvd no detection" "not_detected" "$match"
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/1_inline_subrip.txt")
-	assertEquals "checking subrip no detection" "not_detected" "$match"
-	match=$(check_format_tmplayer "$g_assets_path/$g_ut_root/subtitles/1_mpl2.txt")
-	assertEquals "checking mpl2 no detection" "not_detected" "$match"
-
-	# not checking subviewer2 and newline subrip
-	# because I know that this detector conflict with those
-	# that's why it is being placed as last
-
-	unlink "$tmp"
-	_restore_subotage_globs
-	return 0
-}
-
 
 test_read_format_subviewer2() {
 	local tmp=$(mktemp test.XXXXXXXX)
@@ -1384,12 +1124,10 @@ test_convert_formats() {
 	return 0
 }
 
-
 test_process_file() {
 	# empty this will be verified with system tests
 	return 0
 }
-
 
 test_create_output_summary() {
 	local tmp=$(mktemp ipc.XXXXXXXX)
