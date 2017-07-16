@@ -656,301 +656,491 @@ test_subotage_readFormatSubrip_withRealSubs() {
 	assertEquals 'offset check content' "Pod" "${adata[3]}"
 }
 
-# test_write_format_microdvd() {
-# 	local tmp=$(mktemp tmp.XXXXXXXX)
-# 	local out=$(mktemp out.XXXXXXXX)
-# 	local status=0
-# 	local data=''
-#
-#
-# 	echo "junk" > "$tmp"
-# 	echo "junk" >> "$tmp"
-#
-# 	g_outf[$___FPS]=25
-# 	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_FAIL" "$status"
-#
-# 	echo "secs" > "$tmp"
-# 	echo "1 10 20 line1" >> "$tmp"
-# 	echo "2 22 25 line2" >> "$tmp"
-#
-# 	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{250}{500}line1")
-# 	assertTrue "checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{550}{625}line2")
-# 	assertTrue "checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hms" > "$tmp"
-# 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
-# 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
-#
-# 	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{250}{500}line1")
-# 	assertTrue "checking output 3" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{550}{625}line2")
-# 	assertTrue "checking output 4" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hmsms" > "$tmp"
-# 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
-# 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
-#
-# 	g_outf[$___FPS]=30
-# 	write_format_microdvd "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "{315}{615}line1")
-# 	assertTrue "checking output 5" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "{675}{765}line2")
-# 	assertTrue "checking output 6" "[ \"$data\" -ge 1 ]"
-# }
-#
-# test_write_format_mpl2() {
-# 	local tmp=$(mktemp tmp.XXXXXXXX)
-# 	local out=$(mktemp out.XXXXXXXX)
-# 	local status=0
-# 	local data=''
-#
-#
-# 	echo "junk" > "$tmp"
-# 	echo "junk" >> "$tmp"
-#
-# 	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_FAIL" "$status"
-#
-# 	echo "secs" > "$tmp"
-# 	echo "1 10 20 line1" >> "$tmp"
-# 	echo "2 22 25 line2" >> "$tmp"
-#
-# 	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[100\]\[200\]line1")
-# 	assertTrue "mpl2 checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[220\]\[250\]line2")
-# 	assertTrue "mpl2 checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hms" > "$tmp"
-# 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
-# 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
-#
-# 	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[100\]\[200\]line1")
-# 	assertTrue "mpl2 checking output 3" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[220\]\[250\]line2")
-# 	assertTrue "mpl2 checking output 4" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hmsms" > "$tmp"
-# 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
-# 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
-#
-# 	write_format_mpl2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "mpl2 checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "\[105\]\[205\]line1")
-# 	assertTrue "mpl2 checking output 5" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "\[225\]\[255\]line2")
-# 	assertTrue "mpl2 checking output 6" "[ \"$data\" -ge 1 ]"
-# }
-#
-# test_write_format_tmplayer() {
-# 	local tmp=$(mktemp tmp.XXXXXXXX)
-# 	local out=$(mktemp out.XXXXXXXX)
-# 	local status=0
-# 	local data=''
-#
-#
-# 	echo "junk" > "$tmp"
-# 	echo "junk" >> "$tmp"
-#
-# 	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_FAIL" "$status"
-#
-# 	echo "secs" > "$tmp"
-# 	echo "1 10 20 line1" >> "$tmp"
-# 	echo "2 22 25 line2" >> "$tmp"
-#
-# 	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
-# 	assertTrue "tmplayer checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
-# 	assertTrue "tmplayer checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hms" > "$tmp"
-# 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
-# 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
-#
-# 	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
-# 	assertTrue "tmplayer checking output 3" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
-# 	assertTrue "tmplayer checking output 4" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hmsms" > "$tmp"
-# 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
-# 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
-#
-# 	write_format_tmplayer "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "tmplayer checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10:line1")
-# 	assertTrue "tmplayer checking output 5" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22:line2")
-# 	assertTrue "tmplayer checking output 6" "[ \"$data\" -ge 1 ]"
-# }
-#
-# test_write_format_subviewer2() {
-# 	local tmp=$(mktemp tmp.XXXXXXXX)
-# 	local out=$(mktemp out.XXXXXXXX)
-# 	local status=0
-# 	local data=''
-#
-#
-# 	echo "junk" > "$tmp"
-# 	echo "junk" >> "$tmp"
-#
-# 	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_FAIL" "$status"
-#
-# 	echo "secs" > "$tmp"
-# 	echo "1 10 20 line1" >> "$tmp"
-# 	echo "2 22 25 line2" >> "$tmp"
-#
-# 	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.00,00:00:20\.00")
-# 	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.00,00:00:25\.00")
-# 	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hms" > "$tmp"
-# 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
-# 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
-#
-# 	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.00,00:00:20\.00")
-# 	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.00,00:00:25\.00")
-# 	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hmsms" > "$tmp"
-# 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
-# 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
-#
-# 	write_format_subviewer2 "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "subviewer2 checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 11 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10\.50,00:00:20\.50")
-# 	assertTrue "subviewer2 checking output 1" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 14 "$out" | tail -n 1 | strip_newline | grep -c "00:00:22\.50,00:00:25\.50")
-# 	assertTrue "subviewer2 checking output 2" "[ \"$data\" -ge 1 ]"
-# }
-#
-# test_write_format_subrip() {
-# 	local tmp=$(mktemp tmp.XXXXXXXX)
-# 	local out=$(mktemp out.XXXXXXXX)
-# 	local status=0
-# 	local data=''
-#
-#
-# 	echo "junk" > "$tmp"
-# 	echo "junk" >> "$tmp"
-#
-# 	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_FAIL" "$status"
-#
-# 	echo "secs" > "$tmp"
-# 	echo "1 10 20 line1" >> "$tmp"
-# 	echo "2 22 25 line2" >> "$tmp"
-#
-# 	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
-# 	assertEquals "subrip checking output 1" 1 "$data"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,000 --> 00:00:20,000")
-# 	assertTrue "subrip checking output 2" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
-# 	assertTrue "subrip checking output 3" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hms" > "$tmp"
-# 	echo "1 00:00:10 00:00:20 line1" >> "$tmp"
-# 	echo "2 00:00:22 00:00:25 line2" >> "$tmp"
-#
-# 	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "subrip checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
-# 	assertEquals "subrip checking output 4" 1 "$data"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,000 --> 00:00:20,000")
-# 	assertTrue "subrip checking output 5" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
-# 	assertTrue "subrip checking output 6" "[ \"$data\" -ge 1 ]"
-#
-# 	echo "hmsms" > "$tmp"
-# 	echo "1 00:00:10.5 00:00:20.5 line1" >> "$tmp"
-# 	echo "2 00:00:22.5 00:00:25.5 line2" >> "$tmp"
-#
-# 	write_format_subrip "$tmp" "$out" >/dev/null 2>&1
-# 	status=$?
-# 	assertEquals "subrip checking return value" "$RET_OK" "$status"
-#
-# 	data=$(head -n 1 "$out" | tail -n 1 | strip_newline)
-# 	assertEquals "subrip checking output 7" 1 "$data"
-#
-# 	data=$(head -n 2 "$out" | tail -n 1 | strip_newline | grep -c "00:00:10,500 --> 00:00:20,500")
-# 	assertTrue "subrip checking output 8" "[ \"$data\" -ge 1 ]"
-#
-# 	data=$(head -n 3 "$out" | tail -n 1 | strip_newline | grep -c "line1")
-# 	assertTrue "subrip checking output 9" "[ \"$data\" -ge 1 ]"
-# }
+test_subotage_writeFormatMicrodvd() {
+    local uniFormatFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local status=
+    local data=
+
+    {
+        echo "junk"
+        echo "junk"
+        echo "junk"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMicrodvd \
+        "$uniFormatFile" "$outputFile" "" "25"
+    status=$?
+
+	assertNotEquals "checking return value for junk in uni format" \
+        "$G_RETOK" "$status"
+
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 22 25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMicrodvd \
+        "$uniFormatFile" "$outputFile" "" "25"
+    status=$?
+
+	assertEquals "checking return value for correct uni format" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "{250}{500}line1")
+	assertTrue "checking output 1" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "{550}{625}line2")
+	assertTrue "checking output 2" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hms"
+        echo "1 00:00:10 00:00:20 line1"
+        echo "2 00:00:22 00:00:25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMicrodvd \
+        "$uniFormatFile" "$outputFile" "" "25"
+    status=$?
+
+	assertEquals "checking return value for hms uni" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "{250}{500}line1")
+	assertTrue "checking output 3" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "{550}{625}line2")
+	assertTrue "checking output 4" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hmsms"
+        echo "1 00:00:10.5 00:00:20.5 line1"
+        echo "2 00:00:22.5 00:00:25.5 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMicrodvd \
+        "$uniFormatFile" "$outputFile" "" "30"
+    status=$?
+	assertEquals "checking return value for hmsms 30" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+       wrappers_stripNewLine_SO | \
+       grep -c "{315}{615}line1")
+	assertTrue "checking output 5" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "{675}{765}line2")
+	assertTrue "checking output 6" \
+        "[ \"$data\" -ge 1 ]"
+}
+
+test_subotage_writeFormatMpl2() {
+    local uniFormatFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local status=
+    local data=
+
+    {
+        echo "junk"
+        echo "junk"
+        echo "junk"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMpl2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertNotEquals "checking return value for junk in uni format" \
+        "$G_RETOK" "$status"
+
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 22 25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMpl2 \
+        "$uniFormatFile" "$outputFile" "" "25"
+    status=$?
+
+	assertEquals "checking return value for correct uni format" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "\[100\]\[200\]line1")
+	assertTrue "checking output 1" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "\[220\]\[250\]line2")
+	assertTrue "checking output 2" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hms"
+        echo "1 00:00:10 00:00:20 line1"
+        echo "2 00:00:22 00:00:25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMpl2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hms uni" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "\[100\]\[200\]line1")
+	assertTrue "checking output 3" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "\[220\]\[250\]line2")
+	assertTrue "checking output 4" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hmsms"
+        echo "1 00:00:10.5 00:00:20.5 line1"
+        echo "2 00:00:22.5 00:00:25.5 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatMpl2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hmsms" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+       wrappers_stripNewLine_SO | \
+       grep -c "\[105\]\[205\]line1")
+	assertTrue "checking output 5" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "\[225\]\[255\]line2")
+	assertTrue "checking output 6" \
+        "[ \"$data\" -ge 1 ]"
+}
+
+test_subotage_writeFormatTmplayer() {
+    local uniFormatFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local status=
+    local data=
+
+    {
+        echo "junk"
+        echo "junk"
+        echo "junk"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatTmplayer \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertNotEquals "checking return value for junk in uni format" \
+        "$G_RETOK" "$status"
+
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 22 25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatTmplayer \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for correct uni format" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10:line1")
+	assertTrue "checking output 1" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22:line2")
+	assertTrue "checking output 2" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hms"
+        echo "1 00:00:10 00:00:20 line1"
+        echo "2 00:00:22 00:00:25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatTmplayer \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hms uni" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10:line1")
+	assertTrue "checking output 3" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22:line2")
+	assertTrue "checking output 4" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hmsms"
+        echo "1 00:00:10.5 00:00:20.5 line1"
+        echo "2 00:00:22.5 00:00:25.5 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatTmplayer \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hmsms" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 1p "$outputFile" | \
+       wrappers_stripNewLine_SO | \
+       grep -c "00:00:10:line1")
+	assertTrue "checking output 5" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22:line2")
+	assertTrue "checking output 6" \
+        "[ \"$data\" -ge 1 ]"
+}
+
+test_subotage_writeFormatSubviewer2() {
+    local uniFormatFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local status=
+    local data=
+
+    {
+        echo "junk"
+        echo "junk"
+        echo "junk"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubviewer2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertNotEquals "checking return value for junk in uni format" \
+        "$G_RETOK" "$status"
+
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 22 25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubviewer2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for correct uni format" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 11p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10\.00,00:00:20\.00")
+	assertTrue "checking output 1" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 14p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22\.00,00:00:25\.00")
+	assertTrue "checking output 2" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hms"
+        echo "1 00:00:10 00:00:20 line1"
+        echo "2 00:00:22 00:00:25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubviewer2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hms uni" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 11p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10\.00,00:00:20\.00")
+	assertTrue "checking output 3" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 14p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22\.00,00:00:25\.00")
+	assertTrue "checking output 4" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hmsms"
+        echo "1 00:00:10.5 00:00:20.5 line1"
+        echo "2 00:00:22.5 00:00:25.5 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubviewer2 \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for hmsms" \
+        "$G_RETOK" "$status"
+
+	data=$(sed -n 11p "$outputFile" | \
+       wrappers_stripNewLine_SO | \
+       grep -c "00:00:10\.50,00:00:20\.50")
+	assertTrue "checking output 5" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 14p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:22\.50,00:00:25\.50")
+	assertTrue "checking output 6" \
+        "[ \"$data\" -ge 1 ]"
+}
+
+test_subotage_writeFormatSubrip() {
+    local uniFormatFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local status=
+    local data=
+
+    {
+        echo "junk"
+        echo "junk"
+        echo "junk"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubrip \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertNotEquals "checking return value for junk in uni format" \
+        "$G_RETOK" "$status"
+
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 22 25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubrip \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "checking return value for correct uni format" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | wrappers_stripNewLine_SO)
+	assertEquals "subrip checking output 1" \
+        1 "$data"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10,000 --> 00:00:20,000")
+	assertTrue "subrip checking output 2" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 3p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "line1")
+	assertTrue "subrip checking output 3" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hms"
+        echo "1 00:00:10 00:00:20 line1"
+        echo "2 00:00:22 00:00:25 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubrip \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "subrip checking return value for format hms" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | wrappers_stripNewLine_SO)
+	assertEquals "subrip checking output 4" \
+        1 "$data"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10,000 --> 00:00:20,000")
+	assertTrue "subrip checking output 5" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 3p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "line1")
+	assertTrue "subrip checking output 6" \
+        "[ \"$data\" -ge 1 ]"
+
+    {
+        echo "hmsms"
+        echo "1 00:00:10.5 00:00:20.5 line1"
+        echo "2 00:00:22.5 00:00:25.5 line2"
+    } > "$uniFormatFile"
+
+    subotage_writeFormatSubrip \
+        "$uniFormatFile" "$outputFile" "" ""
+    status=$?
+
+	assertEquals "subrip checking return value for format hmsms" \
+        "$G_RETOK" "$status"
+
+    data=$(sed -n 1p "$outputFile" | wrappers_stripNewLine_SO)
+	assertEquals "subrip checking output 7" \
+        1 "$data"
+
+	data=$(sed -n 2p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "00:00:10,500 --> 00:00:20,500")
+	assertTrue "subrip checking output 8" \
+        "[ \"$data\" -ge 1 ]"
+
+	data=$(sed -n 3p "$outputFile" | \
+        wrappers_stripNewLine_SO | \
+        grep -c "line1")
+	assertTrue "subrip checking output 9" \
+        "[ \"$data\" -ge 1 ]"
+}
 
 # shunit call
 . shunit2
