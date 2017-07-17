@@ -250,7 +250,7 @@ EOF
 }
 
 # subviewer2 format check
-subotage_checkFormatSubviewer2() {
+subotage_checkFormatSubviewer2_SO() {
     local filePath="$1"
     local match="$___g_subotageNotDetectedMarker"
     local matchTmp=''
@@ -1019,33 +1019,6 @@ EOF
 ################################################################################
 
 #
-# @brief list supported formats
-#
-subotage_listFormats() {
-    local long="${1:-0}"
-    local counter=0
-    local fmt=
-
-    # description for every supported file format
-    desc=( "{start}{stop} - Format based on frames. Uses given framerate\n\t\t(default is [${g_inf[$___FPS]}] fps)" \
-           "[start][stop] format. The unit is time based == 0.1 sec" \
-           "hh.mm.ss,mmm -> hh.mm.ss,mmm format" \
-           "hh:mm:ss:dd,hh:mm:ss:dd format with header.\n\t\tResolution = 10ms. Header is ignored" \
-           "hh:mm:ss timestamp format without the\n\t\tstop time information. Mostly deprecated" )
-
-    if [ "$long" -eq 1 ]; then
-        # display them
-        for fmt in "${___g_subotageFormats[@]}"; do
-            echo -e "\t$fmt - ${desc[$counter]}"
-            counter=$(( counter + 1 ))
-        done
-    else
-        echo "${___g_subotageFormats[@]}"
-    fi
-    return $G_RETOK
-}
-
-#
 # @brief will attempt to remove overlapping subtitles in the
 # universal file format
 #
@@ -1244,7 +1217,7 @@ subotage_listFormats() {
 subotage_guessFormat() {
     local filePath="$1"
 
-    local lc=$(cat "$file_path" 2>/dev/null | wrappers_countLines_SO)
+    local lc=$(cat "$filePath" 2>/dev/null | wrappers_countLines_SO)
     local fmt="${___g_subotageNotDetectedMarker}"
     local detector='none'
     local f=
@@ -1253,7 +1226,7 @@ subotage_guessFormat() {
         return $G_RETFAIL
 
     for f in "${___g_subotageFormats[@]}"; do
-        detector="check_format_$(wrappers_ucaseFirst_SO $f)"
+        detector="subotage_checkFormat$(wrappers_ucaseFirst_SO $f)_SO"
 
         # check if detector exists
         tools_verifyFunctionPresence "$detector" ||
@@ -1329,6 +1302,9 @@ subotage_isConversionNeeded() {
     local outputFileFormat="$4"
     local outputFileFps="$5"
 
+    inputFileFormat="$(echo "$inputFileFormat" | wrappers_lcase_SO)"
+    outputFileFormat="$(echo "$outputFileFormat" | wrappers_lcase_SO)"
+
     # format comparison
     [ "$inputFileFormat" != "$outputFileFormat" ] && {
         logging_debug $LINENO $"formaty rozne, konwersja wymagana"
@@ -1347,7 +1323,7 @@ subotage_isConversionNeeded() {
             ;;
 
         *)
-            _debug $LINENO $"formaty zgodne - konwersja nie wymagana"
+            logging_debug $LINENO $"formaty zgodne - konwersja nie wymagana"
             rv=$G_RETNOACT
             ;;
     esac
@@ -1365,9 +1341,9 @@ subotage_convertFormats() {
     local outputFilePath="$4"
 
     local universalFormatFile="$(fs_mktempFile_SO)"
-    local unixLineEndingsFile"$(fs_mktempFile_SO)"
+    local unixLineEndingsFile="$(fs_mktempFile_SO)"
 
-    wrappers_dos2unix < "$inputFilePath" > "$unixLineEndingsFile"
+    wrappers_dos2unix_SO < "$inputFilePath" > "$unixLineEndingsFile"
 
     $readRoutine "$unixLineEndingsFile" "$universalFormatFile" || {
         logging_error $"blad podczas konwersji pliku wejsciowego na format uniwersalny"
@@ -1472,6 +1448,10 @@ subotage_processFile() {
     }
 
     subotage_convertFormats "$readRoutine" "$writeRoutine"
+}
+
+subotage_configure_GV() {
+    _subotage_init
 }
 
 # EOF

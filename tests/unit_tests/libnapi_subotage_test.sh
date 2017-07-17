@@ -34,7 +34,9 @@
 # module dependencies
 . ../../libs/libnapi_assoc.sh
 . ../../libs/libnapi_assoc.sh
+. ../../libs/libnapi_fs.sh
 . ../../libs/libnapi_retvals.sh
+. ../../libs/libnapi_tools.sh
 . ../../libs/libnapi_wrappers.sh
 
 # fakes/mocks
@@ -43,6 +45,11 @@
 
 # module under test
 . ../../libs/libnapi_subotage.sh
+
+oneTimeSetUp() {
+    fs_configure_GV
+    subotage_configure_GV
+}
 
 #
 # tests env setup
@@ -266,7 +273,7 @@ test_subotage_checkFormatSubviewer2_SO_withFakeSubs() {
         echo "some subs line"
     } > "$subsFile"
 
- 	match=$(subotage_checkFormatSubviewer2 "$subsFile")
+ 	match=$(subotage_checkFormatSubviewer2_SO "$subsFile")
  	assertEquals "checking the first line" "subviewer2 3 0" "$match"
 
     {
@@ -276,35 +283,35 @@ test_subotage_checkFormatSubviewer2_SO_withFakeSubs() {
         echo "junk"
     } > "$subsFile"
 
- 	match=$(subotage_checkFormatSubviewer2 "$subsFile")
+ 	match=$(subotage_checkFormatSubviewer2_SO "$subsFile")
  	assertEquals "check not detecting junk" "not_detected" "$match"
 
 }
 
 test_subotage_checkFormatSubviewer2_SO_withRealSubs() {
     local match=
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/1_subviewer2.sub")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/1_subviewer2.sub")
 	assertEquals "checking the first line from real file" \
         "subviewer2 11 1" "$match"
 
 	# try with other formats to make sure it doesn't catch any
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/1_microdvd.txt")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/1_microdvd.txt")
 	assertEquals "checking microdvd no detection" \
         "not_detected" "$match"
 
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/1_tmplayer.txt")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/1_tmplayer.txt")
 	assertEquals "checking tmplayer no detection" \
         "not_detected" "$match"
 
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/1_inline_subrip.txt")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/1_inline_subrip.txt")
 	assertEquals "checking subrip no detection" \
         "not_detected" "$match"
 
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/2_newline_subrip.txt")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/2_newline_subrip.txt")
 	assertEquals "checking subrip newline no detection" \
         "not_detected" "$match"
 
-	match=$(subotage_checkFormatSubviewer2 "$NAPISUBS/1_mpl2.txt")
+	match=$(subotage_checkFormatSubviewer2_SO "$NAPISUBS/1_mpl2.txt")
 	assertEquals "checking mpl2 no detection" \
         "not_detected" "$match"
 }
@@ -1140,6 +1147,300 @@ test_subotage_writeFormatSubrip() {
         grep -c "line1")
 	assertTrue "subrip checking output 9" \
         "[ \"$data\" -ge 1 ]"
+}
+
+test_subotage_guessFormat() {
+	local files=( "1_inline_subrip.txt" \
+		"1_microdvd.txt" \
+		"1_mpl2.txt" \
+		"1_subviewer2.sub" \
+		"1_tmplayer.txt" \
+		"2_microdvd.txt" \
+		"2_mpl2.txt" \
+		"2_newline_subrip.txt" \
+		"2_tmplayer.txt" \
+		"3_microdvd.txt" \
+		"3_subrip.txt" \
+		"3_tmplayer.txt" \
+		"4_tmplayer.txt" )
+
+	local formats=( "subrip 1 inline" \
+		"microdvd 1 23.976" \
+		"mpl2 1" \
+		"subviewer2 11 1" \
+		"tmplayer 1 2 0 :" \
+		"microdvd 1" \
+		"mpl2 1" \
+		"subrip 1 newline" \
+		"tmplayer 1 1 0 :" \
+		"microdvd 1 23.976" \
+		"subrip 5 newline" \
+		"tmplayer 1 2 1 :" \
+		"tmplayer 1 2 1 =" )
+
+	local idx=0
+    local i=0
+	local status=0
+	local path=
+	local format=
+
+	for i in "${files[@]}"; do
+		path="$NAPISUBS/$i"
+		format=$(subotage_guessFormat "$path")
+		status=$?
+		assertEquals "checking exit code for $i" $G_RETOK "$status"
+		assertEquals "checking details for $i" "${formats[$idx]}" "$format"
+		idx=$(( idx + 1 ))
+	done
+}
+
+test_subotage_correctOverlaps() {
+    local tmp=$(mktemp -p "${SHUNIT_TMPDIR}")
+	local status=0
+	local data=
+	local adata=()
+
+    # should reject unsupported format
+    {
+        echo "xxx"
+        echo "junk"
+    } > "$tmp"
+	subotage_correctOverlaps "$tmp"
+	status=$?
+	assertEquals "xxx not supported" $G_RETNOACT "$status"
+
+    {
+        echo "hms"
+        echo "1 00:05:56 00:05:59 Zmierzasz na"
+        echo "2 00:05:58 00:06:01 Polnoc."
+        echo "3 00:06:00 00:06:03 Wskakuj"
+        echo "4 00:06:02 00:06:05 Upewnie sie, | ze znajdziesz droge"
+        echo "5 00:06:17 00:06:20 - Dokad zmierzasz? | - Portland"
+        echo "6 00:06:20 00:06:23 Portland jest na poludniu mowiles, | ze zmierzasz na polnoc"
+    } > "$tmp"
+
+	subotage_correctOverlaps "$tmp"
+	status=$?
+	assertEquals "hms status ok" $G_RETOK "$status"
+
+	data=$(sed -n 1p "$tmp")
+    assertEquals 'check for file type (hms)' \
+        "hms" "$data"
+
+	data=$(sed -n 2p "$tmp")
+	adata=( $data )
+    assertEquals '1 (hms) check counter' 1 "${adata[0]}"
+	assertEquals '1 (hms) check start_time' "00:05:56" "${adata[1]}"
+	assertEquals '1 (hms) check end_time' "00:05:58" "${adata[2]}"
+	assertEquals '1 (hms) check content' "Zmierzasz" "${adata[3]}"
+
+	data=$(sed -n 3p "$tmp")
+	adata=( $data )
+    assertEquals '2 (hms) check counter' 2 "${adata[0]}"
+	assertEquals '2 (hms) check start_time' "00:05:58" "${adata[1]}"
+	assertEquals '2 (hms) check end_time' "00:06:00" "${adata[2]}"
+	assertEquals '2 (hms) check content' "Polnoc." "${adata[3]}"
+
+	data=$(sed -n 4p "$tmp")
+	adata=( $data )
+    assertEquals '3 (hms) check counter' 3 "${adata[0]}"
+	assertEquals '3 (hms) check start_time' "00:06:00" "${adata[1]}"
+	assertEquals '3 (hms) check end_time' "00:06:02" "${adata[2]}"
+	assertEquals '3 (hms) check content' "Wskakuj" "${adata[3]}"
+
+	data=$(sed -n 5p "$tmp")
+	adata=( $data )
+    assertEquals '4 (hms) check counter' 4 "${adata[0]}"
+	assertEquals '4 (hms) check start_time' "00:06:02" "${adata[1]}"
+	assertEquals '4 (hms) check end_time' "00:06:05" "${adata[2]}"
+	assertEquals '4 (hms) check content' "Upewnie" "${adata[3]}"
+	unlink "$tmp"
+
+    # === hmsms
+    {
+        echo "hmsms"
+        echo "1 00:05:56.000 00:05:59.000 Zmierzasz na polnoc"
+        echo "2 00:05:58.000 00:06:01.000 Polnoc."
+        echo "3 00:06:00.000 00:06:03.000 Wskakuj"
+        echo "4 00:06:02.000 00:06:05.000 Upewnie sie, | ze znajdziesz droge."
+    } > "$tmp"
+
+    subotage_correctOverlaps "$tmp"
+	status=$?
+	assertEquals "hmsms status ok" $G_RETOK "$status"
+
+	data=$(sed -n 1p "$tmp")
+    assertEquals 'check for file type (hmsms)' "hmsms" "$data"
+
+	data=$(sed -n 2p "$tmp")
+	adata=( $data )
+    assertEquals '1 (hmsms) check counter' 1 "${adata[0]}"
+	assertEquals '1 (hmsms) check start_time' "00:05:56.000" "${adata[1]}"
+	assertEquals '1 (hmsms) check end_time' "00:05:58.000" "${adata[2]}"
+	assertEquals '1 (hmsms) check content' "Zmierzasz" "${adata[3]}"
+
+	data=$(sed -n 3p "$tmp")
+	adata=( $data )
+    assertEquals '2 (hmsms) check counter' 2 "${adata[0]}"
+	assertEquals '2 (hmsms) check start_time' "00:05:58.000" "${adata[1]}"
+	assertEquals '2 (hmsms) check end_time' "00:06:00.000" "${adata[2]}"
+	assertEquals '2 (hmsms) check content' "Polnoc." "${adata[3]}"
+
+	data=$(sed -n 4p "$tmp")
+	adata=( $data )
+    assertEquals '3 (hmsms) check counter' 3 "${adata[0]}"
+	assertEquals '3 (hmsms) check start_time' "00:06:00.000" "${adata[1]}"
+	assertEquals '3 (hmsms) check end_time' "00:06:02.000" "${adata[2]}"
+	assertEquals '3 (hmsms) check content' "Wskakuj" "${adata[3]}"
+
+	data=$(sed -n 5p "$tmp")
+	adata=( $data )
+    assertEquals '4 (hmsms) check counter' 4 "${adata[0]}"
+	assertEquals '4 (hmsms) check start_time' "00:06:02.000" "${adata[1]}"
+	assertEquals '4 (hmsms) check end_time' "00:06:05.000" "${adata[2]}"
+	assertEquals '4 (hmsms) check content' "Upewnie" "${adata[3]}"
+	unlink "$tmp"
+
+    # === secs
+    {
+        echo "secs"
+        echo "1 10 20 line1"
+        echo "2 18 25 overlap1"
+        echo "3 23 28 overlap2"
+    } > "$tmp"
+
+    subotage_correctOverlaps "$tmp"
+	status=$?
+	assertEquals "secs status ok" $G_RETOK "$status"
+
+	data=$(sed -n 1p "$tmp")
+	assertEquals 'check for file type' "secs" "$data"
+
+	data=$(sed -n 2p "$tmp")
+	adata=( $data )
+	assertEquals '1 check counter' 1 "${adata[0]}"
+	assertEquals '1 check start_time' "10" "${adata[1]}"
+	assertEquals '1 check end_time' "18" "${adata[2]}"
+	assertEquals '1 check content' "line1" "${adata[3]}"
+
+	data=$(sed -n 3p "$tmp")
+	adata=( $data )
+	assertEquals '2 check counter' 2 "${adata[0]}"
+	assertEquals '2 check start_time' "18" "${adata[1]}"
+	assertEquals '2 check end_time' "23" "${adata[2]}"
+	assertEquals '2 check content' "overlap1" "${adata[3]}"
+
+	data=$(sed -n 4p "$tmp")
+	adata=( $data )
+	assertEquals '3 check counter' 3 "${adata[0]}"
+	assertEquals '3 check start_time' "23" "${adata[1]}"
+	assertEquals '3 check end_time' "28" "${adata[2]}"
+	assertEquals '3 check content' "overlap2" "${adata[3]}"
+}
+
+test_subotage_detectMicrodvdFps_SO() {
+	local status=0
+
+	local data=( "{1}{1}23.976fps" \
+	   "{1}{72}movie info: XVID  720x304 23.976fps 1.4 GB" \
+	   "{1}{72}movie info: XVID  720x304 25.0 1.4 GB" \
+	   "{1}{72}30fps" \
+	   "{1}{72}30" )
+
+	local res=( "23.976" \
+	   "23.976" \
+	   "25.0" \
+	   "30" \
+	   "30" )
+
+	local idx=0
+	local fps=0
+
+	for i in "${data[@]}"; do
+		fps=$(echo "$i" | subotage_detectMicrodvdFps_SO)
+		assertEquals "checking fps $idx" "${res[$idx]}" "$fps"
+		idx=$(( idx + 1 ))
+	done
+}
+
+test_subotage_isFormatSupported() {
+	local status=0
+	subotage_isFormatSupported "bogus_format"
+	status=$?
+	assertEquals "failure for bogus format" $G_RETPARAM "$status"
+
+	local formats=( "subrip" "microdvd" "subviewer2" "mpl2" "tmplayer" )
+	for i in "${formats[@]}"; do
+		subotage_isFormatSupported "$i"
+		status=$?
+		assertEquals "$i format" $G_RETOK "$status"
+	done
+}
+
+test_subotage_isConversionNeeded() {
+	local status=0
+
+    subotage_isConversionNeeded \
+        "subrip" "0" "" "SUBRIP" "0"
+    status="$?"
+	assertEquals "conversion not needed rv check" $G_RETNOACT "$status"
+
+    subotage_isConversionNeeded \
+        "subrip" "0" "" "mpl2" "0"
+    status="$?"
+	assertEquals "conversion needed rv check" $G_RETOK "$status"
+
+    subotage_isConversionNeeded \
+        "microdvd" "23.456" "" "microdvd" "23.456"
+    status="$?"
+	assertEquals "conversion not needed udvd same fps" $G_RETNOACT "$status"
+
+    subotage_isConversionNeeded \
+        "microdvd" "23.456" "" "microdvd" "23.756"
+    status="$?"
+	assertEquals "conversion needed udvd != fps" $G_RETOK "$status"
+}
+
+test_subotage_convertFormats() {
+    local status=0
+    local subsFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+    local outputFile=$(mktemp -p "${SHUNIT_TMPDIR}")
+
+    scpmocker_patchFunction "test_reader"
+    scpmocker_patchFunction "test_writer"
+    scpmocker_patchFunction "subotage_correctOverlaps"
+
+    scpmocker -c func_subotage_correctOverlaps program -e $G_RETOK
+
+    # first call
+    scpmocker -c func_test_reader program -e $G_RETFAIL
+
+    # second call
+    scpmocker -c func_test_reader program -e $G_RETOK
+    scpmocker -c func_test_writer program -e $G_RETFAIL
+
+    # third call
+    scpmocker -c func_test_reader program -e $G_RETOK
+    scpmocker -c func_test_writer program -e $G_RETOK
+
+    subotage_convertFormats \
+        "test_reader" "test_writer" "$subsFile" "$outputFile"
+    status=$?
+    assertEquals "reader/writer failure" $G_RETFAIL "$status"
+
+    subotage_convertFormats \
+        "test_reader" "test_writer" "$subsFile" "$outputFile"
+    status=$?
+    assertEquals "writer failure" $G_RETFAIL "$status"
+
+    subotage_convertFormats \
+        "test_reader" "test_writer" "$subsFile" "$outputFile"
+    status=$?
+    assertEquals "reader/writer success" $G_RETOK "$status"
+
+    scpmocker_resetFunction "subotage_correctOverlaps"
+    scpmocker_resetFunction "test_writer"
+    scpmocker_resetFunction "test_reader"
 }
 
 # shunit call
