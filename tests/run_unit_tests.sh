@@ -1,6 +1,24 @@
 #!/bin/bash
 
 RESULT="failed"
+AWK="awk"
+
+usage() {
+    "./run_unit_tests.sh [ OPTIONS ] <unit_tests>"
+}
+
+while getopts "a:h" option; do
+    case "$option" in
+        "a")
+            AWK="$OPTARG"
+            ;;
+        "h")
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND -1))
 
 #
 # execute the unit tests
@@ -8,6 +26,9 @@ RESULT="failed"
 docker-compose run \
     --rm \
     napitester bash -s <<CMD_EOF && RESULT="succeeded"
+
+    [ "$AWK" != "awk" ] &&
+        sudo update-alternatives --set awk "$AWK"
 
     # make an array of unit tests
     tests=( ./*test.sh )
