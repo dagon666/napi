@@ -41,12 +41,19 @@ class Assets(object):
         # return a media descriptor
         return { 'name': name, 'path': mediaPath, 'asset': asset }
 
-    def prepareRandomMedia(self, sandbox, name = None):
+    def prepareRandomMedia(self, sandbox,
+            assetType = None, name = None):
         """
         Prepares random media file with given name (or generated uuid if name
         not given)
         """
-        asset = random.choice(self.assets['assets'])
+
+        allAssets = (self.assets['assets'] if not assetType else
+                [ a for a in self.assets['assets']
+                    if a['type'] == assetType ])
+
+        asset = random.choice(allAssets)
+
         # translates file types to extensions
         exts = {
                 'mpeg-4': 'mp4'

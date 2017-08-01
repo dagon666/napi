@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import re
 import unittest
 
@@ -10,14 +11,36 @@ import napi.testcase
 
 class FormatsConversionTest(napi.testcase.NapiTestCase):
 
-    @unittest.skip("subotage.sh must be ported first")
     def test_ifConvertsToSubripFormat(self):
         """
-        Brief:
+        Brief: Verify if the conversion to subrip format is being performed
         Procedure:
         Expected Results:
         """
-        pass
+        media = None
+
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox, 'subrip')
+
+            # program napiprojekt mock
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromFile(
+                        media['asset'],
+                        subs['path']))
+
+            self.napiScan('-f','subrip',
+                    os.path.join(sandbox.path, media['name']))
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "POST")
+            self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
 
     @unittest.skip("subotage.sh must be ported first")
     def test_ifConvertsToMicrodvdFormat(self):
