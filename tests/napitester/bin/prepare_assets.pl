@@ -10,7 +10,7 @@ use File::Find;
 use File::Temp;
 
 my $assets_tgz = "napi_testdata.tar.gz";
-my $url = "https://www.dropbox.com/s/9v8vz21odxkm60c/${assets_tgz}?dl=1";
+my $url = "https://www.dropbox.com/s/zm53c23bu7o1n1d/${assets_tgz}?dl=1";
 my $assets_path = shift // "/opt/napi/testdata";
 
 my $wdir = File::Temp::tempdir( CLEANUP => 1 );
