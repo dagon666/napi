@@ -9,13 +9,11 @@ import uuid
 
 class Assets(object):
     """
-    Implements simple media file management
+    Implements simple assets file management
     """
 
     ASSETS_JSON = 'assets.json'
-    DEFAULT_EXT = 'avi'
     VERSION = 1
-    DEFAULT_GENERATED_MEDIA_SIZE = 1024*1024*10
 
     def __init__(self, path):
         """
@@ -30,28 +28,10 @@ class Assets(object):
         if self.assets['version'] is not self.VERSION:
             raise exception.RuntimeError("Unsupported assets version")
 
-    def _makeFHash(self, md5):
-        tIdx = [ 0xe, 0x3, 0x6, 0x8, 0x2 ]
-        tMul = [ 2, 2, 5, 4, 3 ]
-        tAdd = [ 0, 0xd, 0x10, 0xb, 0x5 ]
-        digest = ""
-
-        for i in xrange(5):
-            a = tAdd[i]
-            m = tMul[i]
-            g = tIdx[i]
-
-            t = int(md5[g:g+1],16) + a
-            v = int(md5[t:t+2],16)
-
-            x = (v * m) % 0x10
-            z = format(x, 'x')
-            digest = digest + z
-        return digest
-
     def _prepareMedia(self, sandbox, asset, name):
         """
-        Copies selected asset file to given sandbox under given name
+        Copies selected asset file to given sandbox under given name. Asset
+        descriptor is required as a parameter.
         """
 
         assetPath = os.path.join(self.path, asset['filename'])
@@ -90,6 +70,40 @@ class Assets(object):
                 asset,
                 name)
 
+    def prepareMedia(self, sandbox, assetId, name):
+        """
+        Prepare media out of specific asset
+        """
+        return self._prepareMedia(sandbox,
+                self.assets['assets'][assetId], name)
+
+
+class VideoAssets(Assets):
+    """
+    Implements management of multimedia files assets
+    """
+    DEFAULT_EXT = 'avi'
+    DEFAULT_GENERATED_MEDIA_SIZE = 1024*1024*10
+
+    def _makeFHash(self, md5):
+        tIdx = [ 0xe, 0x3, 0x6, 0x8, 0x2 ]
+        tMul = [ 2, 2, 5, 4, 3 ]
+        tAdd = [ 0, 0xd, 0x10, 0xb, 0x5 ]
+        digest = ""
+
+        for i in xrange(5):
+            a = tAdd[i]
+            m = tMul[i]
+            g = tIdx[i]
+
+            t = int(md5[g:g+1],16) + a
+            v = int(md5[t:t+2],16)
+
+            x = (v * m) % 0x10
+            z = format(x, 'x')
+            digest = digest + z
+        return digest
+
     def generateMedia(self,
             sandbox,
             size = DEFAULT_GENERATED_MEDIA_SIZE,
@@ -127,11 +141,9 @@ class Assets(object):
 
         return { 'name': name, 'path': mediaPath, 'asset': asset }
 
-
-    def prepareMedia(self, sandbox, assetId, name):
-        """
-        Prepare media out of specific asset
-        """
-        return self._prepareMedia(sandbox,
-                self.assets['assets'][assetId], name)
+class SubtitlesAssets(Assets):
+    """
+    Implements management of subtitles files assets
+    """
+    DEFAULT_EXT = 'txt'
 

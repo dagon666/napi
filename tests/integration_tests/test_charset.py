@@ -12,7 +12,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
     def _commonCharsetTest(self, charset):
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -73,7 +73,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
         self.isStderrExpected = True
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(

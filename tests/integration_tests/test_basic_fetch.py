@@ -30,7 +30,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
         media = None
         with napi.sandbox.Sandbox() as sandbox:
             # generate a media file
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
@@ -81,7 +81,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
 
             # prepare responses for available subs
             for _ in xrange(nAvailable):
-                media = self.assets.prepareRandomMedia(sandbox)
+                media = self.videoAssets.prepareRandomMedia(sandbox)
                 mediasAvailable.append(media)
 
                 # program http mock
@@ -92,7 +92,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
 
             # prepare responses for unavailable subs
             for _ in xrange(nUnavailable):
-                media = self.assets.prepareRandomMedia(sandbox)
+                media = self.videoAssets.prepareRandomMedia(sandbox)
                 mediasUnavailable.append(media)
                 self.napiMock.programXmlRequest(media)
 
@@ -133,7 +133,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
         media = None
         with napi.sandbox.Sandbox() as sandbox:
             # obtain an media
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
@@ -190,7 +190,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
         media = None
         with napi.sandbox.Sandbox() as sandbox:
             # obtain media file
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
@@ -253,7 +253,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
 
             # prepare responses for available subs
             for _ in xrange(nTotal):
-                media = self.assets.prepareRandomMedia(sandbox)
+                media = self.videoAssets.prepareRandomMedia(sandbox)
                 medias.append(media)
 
                 # program http mock
@@ -323,7 +323,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
             for n in xrange(nTotal):
                 mb = 1024 * 1024
                 size = initialSize + sizeIncrement*n
-                media = self.assets.generateMedia(sandbox, size * mb)
+                media = self.videoAssets.generateMedia(sandbox, size * mb)
                 medias.append(media)
 
                 # program http mock

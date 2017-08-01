@@ -17,9 +17,16 @@ class NapiTestCase(unittest.TestCase):
         self.runner = runner.Runner(self.napiprojektUrl, self.SHELL)
         self.assetsPath = os.path.join(
                 os.environ.get('NAPICLIENT_TESTDATA', '/opt/napi/testdata'),
-                'testdata',
-                'media')
-        self.assets = assets.Assets(self.assetsPath)
+                'testdata')
+
+        self.videoAssetsPath = os.path.join(
+                self.assetsPath, 'media')
+
+        self.subtitlesAssetsPath = os.path.join(
+                self.assetsPath, 'subtitles')
+
+        self.videoAssets = assets.VideoAssets(self.videoAssetsPath)
+        self.subtitlesAssets = assets.SubtitlesAssets(self.subtitlesAssetsPath)
 
         # should be used to store the napi output
         self.output = None

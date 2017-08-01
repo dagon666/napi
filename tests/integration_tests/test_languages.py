@@ -31,7 +31,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
         lang = 'ENG'
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -72,7 +72,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
         ext = lang.lower()
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -114,7 +114,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
         abbrev = lang.lower()
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -157,7 +157,7 @@ class LanguagesTest(napi.testcase.NapiTestCase):
         ext = "test-extension"
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(

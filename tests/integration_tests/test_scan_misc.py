@@ -29,7 +29,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         ext = 'fancy_extension'
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -64,7 +64,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -119,7 +119,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         media = None
         ext = "fancy-extension"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -175,7 +175,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         ext = "fancy-extension"
         abbrev = "abbreviation"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -236,7 +236,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         abbrev = "abbreviation"
         convAbbrev = "CAB"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -307,7 +307,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         abbrev = "abbreviation"
         convAbbrev = "CAB"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -375,7 +375,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -428,7 +428,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
