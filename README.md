@@ -37,6 +37,12 @@ the path to a directory under `napi_install/bin` to your `PATH`.
 You can use any directory name, `napi_install` has been picked
 arbitrarilly without any strict reason.
 
+### Installation on macOS using Homebrew
+
+```bash
+$ brew install mstrzele/napi/napi
+```
+
 ## Actions
 
 Script funcionality has been divided into actions. Each action implements a
