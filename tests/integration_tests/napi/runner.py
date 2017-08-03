@@ -9,6 +9,11 @@ from . import output as OutputParser
 NAPIPROJEKT_BASEURL_DEFAULT = 'http://napiprojekt.pl'
 
 class Runner(object):
+    testWrapper = "test_wrapper.sh"
+    testWrapperPath = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "..", "bin",
+            testWrapper)
 
     def __init__(self,
             napiprojektUrl = NAPIPROJEKT_BASEURL_DEFAULT,
@@ -23,8 +28,10 @@ class Runner(object):
         if self.napiprojektUrl != NAPIPROJEKT_BASEURL_DEFAULT:
             os.environ['NAPIPROJEKT_BASEURL'] = self.napiprojektUrl
 
-    def _execute(self, executable, *args):
-        cmd = [self.bash, executable,] + map(str, args)
+    def _execute(self, executable, testTraceFilePath, *args):
+
+        cmd = [ self.testWrapperPath, testTraceFilePath,
+                self.bash, executable, ] + map(str, args)
         self.logger.error(cmd)
         process = subprocess.Popen(
                 cmd,
@@ -35,22 +42,26 @@ class Runner(object):
 
         return process.communicate()
 
-    def executeNapi(self, *args):
-        output = self._execute('napi.sh', *args)
+    def executeNapi(self, testTraceFilePath, *args):
+        output = self._execute('napi.sh', testTraceFilePath, *args)
         return OutputParser.Parser(*output)
 
-    def executeSubotage(self, *args):
-        output = self._execute('subotage.sh', *args)
+    def executeSubotage(self, testTraceFilePath, *args):
+        output = self._execute('subotage.sh', testTraceFilePath, *args)
         return OutputParser.Parser(*output)
 
-    def scan(self, *args):
-        return self.executeNapi('scan', '-v', '3', *args)
+    def scan(self, testTraceFilePath, *args):
+        return self.executeNapi(testTraceFilePath,
+                'scan', '-v', '3', *args)
 
-    def download(self, *args):
-        return self.executeNapi('download', '-v', '3', *args)
+    def download(self, testTraceFilePath, *args):
+        return self.executeNapi(testTraceFilePath,
+                'download', '-v', '3', *args)
 
-    def subtitles(self, *args):
-        return self.executeNapi('subtitles', '-v', '3', *args)
+    def subtitles(self, testTraceFilePath, *args):
+        return self.executeNapi(testTraceFilePath,
+                'subtitles', '-v', '3', *args)
 
-    def search(self, *args):
-        return self.executeNapi('search', '-v', '3', *args)
+    def search(self, testTraceFilePath, *args):
+        return self.executeNapi(testTraceFilePath,
+                'search', '-v', '3', *args)

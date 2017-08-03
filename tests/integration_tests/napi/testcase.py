@@ -32,30 +32,42 @@ class NapiTestCase(unittest.TestCase):
         self.output = None
         self.isStderrExpected = False
 
+        self.testTraceFile = "testrun_" + self.id() + ".log"
+        self.testTraceFilePath = self.testTraceFile
+
     def tearDown(self):
         if (self.output and
                 self.output.hasErrors() and
                 not self.isStderrExpected):
             self.output.printStdout()
             self.output.printStderr()
+        else:
+            if (os.path.exists(self.testTraceFilePath)):
+                os.remove(self.testTraceFilePath)
 
     def napiExecute(self, *args):
-        self.output = self.runner.executeNapi(*args)
+        self.output = self.runner.executeNapi(self.testTraceFilePath,
+                *args)
 
     def subotageExecute(self, *args):
-        self.output = self.runner.executeSubotage(*args)
+        self.output = self.runner.executeSubotage(self.testTraceFilePath,
+                *args)
 
     def napiScan(self, *args):
-        self.output = self.runner.scan(*args)
+        self.output = self.runner.scan(self.testTraceFilePath,
+                *args)
 
     def napiDownload(self, *args):
-        self.output = self.runner.download(*args)
+        self.output = self.runner.download(self.testTraceFilePath,
+                *args)
 
     def napiSubtitles(self, *args):
-        self.output = self.runner.subtitles(*args)
+        self.output = self.runner.subtitles(self.testTraceFilePath,
+                *args)
 
     def napiSearch(self, *args):
-        self.output = self.runner.search(*args)
+        self.output = self.runner.search(self.testTraceFilePath,
+                *args)
 
 def runTests():
     # inject shell
