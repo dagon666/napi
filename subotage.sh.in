@@ -135,41 +135,41 @@ _subotage_globalArgvDispatcher() {
     case "$1" in
         "-i" | "--input")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFPath]}"
+            ___g_argvOutputHandler="___g_subotageIF[$___g_subotageIOFPath]"
             ___g_argvErrorMsg=$"nie określono pliku wejsciowego"
             ;;
 
         "-o" | "--output")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFPath]}"
+            ___g_argvOutputHandler="___g_subotageOF[$___g_subotageIOFPath]"
             ___g_argvErrorMsg=$"nie określono pliku wyjsciowego"
             ;;
 
         # input format
         "-if" | "--input-format")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFFormat]}"
+            ___g_argvOutputHandler="___g_subotageIF[$___g_subotageIOFFormat]"
             ___g_argvErrorMsg=$"nie określono formatu wejsciowego"
             ;;
 
         # output format
         "-of" | "--output-format")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFFormat]}"
+            ___g_argvOutputHandler="___g_subotageOF[$___g_subotageIOFFormat]"
             ___g_argvErrorMsg=$"nie określono formatu wyjsciowego"
             ;;
 
         # fps for input file
         "-fi" | "--fps-input")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageIF[$___g_subotageIOFFps]}"
+            ___g_argvOutputHandler="___g_subotageIF[$___g_subotageIOFFps]"
             ___g_argvErrorMsg=$"nie określono fps pliku wejsciowego"
             ;;
 
         # fps for output file
         "-fo" | "--fps-output")
             ___g_argvOutputHandlerType="variable"
-            ___g_argvOutputHandler="${___g_subotageOF[$___g_subotageIOFFps]}"
+            ___g_argvOutputHandler="___g_subotageOF[$___g_subotageIOFFps]"
             ___g_argvErrorMsg=$"nie określono fps pliku wyjsciowego"
             ;;
 

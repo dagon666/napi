@@ -1398,6 +1398,9 @@ subotage_processFile() {
             "$inputFileFormat" "$inputFileDetails")"
     }
 
+    logging_debug $LINENO $"plik wejsciowy:" "$inputFileFormat," \
+        $"fps:" "$inputFileFps"
+
     # set output file fps if not given
     [ -z "$outputFileFps" ] ||
         [ "none" = "$outputFileFps" ] ||

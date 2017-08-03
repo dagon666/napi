@@ -163,8 +163,10 @@ subs_convertFormat() {
     else
         logging_info $LINENO $"kopiuje oryginalny plik jako" \
             "[$originalFileName]"
-        cp "${videoFileDir}/${sourceSubsFile}" \
-            "${videoFileDir}/${originalFileName}"
+
+        [ "${sourceSubsFileName}" != "${originalFileName}" ] &&
+            cp "${videoFileDir}/${sourceSubsFileName}" \
+                "${videoFileDir}/${originalFileName}"
     fi
 
     # detect video file framerate
@@ -182,7 +184,7 @@ subs_convertFormat() {
     local convStatus=
     logging_msg $"wolam subotage"
     subotage_processFile \
-        "${videoFileDir}/${sourceSubsFile}" \
+        "${videoFileDir}/${sourceSubsFileName}" \
         "none" \
         "0" \
         "" \
@@ -210,7 +212,7 @@ subs_convertFormat() {
         # get rid of the original file
         [ "$sourceSubsFileName" != "$destSubsFileName" ] &&
             logging_msg "usuwam oryginalny plik" &&
-            io_unlink "${videoFileDir}/${sourceSubsFileName}"
+            fs_unlink "${videoFileDir}/${sourceSubsFileName}"
 
     else
         logging_msg $"konwersja do" "$format" $"niepomyslna"

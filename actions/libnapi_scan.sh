@@ -572,7 +572,8 @@ _scan_obtainFile() {
                 "$fileDir" \
                 "${___g_pf[1]}" \
                 "${___g_pf[3]}" \
-                "${___g_pf[7]}" &&
+                "${___g_pf[7]}" \
+                "$format" &&
                 ___g_scan_stats[3]=$(( ___g_scan_stats[3] + 1 ))
         fi
     else

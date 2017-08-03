@@ -31,6 +31,8 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
                         media['asset'],
                         subs['path']))
 
+            fs = napi.fs.Filesystem(media)
+
             self.napiScan('-f','subrip',
                     os.path.join(sandbox.path, media['name']))
 
@@ -41,6 +43,12 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
             self.assertTrue(self.output.stdoutContains(
                 re.compile(r'napisy pobrano pomyslnie')))
 
+            # confirm the format
+            self.assertTrue(fs.subtitlesExists())
+            for s in fs.getSubtitlesPaths():
+                self.subotageExecute('-gi', '-i', s)
+                self.assertTrue(self.output.stdoutContains(
+                    re.compile(r'IN_FORMAT -> subrip')))
 
     @unittest.skip("subotage.sh must be ported first")
     def test_ifConvertsToMicrodvdFormat(self):
@@ -78,34 +86,6 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         """
         pass
 
-# #>TESTSPEC
-# #
-# # Brief:
-# #
-# # Verify if the conversion to subrip format is being performed
-# #
-# # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
-# # - prepare a media file for which subtitles in english exists
-# #
-# # Procedure:
-# # - Call napi
-# # - check the if the format detect by subotage indicates subrip format
-# # - check the if the format detect by subotage indicates microdvd format
-# #
-# # Expected results:
-# # - the converted file should be in format as selected prior to conversion
-# #
-# copy $NapiTest::assets . '/av1.dat', $test_file_path;
-# NapiTest::qx_napi($shell, " -f subrip " . $test_file_path);
-# ok ( -e $subs_path{orig}, 'checking the original file' );
-# ok ( -e $subs_path{srt}, 'checking the converted subrip file' );
-#
-# is ( (split ' ', qx/subotage.sh -gi -i $subs_path{srt} | grep IN_FORMAT/)[3],
-# 	'subrip',
-# 	'checking if converted format is subrip'
-# );
-#
 # # microdvd
 # NapiTest::qx_napi($shell, " -f microdvd " . $test_file_path);
 # ok ( -e $subs_path{orig}, 'checking the original file' );
