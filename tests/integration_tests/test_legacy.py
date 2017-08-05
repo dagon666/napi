@@ -9,7 +9,8 @@ import napi.subtitles
 import napi.testcase
 
 class LegacyApiModeTest(napi.testcase.NapiTestCase):
-    def test_if(self):
+
+    def test_ifFetchesSingleMediaFile(self):
         """
         Brief:
         Procedure:
@@ -17,15 +18,11 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
         """
         pass
 
-
-# #>TESTSPEC
-# #
 # # Brief:
 # #
 # # Verify if napi works for single media files in legacy mode
 # #
 # # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
 # # - prepare a set of test files (one available one unavailable)
 # #
 # # Procedure:
@@ -36,7 +33,6 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
 # # for a testfile for which they for sure don't exist
 # #
 # # - subtitles files should be created afterwards
-# #
 #
 # # check with a single files
 # my @files = (
@@ -54,7 +50,6 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
 # 			pattern => 'UNAV',
 # 	   	},
 # );
-#
 #
 # foreach (@files) {
 # 	copy $NapiTest::assets . '/' . $_->{src},
@@ -74,16 +69,21 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
 # 	unlink $NapiTest::testspace . '/' . $_->{dst};
 # 	unlink $NapiTest::testspace . '/' . $_->{res} if $_->{res};
 # }
-#
-# #
-# #>TESTSPEC
-# #
+
+    def test_ifScanWorksForFirectory(self):
+        """
+        Brief:
+        Procedure:
+        Expected Results:
+        """
+        pass
+
+
 # # Brief:
 # #
 # # Verify if napi works for specified media directory
 # #
 # # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
 # # - prepare a set of test files and a test directory structure
 # #
 # # Procedure:
@@ -105,16 +105,20 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
 # is ($output{unav}, $total_unavailable, "Total number of unavailable");
 # is ($output{ok} + $output{unav}, $output{total}, "Total processed");
 # is ($output{total}, $total_available + $total_unavailable, "Total processed 2");
-#
-#
-# #>TESTSPEC
-# #
+
+    def test_ifSkippingWorks(self):
+        """
+        Brief:
+        Procedure:
+        Expected Results:
+        """
+        pass
+
 # # Brief:
 # #
 # # Verify if napi works for specified media directory and skips downloading if the subtitles file already exist
 # #
 # # Preconditions:
-# # - napi.sh & subotage.sh must be available in public $PATH
 # # - prepare a set of test files and a test directory structure
 # # - the subtitles files should exist as well
 # #
@@ -130,7 +134,6 @@ class LegacyApiModeTest(napi.testcase.NapiTestCase):
 # is ($output{skip}, $total_available, "Total number of skipped");
 # is ($output{skip} + $output{unav}, $output{total}, "Total processed (with skipping)");
 # is ($output{total}, $total_available + $total_unavailable, "Total processed (with skipping) 2");
-#
 
 if __name__ == '__main__':
     napi.testcase.runTests()

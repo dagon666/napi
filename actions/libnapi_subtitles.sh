@@ -44,6 +44,60 @@ declare -a ___g_moviePageUrls=()
 
 _subtitles_getSubtitlesForUrl() {
     local url="$1"
+    local awkCode=
+    local awkCode2=
+
+    local subsPageUri=
+    local subsPageUrl=
+
+    read -r -d "" awkCode << 'SEARCHFORLINKAWKEOF'
+/>napisy<\/a>/ {
+    isHrefMatched = match($0, /href="(napisy[^"]*)"/, cHref)
+    if (isHrefMatched) {
+        print cHref[1]
+    }
+}
+SEARCHFORLINKAWKEOF
+
+    read -r -d "" awkCode2 << 'SEARCHFORIDSAWKEOF'
+BEGIN {
+    fileSize = 0
+    fps = 0
+}
+/bajt/ {
+    isFileSizeMatched = match($0, /\(([0-9]+) bajt.?w\)/, fileSizeMatch)
+    if (isFileSizeMatched) {
+        fileSize = fileSizeMatch[1]
+    }
+}
+/Video FPS/ {
+    isFpsMatched = match($0, /Video FPS:[^0-9]*([0-9\.]+)/, fpsMatched)
+    if (isFpsMatched) {
+        fps = fpsMatched[1]
+    }
+}
+/napiprojekt:/ {
+    isHrefMatched = match($0, /href="(napiprojekt:[^"]*)"/, cHref)
+    if (isHrefMatched) {
+        printf("Rozmiar: %16s bajtow | fps: %6s | %s\n", fileSize, fps, cHref[1])
+    }
+}
+SEARCHFORIDSAWKEOF
+
+    subsPageUri="$(http_downloadUrl_SOSE "$url" "" "" 2>/dev/null | awk "$awkCode")"
+    subsPageUrl="${g_napiprojektBaseUrl}/${subsPageUri}"
+
+    [ -n "$subsPageUri" ] && {
+        logging_debug $LINENO $"Znaleziono link do strony napisow:" \
+            "[$subsPageUrl]"
+
+        http_downloadUrl_SOSE "$subsPageUrl" "" "" 2>/dev/null | \
+            awk "$awkCode2"
+
+        return $G_RETOK
+    }
+
+    return $G_RETFAIL
 }
 
 #

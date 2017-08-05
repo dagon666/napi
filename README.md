@@ -127,7 +127,9 @@ files and convert them to subrip format on the fly, just use the **-f** option:
 This action can be used to download a selected subtitles from napiprojekt.pl
 using the subtitles id, which can be obtained from napiprojekt.pl site.
 
-TODO: complete this
+- Download subtitles having its hash/id:
+
+    $ napi.sh download napiprojekt:06aec10a749a68403613b2af8b2c4db8
 
 ### search action (experimental)
 
@@ -141,9 +143,37 @@ This action can be used to search for a given movie in napiprojekt.pl database.
 ### subtitles action (experimental)
 
 This action can be used to list all the available subtitles for a given movie
-title.
+title. It accepts the url to the movie page, typical work flow is as follows:
 
-TODO: complete this
+    $ napi.sh search -k movie "lord of the rings"
+
+```
+...
+00:0003 - Wyszukuje tytul: [hobbit]
+29516 | Hobbit: Niezwykła podróż | http://napiprojekt.pl/napisy-29516-Hobbit-Niezwykła-podróż-(2012)
+37789 | Hobbit: Pustkowie Smauga | http://napiprojekt.pl/napisy-37789-Hobbit-Pustkowie-Smauga-(2013)
+44148 | Hobbit: Bitwa Pięciu Armii | http://napiprojekt.pl/napisy-44148-Hobbit-Bitwa-Pięciu-Armii-(2014)
+162 | Hobbit | http://napiprojekt.pl/napisy-162-Hobbit-(1977)
+```
+
+    $ napi.sh subtitles "http://napiprojekt.pl/napisy-29516-Hobbit-Niezwykła-podróż-(2012)"
+
+```
+...
+00:0003 - Przetwarzam:  [http://napiprojekt.pl/napisy-29516-Hobbit-Niezwykła-podróż-(2012)]
+Rozmiar:       2491657374 bajtow | fps: 29.534 | napiprojekt:f2bed6d99e5ecc9d7b2b3cb7c51c273e
+Rozmiar:       1608081408 bajtow | fps: 29.534 | napiprojekt:1e81de9b83485336d2821d8dcfefb8bd
+Rozmiar:       1742344634 bajtow | fps: 29.534 | napiprojekt:51f8741fc142f3ed80313544c728d9d4
+Rozmiar:       1442403786 bajtow | fps: 29.534 | napiprojekt:ee4096dce1902ea5f985dc929c9a8479
+Rozmiar:        782801208 bajtow | fps: 29.535 | napiprojekt:7fd27d9777eea21f7a2b92c10919c43c
+...
+```
+
+The last call has returned a set of napiprojekt subtitles identifiers which can
+be directly used to get subtitles:
+
+    $ napi.sh download napiprojekt:1e81de9b83485336d2821d8dcfefb8bd
+
 
 ## subotage.sh
 
