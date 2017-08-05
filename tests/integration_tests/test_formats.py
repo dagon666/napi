@@ -30,8 +30,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
             fs = napi.fs.Filesystem(media)
 
             # get the subs
-            self.napiScan('-f', toFormat,
-                    os.path.join(sandbox.path, media['name']))
+            self.napiScan('-f', toFormat, media['path'])
 
             # check assertions
             req = self.napiMock.getRequest()
