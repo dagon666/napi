@@ -1339,20 +1339,26 @@ subotage_convertFormats() {
 
     local inputFilePath="$3"
     local outputFilePath="$4"
+    local inputDetails="$5"
+    local inputFps="$6"
+    local outputDetails="$7"
+    local outputFps="$8"
 
     local universalFormatFile="$(fs_mktempFile_SO)"
     local unixLineEndingsFile="$(fs_mktempFile_SO)"
 
     wrappers_dos2unix_SO < "$inputFilePath" > "$unixLineEndingsFile"
 
-    $readRoutine "$unixLineEndingsFile" "$universalFormatFile" || {
+    $readRoutine "$unixLineEndingsFile" "$universalFormatFile" \
+        "$inputDetails" "$inputFps" || {
         logging_error $"blad podczas konwersji pliku wejsciowego na format uniwersalny"
         return $G_RETFAIL
     }
 
     subotage_correctOverlaps "$universalFormatFile"
 
-    $writeRoutine "$universalFormatFile" "$outputFilePath" || {
+    $writeRoutine "$universalFormatFile" "$outputFilePath" \
+        "$outputDetails" "$outputFps" || {
         logging_error $"blad podczas konwersji do formatu docelowego"
         return $G_RETFAIL
     }
@@ -1450,7 +1456,10 @@ subotage_processFile() {
         return $G_RETFAIL
     }
 
-    subotage_convertFormats "$readRoutine" "$writeRoutine"
+    subotage_convertFormats "$readRoutine" "$writeRoutine" \
+        "$inputFilePath" "$outputFilePath" \
+        "$inputFileFormatDetails" "$inputFileFps" \
+        "$outputFileFormatDetails" "$outputFileFps"
 }
 
 subotage_configure_GV() {

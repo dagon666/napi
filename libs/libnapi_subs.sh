@@ -159,7 +159,7 @@ subs_convertFormat() {
     cp "${videoFileDir}/${sourceSubsFileName}" "$tmp"
 
     if [ "$isDeleteOrigSet" -eq 1 ]; then
-        fs_garbageCollect_GV "${videoFileDir}/${originalFileName}"
+        fs_garbageCollect "${videoFileDir}/${originalFileName}"
     else
         logging_info $LINENO $"kopiuje oryginalny plik jako" \
             "[$originalFileName]"
@@ -200,7 +200,7 @@ subs_convertFormat() {
 
         [ "$sourceSubsFileName" != "$destSubsFileName" ] && {
             logging_info $LINENO "usuwam oryginalny plik"
-            fs_garbageCollect_GV "${videoFileDir}/${sourceSubsFileName}"
+            fs_garbageCollect "${videoFileDir}/${sourceSubsFileName}"
         }
 
     elif [ "$convStatus" -eq $G_RETNOACT ]; then

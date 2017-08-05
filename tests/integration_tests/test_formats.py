@@ -3,6 +3,7 @@
 import os
 import re
 import unittest
+import shutil
 
 import napi.fs
 import napi.sandbox
@@ -11,18 +12,13 @@ import napi.testcase
 
 class FormatsConversionTest(napi.testcase.NapiTestCase):
 
-    def test_ifConvertsToSubripFormat(self):
-        """
-        Brief: Verify if the conversion to subrip format is being performed
-        Procedure:
-        Expected Results:
-        """
+    def _napiFormatConversion(self, fromFormat, toFormat):
         media = None
-
         with napi.sandbox.Sandbox() as sandbox:
             # generate a media file
             media = self.videoAssets.prepareRandomMedia(sandbox)
-            subs = self.subtitlesAssets.prepareRandomMedia(sandbox, 'subrip')
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
+                    fromFormat)
 
             # program napiprojekt mock
             self.napiMock.programXmlRequest(
@@ -33,7 +29,8 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
 
             fs = napi.fs.Filesystem(media)
 
-            self.napiScan('-f','subrip',
+            # get the subs
+            self.napiScan('-f', toFormat,
                     os.path.join(sandbox.path, media['name']))
 
             # check assertions
@@ -48,164 +45,226 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
             for s in fs.getSubtitlesPaths():
                 self.subotageExecute('-gi', '-i', s)
                 self.assertTrue(self.output.stdoutContains(
-                    re.compile(r'IN_FORMAT -> subrip')))
+                    re.compile(r'IN_FORMAT -> {}'.format(toFormat))))
 
-    @unittest.skip("subotage.sh must be ported first")
+    def _subotageFormatDetect(self, fmt):
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a subs file
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox, fmt)
+            self.subotageExecute('-gi', '-i', subs['path'])
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'IN_FORMAT -> {}'.format(fmt))))
+
+    def _subotageFormatConversion(self, fromFormat, toFormat):
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a subs file
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
+                    fromFormat)
+
+            outputFile = os.path.join(sandbox.path, 'outputfile.txt')
+
+            # ... convert
+            self.subotageExecute('-i', subs['path'],
+                    '-of', toFormat,
+                    '-o', outputFile)
+
+            # if formats match, no conversion happened so, just check if the
+            # original file remains unchanged
+            if fromFormat == toFormat:
+                outputFile = subs['path']
+
+            # ... verify
+            self.subotageExecute('-gi', '-i', outputFile)
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'IN_FORMAT -> {}'.format(toFormat))))
+
+    def test_ifSubotageDetectsFormatsCorrectly(self):
+        """
+        Brief:
+        Procedure:
+        Expected Results:
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatDetect(fmt)
+
+    def test_ifDownloadsAndConvertsToSubripFormat(self):
+        """
+        Brief: Verify if the conversion to subrip format is being performed
+        Procedure:
+        1. Prepare a media asset
+        2. Prepare subtitles for the asset
+        3. Call napi with a request for media asset and a request for conversion
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be subrip
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._napiFormatConversion(fmt, 'subrip')
+
+    def test_ifDownloadsAndConvertsToMicrodvdFormat(self):
+        """
+        Brief: Verify if the conversion to microdvd format is being performed
+        Procedure:
+        1. Prepare a media asset
+        2. Prepare subtitles for the asset
+        3. Call napi with a request for media asset and a request for conversion
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be microdvd
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._napiFormatConversion(fmt, 'microdvd')
+
+    def test_ifDownloadsAndConvertsToTmplayerFormat(self):
+        """
+        Brief: Verify if the conversion to tmplayer format is being performed
+        Procedure:
+        1. Prepare a media asset
+        2. Prepare subtitles for the asset
+        3. Call napi with a request for media asset and a request for conversion
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be tmplayer
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._napiFormatConversion(fmt, 'tmplayer')
+
+    def test_ifDownloadsAndConvertsToSubviewer2Format(self):
+        """
+        Brief: Verify if the conversion to subviewer2 format is being performed
+        Procedure:
+        1. Prepare a media asset
+        2. Prepare subtitles for the asset
+        3. Call napi with a request for media asset and a request for conversion
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be subviewer2
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._napiFormatConversion(fmt, 'subviewer2')
+
+    def test_ifDownloadsAndConvertsToMpl2Format(self):
+        """
+        Brief: Verify if the conversion to mpl2 format is being performed
+        Procedure:
+        1. Prepare a media asset
+        2. Prepare subtitles for the asset
+        3. Call napi with a request for media asset and a request for conversion
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be mpl2
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._napiFormatConversion(fmt, 'mpl2')
+
+    def test_ifConvertsToSubripFormat(self):
+        """
+        Brief: Verify if the conversion to subrip format is being performed
+        Procedure:
+        2. Prepare subtitles for the asset
+        3. Call subotage with a given subs and desired output format
+        4. Verify subs presence
+        5. Verify subs format
+
+        Expected Results:
+        Subs format should be subrip
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatConversion(fmt, 'subrip')
+
     def test_ifConvertsToMicrodvdFormat(self):
         """
-        Brief:
+        Brief: Verify if the conversion to microdvd format is being performed
         Procedure:
-        Expected Results:
-        """
-        pass
+        2. Prepare subtitles for the asset
+        3. Call subotage with a given subs and desired output format
+        4. Verify subs presence
+        5. Verify subs format
 
-    @unittest.skip("subotage.sh must be ported first")
+        Expected Results:
+        Subs format should be microdvd
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatConversion(fmt, 'microdvd')
+
     def test_ifConvertsToTmplayerFormat(self):
         """
-        Brief:
+        Brief: Verify if the conversion to tmplayer format is being performed
         Procedure:
-        Expected Results:
-        """
-        pass
+        2. Prepare subtitles for the asset
+        3. Call subotage with a given subs and desired output format
+        4. Verify subs presence
+        5. Verify subs format
 
-    @unittest.skip("subotage.sh must be ported first")
+        Expected Results:
+        Subs format should be tmplayer
+        """
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatConversion(fmt, 'tmplayer')
+
     def test_ifConvertsToSubviewer2Format(self):
         """
-        Brief:
+        Brief: Verify if the conversion to subviewer2 format is being performed
         Procedure:
-        Expected Results:
-        """
-        pass
+        2. Prepare subtitles for the asset
+        3. Call subotage with a given subs and desired output format
+        4. Verify subs presence
+        5. Verify subs format
 
-    @unittest.skip("subotage.sh must be ported first")
-    def test_ifSubotagePerformsCrossFormatConversionCorrectly(self):
+        Expected Results:
+        Subs format should be subviewer2
         """
-        Brief:
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatConversion(fmt, 'subviewer2')
+
+    def test_ifConvertsToMpl2Format(self):
+        """
+        Brief: Verify if the conversion to mpl2 format is being performed
         Procedure:
+        2. Prepare subtitles for the asset
+        3. Call subotage with a given subs and desired output format
+        4. Verify subs presence
+        5. Verify subs format
+
         Expected Results:
+        Subs format should be mpl2
         """
-        pass
-
-# # microdvd
-# NapiTest::qx_napi($shell, " -f microdvd " . $test_file_path);
-# ok ( -e $subs_path{orig}, 'checking the original file' );
-# ok ( -e $subs_path{txt}, 'checking the converted microdvd file' );
-#
-# is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
-# 	'microdvd',
-# 	'checking if converted format is microdvd'
-# );
-#
-#
-# # mpl2
-# NapiTest::qx_napi($shell, " -f mpl2 " . $test_file_path);
-# ok ( -e $subs_path{orig}, 'checking the original file' );
-# ok ( -e $subs_path{txt}, 'checking the converted mpl2 file' );
-#
-# is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
-# 	'mpl2',
-# 	'checking if converted format is mpl2'
-# );
-#
-#
-# # tmplayer
-# NapiTest::qx_napi($shell, " -f tmplayer " . $test_file_path);
-# ok ( -e $subs_path{orig}, 'checking the original file' );
-# ok ( -e $subs_path{txt}, 'checking the converted tmplayer file' );
-#
-# is ( (split ' ', qx/subotage.sh -gi -i $subs_path{txt} | grep IN_FORMAT/)[3],
-# 	'tmplayer',
-# 	'checking if converted format is tmplayer'
-# );
-#
-#
-# # subviewer2
-# NapiTest::qx_napi($shell, " -f subviewer2 " . $test_file_path);
-# ok ( -e $subs_path{orig}, 'checking the original file' );
-# ok ( -e $subs_path{sub}, 'checking the converted subviewer file' );
-#
-# is ( (split ' ', qx/subotage.sh -gi -i $subs_path{sub} | grep IN_FORMAT/)[3],
-# 	'subviewer2',
-# 	'checking if converted format is subviewer'
-# );
-
-
-# #
-# # all the supported formats
-# #
-# my @formats = (
-# 	'subrip',
-# 	'microdvd',
-# 	'mpl2',
-# 	'tmplayer',
-# 	'subviewer2'
-# );
-#
-#
-# my @dst_formats=();
-# my $cnt = 0;
-#
-# #>TESTSPEC
-# #
-# # Brief:
-# #
-# # Verify if the conversion from each supported format to any other is
-# # performed correctly
-# #
-# # Preconditions:
-# # - subotage.sh must be available in public $PATH
-# # - prepare subtitles directory containing input files of every supported format
-# #
-# # Procedure:
-# # - Call subotage with given file and requested output format
-# # - check if the destination file exists
-# # - check if subotage return code doesn't indicate error
-# # - check the if the format detect by subotage indicates requested format
-# #
-# # Expected results:
-# # - the converted file should be in format as selected prior to conversion
-# #
-#
-# # iterate through formats
-# foreach my $format (@formats) {
-#
-# 	# strip out current format from processing
-# 	@dst_formats = map { $_ ne $format ? $_ : () } @formats;
-#
-# 	# and through files of given format
-# 	foreach my $file (glob ($NapiTest::testspace . '/subtitles/*' . $format . '*')) {
-#
-# 		# and through destination formats
-# 		foreach my $dst_format (@dst_formats) {
-#
-# 			my $dst_file = $NapiTest::testspace .
-# 				"/converted/out_${format}_${dst_format}_${cnt}.txt";
-#
-# 			my $rv = NapiTest::system_subotage($shell, " -i " . $file .
-# 				" -of $dst_format -o $dst_file ");
-#
-# 			my $minimum = 6;
-#
-# 			$minimum = 12 if $dst_format eq 'subviewer2';
-# 			$minimum = 10 if $dst_format eq 'subrip';
-# 			$minimum = 2 if $format eq 'subviewer2';
-#
-# 			is ($rv, 0, "return value for $format -> $dst_format conversion");
-# 			is ( -e $dst_file, 1, "checking $dst_file existence" );
-# 			ok ( (count_lines $dst_file) >= $minimum, "the number of lines $dst_file" );
-#
-# 			# check format detection
-# 			is ( (split ' ', qx/subotage.sh -gi -i $dst_file | grep IN_FORMAT/)[3],
-# 				$dst_format,
-# 				"checking if converted format is $dst_format"
-# 			);
-#
-# 			$cnt++;
-# 		}
-# 	}
-# }
-
-
+        formats = [ 'subrip',   "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+        for fmt in formats:
+            self._subotageFormatConversion(fmt, 'mpl2')
 
 if __name__ == '__main__':
     napi.testcase.runTests()
