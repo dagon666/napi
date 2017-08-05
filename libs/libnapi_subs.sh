@@ -164,6 +164,9 @@ subs_convertFormat() {
         logging_info $LINENO $"kopiuje oryginalny plik jako" \
             "[$originalFileName]"
 
+        logging_debug $LINENO "source: ${sourceSubsFileName}," \
+            "orig: ${originalFileName}"
+
         [ "${sourceSubsFileName}" != "${originalFileName}" ] &&
             cp "${videoFileDir}/${sourceSubsFileName}" \
                 "${videoFileDir}/${originalFileName}"

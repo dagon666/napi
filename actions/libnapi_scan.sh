@@ -228,6 +228,7 @@ _scan_prepareFileNames() {
     local noExt=$(wrappers_stripExt_SO "$fileName")
     local defExt=$(subs_getDefaultExtension_SO)
     local convertedSubsExtension=$(subs_getSubFormatExtension_SO "${2}")
+    local prefix=$(sysconf_getKey_SO napiprojekt.subtitles.orig.prefix)
 
     local ab=${___g_abbrev[0]}
     local cab=${___g_abbrev[1]}
@@ -240,13 +241,13 @@ _scan_prepareFileNames() {
     # original_file (o) - as download from napiprojekt.pl (with extension changed only)
     # abbreviation (a)
     # conversion abbreviation (A)
-    # prefix (p) - __g_settings_orig_prefix for the original file
+    # prefix (p) - prefix for the original file
     # converted_file (c) - filename with converted subtitles format (may have differect extension)
     #
     # 0 - o - filename + defExt
     # 1 - o + a - filename + abbreviation + defExt
-    # 2 - p + o - __g_settings_orig_prefix + filename + defExt
-    # 3 - p + o + a - __g_settings_orig_prefix + filename + abbreviation + __g_settings_default_extension
+    # 2 - p + o - prefix + filename + defExt
+    # 3 - p + o + a - prefix + filename + abbreviation + __g_settings_default_extension
     # 4 - c - filename + get_sub_ext
     # 5 - c + a - filename + abbreviation + get_sub_ext
     # 6 - c + A - filename + conversion_abbreviation + get_sub_ext
@@ -255,8 +256,8 @@ _scan_prepareFileNames() {
     # original
     ___g_pf[0]="${noExt}.${defExt}"
     ___g_pf[1]="${noExt}.${ab:+$ab.}${defExt}"
-    ___g_pf[2]="${__g_settings_orig_prefix}${___g_pf[0]}"
-    ___g_pf[3]="${__g_settings_orig_prefix}${___g_pf[1]}"
+    ___g_pf[2]="${prefix}${___g_pf[0]}"
+    ___g_pf[3]="${prefix}${___g_pf[1]}"
 
     # converted
     ___g_pf[4]="${noExt}.${convertedSubsExtension}"
