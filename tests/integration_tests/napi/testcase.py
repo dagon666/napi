@@ -3,6 +3,7 @@
 import os
 import sys
 import unittest
+import uuid
 
 from . import assets
 from . import mock
@@ -32,8 +33,8 @@ class NapiTestCase(unittest.TestCase):
         self.output = None
         self.isStderrExpected = False
 
-        self.testTraceFile = "testrun_" + self.id() + ".log"
-        self.testTraceFilePath = self.testTraceFile
+        # trace files
+        self.testTraceFilePaths = []
 
     def tearDown(self):
         if (self.output and
@@ -42,31 +43,48 @@ class NapiTestCase(unittest.TestCase):
             self.output.printStdout()
             self.output.printStderr()
         else:
-            if (os.path.exists(self.testTraceFilePath)):
-                os.remove(self.testTraceFilePath)
+            self._cleanupTraceFiles()
+
+    def _createTraceFilePath(self):
+        self.testTraceFile = "testrun_{}_{}.log".format(
+                self.id(), uuid.uuid4().hex)
+        testTraceFilePath = self.testTraceFile
+        self.testTraceFilePaths.append(testTraceFilePath)
+        return testTraceFilePath
+
+    def _cleanupTraceFiles(self):
+        for traceFile in self.testTraceFilePaths:
+            if os.path.exists(traceFile):
+                os.remove(traceFile)
 
     def napiExecute(self, *args):
-        self.output = self.runner.executeNapi(self.testTraceFilePath,
+        self.output = self.runner.executeNapi(
+                self._createTraceFilePath(),
                 *args)
 
     def subotageExecute(self, *args):
-        self.output = self.runner.executeSubotage(self.testTraceFilePath,
+        self.output = self.runner.executeSubotage(
+                self._createTraceFilePath(),
                 *args)
 
     def napiScan(self, *args):
-        self.output = self.runner.scan(self.testTraceFilePath,
+        self.output = self.runner.scan(
+                self._createTraceFilePath(),
                 *args)
 
     def napiDownload(self, *args):
-        self.output = self.runner.download(self.testTraceFilePath,
+        self.output = self.runner.download(
+                self._createTraceFilePath(),
                 *args)
 
     def napiSubtitles(self, *args):
-        self.output = self.runner.subtitles(self.testTraceFilePath,
+        self.output = self.runner.subtitles(
+                self._createTraceFilePath(),
                 *args)
 
     def napiSearch(self, *args):
-        self.output = self.runner.search(self.testTraceFilePath,
+        self.output = self.runner.search(
+                self._createTraceFilePath(),
                 *args)
 
 def runTests():
