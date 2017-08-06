@@ -5,12 +5,17 @@ ENV NAPI_HOME /home/napi
 
 RUN apt-get update -y
 RUN apt-get install -y \
-        wget \
-        p7zip-full \
-        libav-tools \
-        mediainfo \
         make \
         cmake
+
+RUN apt-get install -y \
+        libav-tools \
+        mediainfo
+
+RUN apt-get install -y \
+        wget \
+        p7zip-full \
+        gawk
 
 RUN useradd -m -U napi -d $NAPI_HOME
 RUN mkdir -p $INSTALL_DIR
