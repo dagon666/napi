@@ -58,6 +58,12 @@ Once it's built it can be used through docker:
 The above command maps the directory `/media` to a directory `/mnt` in the
 container and invokes `napi.sh` scan action in container's `/mnt`.
 
+### Installation on macOS using Homebrew
+
+```bash
+$ brew install mstrzele/napi/napi
+```
+
 ## Actions
 
 Script funcionality has been divided into actions. Each action implements a
