@@ -228,6 +228,7 @@ _scan_prepareFileNames() {
     local noExt=$(wrappers_stripExt_SO "$fileName")
     local defExt=$(subs_getDefaultExtension_SO)
     local convertedSubsExtension=$(subs_getSubFormatExtension_SO "${2}")
+    local prefix=$(sysconf_getKey_SO napiprojekt.subtitles.orig.prefix)
 
     local ab=${___g_abbrev[0]}
     local cab=${___g_abbrev[1]}
@@ -240,13 +241,13 @@ _scan_prepareFileNames() {
     # original_file (o) - as download from napiprojekt.pl (with extension changed only)
     # abbreviation (a)
     # conversion abbreviation (A)
-    # prefix (p) - __g_settings_orig_prefix for the original file
+    # prefix (p) - prefix for the original file
     # converted_file (c) - filename with converted subtitles format (may have differect extension)
     #
     # 0 - o - filename + defExt
     # 1 - o + a - filename + abbreviation + defExt
-    # 2 - p + o - __g_settings_orig_prefix + filename + defExt
-    # 3 - p + o + a - __g_settings_orig_prefix + filename + abbreviation + __g_settings_default_extension
+    # 2 - p + o - prefix + filename + defExt
+    # 3 - p + o + a - prefix + filename + abbreviation + __g_settings_default_extension
     # 4 - c - filename + get_sub_ext
     # 5 - c + a - filename + abbreviation + get_sub_ext
     # 6 - c + A - filename + conversion_abbreviation + get_sub_ext
@@ -255,8 +256,8 @@ _scan_prepareFileNames() {
     # original
     ___g_pf[0]="${noExt}.${defExt}"
     ___g_pf[1]="${noExt}.${ab:+$ab.}${defExt}"
-    ___g_pf[2]="${__g_settings_orig_prefix}${___g_pf[0]}"
-    ___g_pf[3]="${__g_settings_orig_prefix}${___g_pf[1]}"
+    ___g_pf[2]="${prefix}${___g_pf[0]}"
+    ___g_pf[3]="${prefix}${___g_pf[1]}"
 
     # converted
     ___g_pf[4]="${noExt}.${convertedSubsExtension}"
@@ -572,7 +573,8 @@ _scan_obtainFile() {
                 "$fileDir" \
                 "${___g_pf[1]}" \
                 "${___g_pf[3]}" \
-                "${___g_pf[7]}" &&
+                "${___g_pf[7]}" \
+                "$format" &&
                 ___g_scan_stats[3]=$(( ___g_scan_stats[3] + 1 ))
         fi
     else
@@ -801,12 +803,11 @@ scan_usage() {
     echo $"    | --stats - wydrukuj statystyki (domyslnie nie beda drukowane)"
     echo $" -o | --orig-prefix - prefix dla oryginalnego pliku przed konwersja"
     echo $" -d | --delete-orig - Delete the original file"
-    echo $" -f | --format - konwertuj napisy do formatu (wym. subotage.sh)"
+    echo $" -f | --format - konwertuj napisy do formatu"
     echo $" -P | --pref-fps <fps_tool> - preferowany detektor fps (jezeli wykryto jakikolwiek)"
     echo
     echo "Obslugiwane formaty konwersji napisow"
-    # TODO get rid of this and replace with a subs_ library call
-    subotage.sh -gl
+    subotage_listFormats 1
 
     tools_isDetected "iconv" &&
         echo $" -C | --charset - konwertuj kodowanie plikow (iconv -l - lista dostepnych kodowan)"

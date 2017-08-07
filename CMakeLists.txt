@@ -4,7 +4,10 @@ project (napi NONE)
 set(NAPI_VERSION_MAJOR 1)
 set(NAPI_VERSION_MINOR 4)
 set(NAPI_VERSION_SUB 0)
-set(NAPI_PREFIX ${CMAKE_INSTALL_PREFIX})
+
+if (NOT NAPI_INSTALL_PREFIX)
+    set(NAPI_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+endif()
 
 configure_file(
     napi.sh.in

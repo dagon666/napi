@@ -2,6 +2,7 @@
 
 import re
 import unittest
+import subprocess
 
 import napi.cover
 import napi.fs
@@ -29,7 +30,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         ext = 'fancy_extension'
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -39,13 +40,13 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             self.assertTrue(
-                    napi.fs.Filesystem(media).subtitlesExists(ext))
+                    napi.fs.Filesystem(media).subtitlesExists(None, ext))
 
     def test_ifSkippingWorks(self):
         """
@@ -64,7 +65,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -76,7 +77,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
@@ -91,7 +92,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             subtitles = napi.fs.HashedFile(subsPaths[0])
 
             self.napiScan('--stats', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -119,7 +120,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         media = None
         ext = "fancy-extension"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -131,22 +132,22 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             napiFs = napi.fs.Filesystem(media)
-            self.assertTrue(napiFs.subtitlesExists(ext))
+            self.assertTrue(napiFs.subtitlesExists(None, ext))
 
-            subsPaths = napiFs.getSubtitlesPaths(ext)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext)
             self.assertEquals(1, len(subsPaths))
 
             # hashed file - to be able to track file content modifications
             subtitles = napi.fs.HashedFile(subsPaths[0])
 
             self.napiScan('--stats', '-s', '-e', ext, media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -175,7 +176,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         ext = "fancy-extension"
         abbrev = "abbreviation"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -188,15 +189,15 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-e', ext,
                     '-a', abbrev, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             napiFs = napi.fs.Filesystem(media)
-            self.assertTrue(napiFs.subtitlesExists(ext, abbrev))
+            self.assertTrue(napiFs.subtitlesExists(None, ext, abbrev))
 
-            subsPaths = napiFs.getSubtitlesPaths(ext, abbrev)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext, abbrev)
             self.assertEquals(1, len(subsPaths))
 
             # hashed file - to be able to track file content modifications
@@ -205,7 +206,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.napiScan('--stats', '-s', '-e', ext,
                     '-a', abbrev, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
@@ -236,7 +237,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         abbrev = "abbreviation"
         convAbbrev = "CAB"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -248,16 +249,17 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             napiFs = napi.fs.Filesystem(media)
-            self.assertTrue(napiFs.subtitlesExists(ext, abbrev, convAbbrev))
+            self.assertTrue(napiFs.subtitlesExists(None, ext, abbrev, convAbbrev))
 
             # check number of subs files, just to be sure that there's only one
-            subsPaths = napiFs.getSubtitlesPaths(ext, abbrev, convAbbrev)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext,
+                    abbrev, convAbbrev)
             self.assertEquals(1, len(subsPaths))
 
             self.napiScan('--stats', '-s', '-e', ext,
@@ -267,14 +269,15 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                     convAbbrev,
                     media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             # check again, number of subs
-            subsPaths = napiFs.getSubtitlesPaths(ext, abbrev, convAbbrev)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext,
+                    abbrev, convAbbrev)
             self.assertEquals(2, len(subsPaths))
 
             # make sure we've got the file with abbrev, not conv-abbrev
@@ -307,7 +310,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         abbrev = "abbreviation"
         convAbbrev = "CAB"
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -319,16 +322,17 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-e', ext, media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             napiFs = napi.fs.Filesystem(media)
-            self.assertTrue(napiFs.subtitlesExists(ext, abbrev, convAbbrev))
+            self.assertTrue(napiFs.subtitlesExists(None, ext, abbrev, convAbbrev))
 
             # check number of subs files, just to be sure that there's only one
-            subsPaths = napiFs.getSubtitlesPaths(ext, abbrev, convAbbrev)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext,
+                    abbrev, convAbbrev)
             self.assertEquals(1, len(subsPaths))
 
             origSubs = napi.fs.HashedFile(subsPaths[0])
@@ -341,14 +345,15 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                     '-M',
                     media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
             # check again, number of subs
-            subsPaths = napiFs.getSubtitlesPaths(ext, abbrev, convAbbrev)
+            subsPaths = napiFs.getSubtitlesPaths(None, ext,
+                    abbrev, convAbbrev)
             self.assertEquals(1, len(subsPaths))
 
             # make sure we've got the file with abbrev, not conv-abbrev
@@ -375,7 +380,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -387,7 +392,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-n', '-s', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['nfo_ok'])
             self.assertEquals(1, stats['total'])
@@ -401,7 +406,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, len(subsPaths))
 
             self.napiScan('--stats', '-n', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -428,7 +433,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         """
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
             # program http mock
             self.napiMock.programXmlRequest(
                     media,
@@ -441,7 +446,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
             self.napiScan('--stats', '-c', '-s', media['path'])
 
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['cover_ok'])
             self.assertEquals(1, stats['total'])
@@ -455,7 +460,7 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, len(subsPaths))
 
             self.napiScan('--stats', '-c', '-s', media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(0, stats['ok'])
             self.assertEquals(1, stats['skip'])
@@ -464,113 +469,258 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
             self.assertEquals(1, stats['total'])
             self.assertEquals(0, stats['unav'])
 
-##>TESTSPEC
-##
-## Brief:
-##
-## Download subtitles with a custom extension specified, skip option enabled and format conversion request
-##
-## Preconditions:
-## - napi.sh & subotage.sh should be visible in public $PATH
-## - media file for which the subtitles are available
-## - subtitles file should (with a custom extension) should already exist in the FS
-##
-## Procedure:
-## - specify a custom extension for the probed media file
-## - specify the skip flag
-## - specify conversion request
-##
-## Expected results:
-## - original subtitles should not be downloaded twice
-## - the original subtitles should be converted to requested format
-## - after conversion both files should exist in the filesystem (original one with prefix prepended)
-##
-#$o = NapiTest::qx_napi($shell, " --stats -f subrip -s -e orig " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#is ( -e $test_txt_path =~ s/\.[^\.]+$/\.srt/r,
-#		1,
-#		"testing skipping with already downloaded original" );
-#
-#ok ( ! -e $test_txt_path =~ s/\.[^\.]+$/\.orig/r,
-#		"checking if original file has been removed" );
-#
-#is ($o{ok}, 0, "number of skipped");
-#is ($o{conv}, 1, "number of converted");
-#NapiTest::clean_testspace();
-#
-#
-##>TESTSPEC
-##
-## Brief:
-##
-## Download subtitles with both abbrev and conv-abbrev specified and format conversion request
-##
-## Preconditions:
-## - napi.sh & subotage.sh should be visible in public $PATH
-## - media file for which the subtitles are available
-##
-## Procedure:
-## - specify the abbreviation as AB
-## - specify the conv-abbreviation as CAB
-## - specify conversion request
-##
-## Expected results:
-## - the subtitles should be downloaded and converted to the requested format
-## - the original subtitles should be renamed to default prefix and should contain the abbreviation in the filename
-## - after conversion both files should exist in the filesystem (original one with prefix prepended)
-## - converted file should have both abbrev and conversion abbrev inserted into the file name
-##
-#copy $NapiTest::assets . '/av1.dat', $test_file_path;
-#$o = NapiTest::qx_napi($shell, " --stats -f subrip -s -a AB --conv-abbrev CAB " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#
-#ok ( -e $test_orig_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
-#		"check for original file" );
-#
-#ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.CAB\.srt/r,
-#		"checking for converted file and abbreviations" );
-#
-#is ($o{ok}, 1, "number of downloaded");
-#is ($o{conv}, 1, "number of converted");
-#
-#
-##>TESTSPEC
-##
-## Brief:
-##
-## check skipping with conversion requested and abbreviations specified
-##
-## Preconditions:
-## - the ORIG_ file should be present
-## - the converted file should be absent
-## - napi.sh & subotage.sh should be visible in public $PATH
-## - media file for which the subtitles are available
-##
-## Procedure:
-## - specify the abbreviation as AB
-## - specify the conv-abbreviation as CAB
-## - specify conversion request
-## - specify the skip flag
-##
-## Expected results:
-## - the subtitles shouldn't be downloaded original available file should be converted
-## - after conversion both files should exist in the filesystem (original one with prefix prepended)
-## - converted file should have both abbrev and conversion abbrev inserted into the file name
-##
-#unlink $test_txt_path =~ s/\.([^\.]+)$/\.AB\.CAB\.srt/r;
-#$o = NapiTest::qx_napi($shell, " --stats -f subrip -s -a AB --conv-abbrev CAB " . $test_file_path);
-#%o = NapiTest::parse_summary($o);
-#
-#ok ( -e $test_orig_txt_path =~ s/\.([^\.]+)$/\.AB\.$1/r,
-#		"check for original file" );
-#
-#ok ( -e $test_txt_path =~ s/\.([^\.]+)$/\.AB\.CAB\.srt/r,
-#		"checking for converted file and abbreviations" );
-#
-#is ($o{ok}, 0, "number of downloaded");
-#is ($o{skip}, 1, "number of skipped");
-#is ($o{conv}, 1, "number of converted");
-#
+    def test_ifSkippingWorksWithFormatConversion(self):
+        """
+        Brief:
+        Download subtitles with a custom extension specified, skip
+        option enabled and format conversion request
+
+        Procedure:
+        1. Prepare a media and a subs file for napi mock
+        2. Perform a request for programmed media
+        3. Make a request again for the same media file but with format
+        conversion specified additionally and a skip flag
+
+        Expected Results:
+        1. Original subtitles should not be downloaded twice
+        2. The original subtitles should be converted to requested format
+        3. After conversion both files should exist on the file system
+        (original one with prefix prepended)
+        """
+        media = None
+        fromFormat = 'microdvd'
+        toFormat = 'subrip'
+        extension = 'abcdef'
+
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file and subs
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
+                    fromFormat)
+
+            # program napiprojekt mock - it should be called only once
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromFile(
+                        media['asset'],
+                        subs['path']),
+                    None,
+                    None,
+                    1)
+
+            # get the subs
+            self.napiScan('--stats', '-s', '-e', extension, media['path'])
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertTrue(req)
+            self.assertEquals(req.method, "POST")
+            self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            # check statistics and the file itself
+            stats = self.output.parseNapiStats()
+            fs = napi.fs.Filesystem(media)
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+            self.assertTrue(fs.subtitlesExists(None, extension))
+
+            # Make another request, this time with conversion.
+            # Original unconverted file should be reused without having to
+            # resort to making a HTTP request
+            self.napiScan('--stats', '-s',
+                    '-e', extension,
+                    '-f', toFormat,
+                    media['path'])
+
+            # check the stats again
+            stats = self.output.parseNapiStats()
+            self.assertEquals(1, stats['skip'])
+            self.assertEquals(1, stats['conv'])
+            self.assertEquals(0, stats['unav'])
+
+            self.assertTrue(fs.subtitlesExists(None, 'srt'))
+            self.assertTrue(fs.subtitlesExists('ORIG'))
+
+    def test_ifDownloadWorksWithFormatConversionAndAbbreviations(self):
+        """
+        Brief:
+        Download subtitles with both abbrev and conv-abbrev specified and
+        format conversion request
+
+        Procedure:
+        1. Prepare media and subs
+        2. Program napi mock
+        3. Request subs for media with abbreviation AB and conversion
+        abbreviation specified as CAB and a request to convert the format
+
+        Expected Results:
+        1. The subtitles should be downloaded and converted
+        to the requested format
+        2. The original subtitles should be renamed to default prefix
+        and should contain the abbreviation in the filename
+        3. After conversion both files should exist in the filesystem
+        (original one with prefix pre-pended)
+        4. Converted file should have both abbrev and conversion
+        abbrev inserted into the file name
+        """
+        media = None
+        fromFormat = 'microdvd'
+        toFormat = 'subrip'
+        abbreviation = 'AB'
+        convAbbrev = 'CAB'
+
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file and subs
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
+                    fromFormat)
+
+            # program napiprojekt mock - it should be called only once
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromFile(
+                        media['asset'],
+                        subs['path']),
+                    None,
+                    None,
+                    1)
+
+            # get the subs
+            self.napiScan('--stats', '-s',
+                    '-f', toFormat,
+                    '-a', abbreviation,
+                    '--conv-abbrev', convAbbrev,
+                    media['path'])
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertTrue(req)
+            self.assertEquals(req.method, "POST")
+            self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            # check statistics and the file itself
+            stats = self.output.parseNapiStats()
+            fs = napi.fs.Filesystem(media)
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['conv'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+
+            subsFiles = fs.getSubtitlesPaths('ORIG', None,
+                    abbreviation, convAbbrev)
+
+            abbrevExt = abbreviation + '.txt'
+            convAbbrevExt = '.'.join((abbreviation, convAbbrev, 'srt'))
+
+            self.assertTrue(any(
+                [ True if abbrevExt in s else False
+                    for s in subsFiles ]))
+
+            self.assertTrue(any(
+                [ True if convAbbrevExt in s else False
+                    for s in subsFiles ]))
+
+    def test_ifSkippingWorksWithFormatConversionAndAbbreviations(self):
+        """
+        Brief:
+        Check skipping with conversion requested and
+        abbreviations specified
+
+        Procedure:
+        1. Prepare media and subs files
+        2. Program napi mock
+        3. Perform a request for subtitles for media file with conversion.
+        Request should result in ORIG_ file present in the filesystem
+        4. Request subs for media with abbreviation AB and conversion
+        abbreviation specified as CAB and a request to convert the format.
+        Additionally this request should have the skip flag set.
+
+        Expected Results:
+
+        1. The subtitles shouldn't be downloaded, original available file
+        should be converted
+        2. After conversion both files should exist in the filesystem
+        (original one with prefix prepended)
+        3. Converted file should have both abbreviation and conversion
+        abbreviation inserted into the file name
+        """
+        media = None
+        fromFormat = 'microdvd'
+        toFormat = 'subrip'
+        abbreviation = 'AB'
+        convAbbrev = 'CAB'
+
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file and subs
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
+                    fromFormat)
+
+            # program napiprojekt mock - it should be called only once
+            self.napiMock.programXmlRequest(
+                    media,
+                    napi.subtitles.CompressedSubtitles.fromFile(
+                        media['asset'],
+                        subs['path']),
+                    None,
+                    None,
+                    1)
+
+            # get the subs
+            self.napiScan('--stats',
+                    '-f', toFormat,
+                    '-a', abbreviation,
+                    '--conv-abbrev', convAbbrev,
+                    media['path'])
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertTrue(req)
+            self.assertEquals(req.method, "POST")
+            self.assertEquals(req.url, '/api/api-napiprojekt3.php')
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            # check statistics and the file itself
+            stats = self.output.parseNapiStats()
+            fs = napi.fs.Filesystem(media)
+            self.assertEquals(1, stats['ok'])
+            self.assertEquals(1, stats['conv'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+
+            # make another request
+            self.napiScan('--stats',
+                    '-s',
+                    '-f', toFormat,
+                    '-a', abbreviation,
+                    '--conv-abbrev', convAbbrev,
+                    media['path'])
+
+            stats = self.output.parseNapiStats()
+            self.assertEquals(0, stats['ok'])
+            self.assertEquals(1, stats['skip'])
+            self.assertEquals(1, stats['total'])
+            self.assertEquals(0, stats['unav'])
+
+            subsFiles = fs.getSubtitlesPaths('ORIG', None,
+                    abbreviation, convAbbrev)
+
+            abbrevExt = abbreviation + '.txt'
+            convAbbrevExt = '.'.join((abbreviation, convAbbrev, 'srt'))
+
+            self.assertTrue(any(
+                [ True if abbrevExt in s else False
+                    for s in subsFiles ]))
+
+            self.assertTrue(any(
+                [ True if convAbbrevExt in s else False
+                    for s in subsFiles ]))
 
 if __name__ == '__main__':
     napi.testcase.runTests()

@@ -274,5 +274,52 @@ test_wrappers_getCores_returnsCoresFromSysctlOnDarwin() {
         1 "$(scpmocker -c sysctl status -C)"
 }
 
+test_wrappers_filterNumeric_removesAlphaCharacters() {
+    local result=
+
+    result=$(echo "prefix345.234some data" | wrappers_filterNumeric_SO)
+    assertEquals "check results" \
+        "prefixsome data" "$result"
+
+    result=$(echo "1234.3456" | wrappers_filterNumeric_SO)
+    assertEquals "check if is an empty string" \
+        "" "$result"
+}
+
+test_wrappers_dos2unix_convertsLineEndings() {
+    local dosData=
+    local unixData=
+    local result=
+
+    read -s -r -d "" dosData << 'EOF'
+this is a string to test line endings
+second line
+third line
+and so on...
+
+EOF
+
+    read -s -r -d "" unixData << 'EOF'
+this is a string to test line endings
+second line
+third line
+and so on...
+
+EOF
+
+    result=$(echo "$dosData" | wrappers_dos2unix_SO)
+
+    assertNotEquals "check if strings are initially different" \
+        "$unixData" "$dosData"
+
+    assertEquals "check dos text has unix endings" \
+        "$unixData" "$result"
+
+    result=$(echo "$unixData" | wrappers_dos2unix_SO)
+
+    assertEquals "check if unix format remains unchanged" \
+        "$unixData" "$result"
+}
+
 # shunit call
 . shunit2

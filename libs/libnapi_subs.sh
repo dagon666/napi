@@ -159,12 +159,17 @@ subs_convertFormat() {
     cp "${videoFileDir}/${sourceSubsFileName}" "$tmp"
 
     if [ "$isDeleteOrigSet" -eq 1 ]; then
-        fs_garbageCollect_GV "${videoFileDir}/${originalFileName}"
+        fs_garbageCollect "${videoFileDir}/${originalFileName}"
     else
         logging_info $LINENO $"kopiuje oryginalny plik jako" \
             "[$originalFileName]"
-        cp "${videoFileDir}/${sourceSubsFile}" \
-            "${videoFileDir}/${originalFileName}"
+
+        logging_debug $LINENO "source: ${sourceSubsFileName}," \
+            "orig: ${originalFileName}"
+
+        [ "${sourceSubsFileName}" != "${originalFileName}" ] &&
+            cp "${videoFileDir}/${sourceSubsFileName}" \
+                "${videoFileDir}/${originalFileName}"
     fi
 
     # detect video file framerate
@@ -182,7 +187,7 @@ subs_convertFormat() {
     local convStatus=
     logging_msg $"wolam subotage"
     subotage_processFile \
-        "${videoFileDir}/${sourceSubsFile}" \
+        "${videoFileDir}/${sourceSubsFileName}" \
         "none" \
         "0" \
         "" \
@@ -198,7 +203,7 @@ subs_convertFormat() {
 
         [ "$sourceSubsFileName" != "$destSubsFileName" ] && {
             logging_info $LINENO "usuwam oryginalny plik"
-            fs_garbageCollect_GV "${videoFileDir}/${sourceSubsFileName}"
+            fs_garbageCollect "${videoFileDir}/${sourceSubsFileName}"
         }
 
     elif [ "$convStatus" -eq $G_RETNOACT ]; then
@@ -210,7 +215,7 @@ subs_convertFormat() {
         # get rid of the original file
         [ "$sourceSubsFileName" != "$destSubsFileName" ] &&
             logging_msg "usuwam oryginalny plik" &&
-            io_unlink "${videoFileDir}/${sourceSubsFileName}"
+            fs_unlink "${videoFileDir}/${sourceSubsFileName}"
 
     else
         logging_msg $"konwersja do" "$format" $"niepomyslna"

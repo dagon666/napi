@@ -64,13 +64,20 @@ class Filesystem(object):
         path = os.path.join(self.path, fileName)
         return os.path.exists(path) and os.path.getsize(path) > 0
 
-    def createSubtitlesFileNames(self, extension = None,
+    def createSubtitlesFileNames(self,
+            prefix = None,
+            extension = None,
             abbreviation = None,
             conversionAbbreviation = None):
-        extensions = set([ extension ] if extension else [ 'srt', 'sub', 'txt' ])
+        extensions = set([ extension ] if extension
+                else [ 'srt', 'sub', 'txt' ])
 
         abbreviations = []
         suffixes = []
+        prefixes = [ self.noExtension ]
+
+        if prefix:
+            prefixes.append('_'.join((prefix, self.noExtension)))
 
         if abbreviation:
             abbreviations.append(abbreviation)
@@ -86,7 +93,8 @@ class Filesystem(object):
                 for abr in abbreviations ]
         suffixes.extend(extensions)
 
-        return map(lambda s: self.noExtension + '.' + s, suffixes)
+        # generate all possible file names
+        return [ '.'.join((p,s)) for p in prefixes for s in suffixes ]
 
     def createNfoFileName(self):
         return self.noExtension + '.nfo'
@@ -97,17 +105,18 @@ class Filesystem(object):
     def createXmlFileName(self):
         return self.noExtension + '.xml'
 
-    def subtitlesExists(self, extension = None,
+    def subtitlesExists(self, prefix = None, extension = None,
             abbreviation = None, conversionAbbreviation = None):
-        paths = self.getSubtitlesPaths(extension,
+        paths = self.getSubtitlesPaths(prefix, extension,
                 abbreviation, conversionAbbreviation)
         return True if len(paths) > 0 else False
 
-    def getSubtitlesPaths(self, extension = None,
+    def getSubtitlesPaths(self, prefix = None, extension = None,
             abbreviation = None, conversionAbbreviation = None):
         paths = [ p for p in map(
             lambda f: os.path.join(self.path, f),
-            self.createSubtitlesFileNames(extension, abbreviation))
+            self.createSubtitlesFileNames(prefix, extension,
+                abbreviation, conversionAbbreviation))
             if os.path.exists(p) ]
         return paths
 

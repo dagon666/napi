@@ -31,7 +31,7 @@
 ########################################################################
 ########################################################################
 
-export G_NAPIPREFIX="@NAPI_PREFIX@"
+export G_NAPIPREFIX="@NAPI_INSTALL_PREFIX@"
 
 if [ -z "$G_NAPIPREFIX" ] ||
     [ ! -d "${G_NAPIPREFIX}" ] ||

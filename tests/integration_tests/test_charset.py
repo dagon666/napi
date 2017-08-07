@@ -12,7 +12,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
     def _commonCharsetTest(self, charset):
         media = None
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
@@ -21,7 +21,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
                         media['asset'], "test subtitles"))
 
             self.napiScan('--stats', '-C', charset, media['path'])
-            stats = self.output.parseStats()
+            stats = self.output.parseNapiStats()
 
             self.assertEquals(1, stats['ok'])
             self.assertEquals(1, stats['total'])
@@ -73,7 +73,7 @@ class CharsetConversionTest(napi.testcase.NapiTestCase):
         self.isStderrExpected = True
 
         with napi.sandbox.Sandbox() as sandbox:
-            media = self.assets.prepareRandomMedia(sandbox)
+            media = self.videoAssets.prepareRandomMedia(sandbox)
 
             # program http mock
             self.napiMock.programXmlRequest(
