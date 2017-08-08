@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project (napi NONE)
 
-set(NAPI_VERSION_MAJOR 1)
-set(NAPI_VERSION_MINOR 4)
+set(NAPI_VERSION_MAJOR 2)
+set(NAPI_VERSION_MINOR 0)
 set(NAPI_VERSION_SUB 0)
 
 if (NOT NAPI_INSTALL_PREFIX)
