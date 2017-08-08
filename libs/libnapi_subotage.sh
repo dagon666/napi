@@ -1243,6 +1243,13 @@ subotage_guessFormat() {
 }
 
 #
+# @brief echo out the value of lasting time
+#
+subotage_getLastingTime_SO() {
+    echo "${___g_subotageLastingTimeMs}"
+}
+
+#
 # @brief configure the time, the subs are presented
 #
 subotage_setLastingTime() {
@@ -1290,6 +1297,13 @@ subotage_detectFileFps_SO() {
     esac
 
     echo "$fps"
+}
+
+#
+# @brief echo out the default fps
+#
+subotage_getDefaultFps_SO() {
+    echo "${___g_subotageDefaultFps}"
 }
 
 #

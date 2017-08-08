@@ -94,6 +94,8 @@ ___g_subotageGetInfo=0
 # @brief prints the help & options overview
 #
 _usage() {
+    local defaultFps=$(subotage_getDefaultFps_SO)
+    local lastingTime=$(subotage_getLastingTime_SO)
     echo    "subotage.sh -i <input_file> -o <output_file> [opcje]"
     echo    "napi bundle version [$g_revision]"
     echo
@@ -109,13 +111,13 @@ _usage() {
     echo    "   -of | --output-format <format> - format wyjsciowy (domyslnie subrip)"
     echo
     echo    "   -fi | --fps-input <fps> - fps dla pliku wejsciowego (wazne tylko dla formatu microdvd)"
-    echo    "                               (domyslnie: ${g_inf[$___FPS]} fps)"
+    echo    "                               (domyslnie: $defaultFps fps)"
     echo
     echo    "   -fo | --fps-output <fps> - fps dla pliku wyjsciowego (wazne tylko dla formatu microdvd)"
-    echo    "                               (domyslnie: ${g_outf[$___FPS]} fps)"
+    echo    "                               (domyslnie: $defaultFps fps)"
     echo
     echo    "   -l  | --lasting-time <time in ms> - czas wyswietlania linii napisow w milisekundach"
-    echo    "                               (domyslnie: $g_lastingtime ms)"
+    echo    "                               (domyslnie: $lastingTime ms)"
     echo
     echo    "   -gi | --get-info <input_file> - wyswietl informacje o pliku wejsciowym i zakoncz"
     echo
