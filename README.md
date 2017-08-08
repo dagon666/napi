@@ -174,6 +174,10 @@ be directly used to get subtitles:
 
     $ napi.sh download napiprojekt:1e81de9b83485336d2821d8dcfefb8bd
 
+You can specify more than one hash/id at once as well:
+
+    $ napi.sh download napiprojekt:51f8741fc142f3ed80313544c728d9d4 napiprojekt:ee4096dce1902ea5f985dc929c9a8479
+
 
 ## subotage.sh
 
