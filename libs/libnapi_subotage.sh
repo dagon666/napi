@@ -110,7 +110,7 @@ EOF
 # microdvd format detection routine
 subotage_checkFormatMicrodvd_SO() {
     local filePath="$1"
-    local maxAttempts=3
+    local maxAttempts=8
     local attempts="$maxAttempts"
     local firstLine=1
     local match="$___g_subotageNotDetectedMarker"
@@ -298,7 +298,7 @@ EOF
 subotage_checkFormatTmplayer_SO() {
     local filePath="$1"
 
-    local maxAttempts=3
+    local maxAttempts=8
     local attempts="$maxAttempts"
     local firstLine=1
     local match="$___g_subotageNotDetectedMarker"
