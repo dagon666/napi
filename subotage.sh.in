@@ -306,6 +306,7 @@ _main() {
 
     # configure the rest of libraries
     fs_configure_GV
+    subotage_configure_GV
 
     # parse global arguments
     _parseArgv_GV "$@" || {
