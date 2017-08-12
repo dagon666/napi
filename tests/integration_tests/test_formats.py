@@ -2,8 +2,9 @@
 
 import os
 import re
-import unittest
 import shutil
+import unittest
+import uuid
 
 import napi.fs
 import napi.sandbox
@@ -47,7 +48,6 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
                     re.compile(r'IN_FORMAT -> {}'.format(toFormat))))
 
     def _subotageFormatDetect(self, fmt):
-        media = None
         with napi.sandbox.Sandbox() as sandbox:
             # generate a subs file
             subs = self.subtitlesAssets.prepareRandomMedia(sandbox, fmt)
@@ -56,7 +56,6 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
                 re.compile(r'IN_FORMAT -> {}'.format(fmt))))
 
     def _subotageFormatConversion(self, fromFormat, toFormat):
-        media = None
         with napi.sandbox.Sandbox() as sandbox:
             # generate a subs file
             subs = self.subtitlesAssets.prepareRandomMedia(sandbox,
@@ -79,13 +78,40 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
             self.assertTrue(self.output.stdoutContains(
                 re.compile(r'IN_FORMAT -> {}'.format(toFormat))))
 
+    def _subotageMassFormatConversion(self, fromFormat, toFormat):
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a subs files
+            for subs in self.subtitlesAssets.prepareMediaRange(sandbox,
+                    fromFormat):
+
+                self.logger.debug("Attempt to convert asset: " + str(subs))
+
+                outputFile = os.path.join(sandbox.path,
+                        uuid.uuid4().hex)
+
+                # ... convert
+                self.subotageExecute('-i', subs['path'],
+                        '-of', toFormat,
+                        '-o', outputFile)
+
+                # if formats match, no conversion happened so, just check if the
+                # original file remains unchanged
+                if fromFormat == toFormat:
+                    outputFile = subs['path']
+
+                # ... verify
+                self.subotageExecute('-gi', '-i', outputFile)
+                self.assertTrue(self.output.isSuccess())
+                self.assertTrue(self.output.stdoutContains(
+                    re.compile(r'IN_FORMAT -> {}'.format(toFormat))))
+
     def test_ifSubotageDetectsFormatsCorrectly(self):
         """
         Brief:
         Procedure:
         Expected Results:
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatDetect(fmt)
@@ -103,7 +129,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be subrip
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._napiFormatConversion(fmt, 'subrip')
@@ -121,7 +147,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be microdvd
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._napiFormatConversion(fmt, 'microdvd')
@@ -139,7 +165,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be tmplayer
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._napiFormatConversion(fmt, 'tmplayer')
@@ -157,7 +183,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be subviewer2
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._napiFormatConversion(fmt, 'subviewer2')
@@ -175,7 +201,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be mpl2
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._napiFormatConversion(fmt, 'mpl2')
@@ -192,7 +218,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be subrip
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatConversion(fmt, 'subrip')
@@ -209,7 +235,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be microdvd
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatConversion(fmt, 'microdvd')
@@ -226,7 +252,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be tmplayer
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatConversion(fmt, 'tmplayer')
@@ -243,7 +269,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be subviewer2
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatConversion(fmt, 'subviewer2')
@@ -260,10 +286,33 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
         Expected Results:
         Subs format should be mpl2
         """
-        formats = [ 'subrip',   "microdvd", "mpl2",
+        formats = [ "microdvd", "mpl2",
                 "subrip", "subviewer2", "tmplayer" ]
         for fmt in formats:
             self._subotageFormatConversion(fmt, 'mpl2')
+
+    @unittest.skipIf(bool(os.environ.get(
+        'NAPI_INTEGRATION_TESTS_LONG_ENABLED', '0')) == False,
+        "Long tests disabled")
+    def test_ifStressConversionWorksWithAllAssets(self):
+        """
+        Brief: Iterate over all available subtitles of given format and attempt
+        conversion
+        Procedure:
+        1. Prepare a set of all available subtitles files of given type
+        2. Attempt conversion to all supported format
+
+        Expected results:
+        No conversion errors should be present at all times.
+        """
+        formats = [ "microdvd", "mpl2",
+                "subrip", "subviewer2", "tmplayer" ]
+
+        for fromFormat in formats:
+            toFormats = formats[:]
+            toFormats.remove(fromFormat)
+            for toFormat in toFormats:
+                self._subotageMassFormatConversion(fromFormat, toFormat)
 
 if __name__ == '__main__':
     napi.testcase.runTests()
