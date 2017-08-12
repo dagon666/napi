@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 import uuid
+import logging
 
 from . import assets
 from . import mock
@@ -13,6 +14,7 @@ class NapiTestCase(unittest.TestCase):
     SHELL = "/bin/bash"
 
     def setUp(self):
+        self.logger = logging.getLogger()
         self.napiMock = mock.NapiprojektMock()
         self.napiprojektUrl = self.napiMock.getUrl()
         self.runner = runner.Runner(self.napiprojektUrl, self.SHELL)
