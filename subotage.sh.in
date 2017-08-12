@@ -321,6 +321,12 @@ _main() {
         "${___g_subotageIF[@]}" \
         "${___g_subotageOF[@]}" \
         "$___g_subotageGetInfo"
+
+    local status="$?"
+    [ "${status:-0}" -eq "$G_RETBREAK" ] &&
+        status=$G_RETOK
+
+    return "$status"
 }
 
 # call the main
