@@ -6,6 +6,7 @@ import os
 import random
 import shutil
 import uuid
+import logging
 
 class Assets(object):
     """
@@ -21,6 +22,7 @@ class Assets(object):
         assets.json - assets description JSON file.
         """
         self.path = path
+        self.logger = logging.getLogger()
 
         with open(os.path.join(self.path, self.ASSETS_JSON), "r") as assetsJson:
             self.assets = json.load(assetsJson)
@@ -38,8 +40,49 @@ class Assets(object):
         mediaPath = os.path.join(sandbox.path, name)
         shutil.copyfile(assetPath, mediaPath)
 
+        self.logger.debug("Preparing asset [{}] -> [{}]".format(assetPath,
+            mediaPath))
+
         # return a media descriptor
         return { 'name': name, 'path': mediaPath, 'asset': asset }
+
+    def _mapExtension(self, assetType):
+        # translates file types to extensions
+        exts = {
+                'mpeg-4': 'mp4'
+                }
+
+        ext = (assetType if assetType != 'unknown'
+                else self.DEFAULT_EXT)
+        try:
+            extMapped = exts[ext]
+            ext = extMapped
+        except KeyError:
+            pass
+
+        return ext
+
+    def prepareMediaRange(self, sandbox, assetType = None):
+        """
+        Prepares a list of assets of given type
+        """
+        allAssets = (self.assets['assets'] if not assetType else
+                [ a for a in self.assets['assets']
+                    if a['type'] == assetType ])
+
+        preparedAssets = []
+        for asset in allAssets:
+            ext = self._mapExtension(asset['type'])
+            nameWithSpaces = ' '.join(
+                    (uuid.uuid4().hex, uuid.uuid4().hex))
+            name = '.'.join((nameWithSpaces, ext))
+
+            preparedAssets.append(
+                    self._prepareMedia(sandbox,
+                        asset,
+                        name))
+
+        return preparedAssets
 
     def prepareRandomMedia(self, sandbox,
             assetType = None, name = None):
@@ -47,28 +90,14 @@ class Assets(object):
         Prepares random media file with given name (or generated uuid if name
         not given)
         """
-
         allAssets = (self.assets['assets'] if not assetType else
                 [ a for a in self.assets['assets']
                     if a['type'] == assetType ])
 
         asset = random.choice(allAssets)
 
-        # translates file types to extensions
-        exts = {
-                'mpeg-4': 'mp4'
-                }
-
         if not name:
-            ext = (asset['type'] if asset['type'] != 'unknown'
-                    else self.DEFAULT_EXT)
-
-            try:
-                extMapped = exts[ext]
-                ext = extMapped
-            except KeyError:
-                pass
-
+            ext = self._mapExtension(asset['type'])
             nameWithSpaces = ' '.join(
                     (uuid.uuid4().hex, uuid.uuid4().hex))
             name = '.'.join((nameWithSpaces, ext))
