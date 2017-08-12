@@ -6,9 +6,12 @@ class Parser(object):
 
     DELIMITER_LEN = 20
 
-    def __init__(self, scriptStdout, scriptStderr):
+    def __init__(self, scriptStdout,
+            scriptStderr,
+            returnCode):
         self.scriptStdout = scriptStdout
         self.scriptStderr = scriptStderr
+        self.returnCode = returnCode
 
     def parseNapiStats(self):
         """
@@ -30,8 +33,11 @@ class Parser(object):
     def stderrContains(self, regex):
         return re.search(regex, self.scriptStderr)
 
+    def isSuccess(self):
+        return self.returnCode == 0
+
     def hasErrors(self):
-        return len(self.scriptStderr)
+        return len(self.scriptStderr) or not self.isSuccess()
 
     def printStdout(self):
         print "STDOUT"

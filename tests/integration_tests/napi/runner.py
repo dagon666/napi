@@ -32,7 +32,7 @@ class Runner(object):
 
         cmd = [ self.testWrapperPath, testTraceFilePath,
                 self.bash, executable, ] + map(str, args)
-        self.logger.error(cmd)
+        self.logger.info(cmd)
         process = subprocess.Popen(
                 cmd,
                 shell = False,
@@ -40,7 +40,11 @@ class Runner(object):
                 stderr = subprocess.PIPE,
                 stdout = subprocess.PIPE)
 
-        return process.communicate()
+        pStdout, pStderr = process.communicate()
+        self.logger.debug('stdout: %s' % (pStdout))
+        self.logger.debug('stderr: %s' % (pStderr))
+        self.logger.info('return code: %d' % (process.returncode))
+        return pStdout, pStderr, process.returncode
 
     def executeNapi(self, testTraceFilePath, *args):
         output = self._execute('napi.sh', testTraceFilePath, *args)
