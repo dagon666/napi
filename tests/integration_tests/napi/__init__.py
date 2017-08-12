@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import os
 
 def prepareLogging(logLevel):
     formatter = logging.Formatter('%(asctime)s %(message)s')
@@ -14,4 +15,14 @@ def prepareLogging(logLevel):
     logger.setLevel(logLevel)
     logger.addHandler(handler)
 
-prepareLogging(logging.INFO)
+thresholdIndex = os.environ.get('NAPI_INTEGRATION_TESTS_LOGLEVEL', 0)
+threshold = logging.DEBUG
+
+try:
+    thresholds = [ logging.INFO, logging.DEBUG ]
+    mappedThreshold = thresholds[int(thresholdIndex)]
+    threshold = mappedThreshold
+except IndexError, ValueError:
+    pass
+
+prepareLogging(threshold)
