@@ -292,7 +292,7 @@ class FormatsConversionTest(napi.testcase.NapiTestCase):
             self._subotageFormatConversion(fmt, 'mpl2')
 
     @unittest.skipIf(bool(os.environ.get(
-        'NAPI_INTEGRATION_TESTS_LONG_ENABLED', '0')) == False,
+        'NAPI_INTEGRATION_TESTS_LONG_ENABLED', 0)) == False,
         "Long tests disabled")
     def test_ifStressConversionWorksWithAllAssets(self):
         """
