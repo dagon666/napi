@@ -53,7 +53,7 @@ with docker, just build the container image:
 
 Once it's built it can be used through docker:
 
-    $ docker run -v /media:/mnt napi scan /mnt
+    $ docker run -v /media:/mnt -it napi scan /mnt
 
 The above command maps the directory `/media` to a directory `/mnt` in the
 container and invokes `napi.sh` scan action in container's `/mnt`.
