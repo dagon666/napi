@@ -62,3 +62,28 @@ Docker container as well, for the test suite to pick it up. In order to quickly
 do that without rebuilding the images, just invoke:
 
     ./run_integration_tests.sh -u
+
+### Running integration tests manually
+
+It's possible to execute only selected test fixture:
+
+    docker-compose run --rm napiclient integration_tests.test_formats.FormatsConversionTest
+
+... or a test case:
+
+    docker-compose run --rm napiclient integration_tests.test_formats.FormatsConversionTest.test_ifSubotageDetectsFormatsCorrectly
+
+
+In order to increase verbosity of the test suite, one can define an
+environmental variable: `NAPI_INTEGRATION_TESTS_LOGLEVEL=1`. When run manually
+this can be done with docker like so:
+
+    docker-compose run --rm -e NAPI_INTEGRATION_TESTS_LOGLEVEL=1 napiclient integration_tests.test_formats.FormatsConversionTest.test_ifSubotageDetectsFormatsCorrectly
+
+The integration tests suite contains some long running tests which are skipped
+by default, as the total execution time may be longer than an hour. In order to
+enable them, an environment variable `NAPI_INTEGRATION_TESTS_LONG_ENABLED=1`
+should be defined. When ran manually this can be done exactly the same way as
+in the previous example:
+
+    docker-compose run --rm -e NAPI_INTEGRATION_TESTS_LOGLEVEL=1 -e NAPI_INTEGRATION_TESTS_LONG_ENABLED=1 napiclient integration_tests.test_formats.FormatsConversionTest.test_ifSubotageDetectsFormatsCorrectly
