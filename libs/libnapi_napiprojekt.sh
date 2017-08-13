@@ -519,6 +519,7 @@ napiprojekt_downloadSubtitlesLegacy() {
     # shellcheck disable=SC2086
     if [ "$status" -ne $G_RETOK ]; then
         logging_error $"blad wgeta. nie mozna pobrac pliku" "[$downloadFileName]"
+        fs_garbageCollect "$downloadFileName"
         # ... and exit
         return $G_RETFAIL
     fi

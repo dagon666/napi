@@ -49,7 +49,7 @@ declare -r g_napiprojektApi3Uri='/api/api-napiprojekt3.php'
 #
 # Legacy API URI
 #
-declare -r g_napiprojektApiLegacyUri='/unit/napisy/dl.php'
+declare -r g_napiprojektApiLegacyUri='/unit_napisy/dl.php'
 
 #
 # password to napiprojekt archives

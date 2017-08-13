@@ -25,6 +25,24 @@ class NapiprojektMock(object):
     def getRequest(self, n = 0):
         return self.http.get_request(n)
 
+    def programPlainRequest(self,
+            blob = None,
+            status = None,
+            times = 1):
+
+        body = None
+        data = blob.getData() if blob else ''
+        if not status:
+            status = 200 if blob else 404
+
+        self.http.when(
+                'GET /unit_napisy/dl.php',
+                body = body).reply(
+                data,
+                status = status,
+                headers = self.defaultHeaders,
+                times = times)
+
     def programXmlRequest(self,
             media,
             subtitles = None,

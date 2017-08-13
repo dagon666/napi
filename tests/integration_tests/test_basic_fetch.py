@@ -97,6 +97,7 @@ class BasicFetchTest(napi.testcase.NapiTestCase):
                 self.napiMock.programXmlRequest(media)
 
             # call napi
+            self.isStderrExpected = True
             self.napiScan('--stats', sandbox.path)
 
             # check assertions

@@ -360,13 +360,13 @@ _scan_downloadAssetsLegacy() {
         "$(napiprojekt_f_SO "$fileHash")" \
         "${subsPath}" \
         "${lang}"; then
-        logging_success $"napisy pobrano pomyslne" "[$fileName]"
+        logging_success $"napisy pobrano pomyslnie" "[$fileName]"
 
         [ "$getCover" -eq 1 ] && {
             local coverExt=$(sysconf_getKey_SO napiprojekt.cover.extension)
             if napiprojekt_downloadCoverLegacy "$fileHash" \
                 "${fileDir}/${fileNameNoExt}.${coverExt}"; then
-                logging_success $"okladka pobrana pomyslne" "[$fileName]"
+                logging_success $"okladka pobrana pomyslnie" "[$fileName]"
                 ___g_scan_stats[4]=$(( ___g_scan_stats[4] + 1 ))
             else
                 logging_error $"nie udalo sie pobrac okladki" "[$fileName]"
@@ -375,7 +375,7 @@ _scan_downloadAssetsLegacy() {
         }
     else
         logging_error $"nie udalo sie pobrac napisow" "[$fileName]"
-        rv=G_RETUNAV
+        rv=$G_RETUNAV
     fi
 
     return $rv

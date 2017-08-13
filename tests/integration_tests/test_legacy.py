@@ -10,109 +10,296 @@ import napi.testcase
 
 class LegacyApiModeTest(napi.testcase.NapiTestCase):
 
+    def test_ifFailsCorrectlyIfSubsUnavailable(self):
+        """
+        Brief:
+        Verify if handles subs acquisition failure without any errors
+
+        Procedure:
+        1. Prepare media file
+        2. Program napi mock to respond with no data and 404 HTTP Status
+        3. Call napi.sh in legacy mode with id = pynapi
+
+        Expected Results:
+        No processing errors should be detected. Normal error response handling
+        should be done. No files should be produced afterwards.
+
+        """
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+
+            # program napiprojekt mock
+            self.napiMock.programPlainRequest()
+
+            # call napi
+            self.isStderrExpected = True
+            self.napiScan('-i', 'pynapi', media['path'])
+            fs = napi.fs.Filesystem(media)
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "GET")
+            self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+            self.assertTrue(self.output.hasErrors())
+            self.assertTrue(self.output.stderrContains(
+                re.compile(r'nie udalo sie pobrac napisow')))
+            self.assertFalse(fs.subtitlesExists())
+
+
+    def test_ifFailsCorrectlyIfResponseIsTooShort(self):
+        """
+        Brief: Verify if napi fails responses which are awkwardly short.
+        Procedure:
+        1. Prepare a media file
+        2. Program napi mock to respond with:
+        4
+        NPc0
+        0
+
+        This response most of the time indicates lack of requested subtitles.
+
+        Expected Results:
+        No processing errors should be detected. Normal error response handling
+        should be done. No files should be produced afterwards.
+        """
+        media = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+
+            # program napiprojekt mock
+            self.napiMock.programPlainRequest(
+                    napi.subtitles.Subtitles.fromString(
+                        media['asset'], '4\nNPc0\n0'))
+
+            # call napi
+            self.isStderrExpected = True
+            self.napiScan('-i', 'pynapi', media['path'])
+            fs = napi.fs.Filesystem(media)
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "GET")
+            self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+            self.assertTrue(self.output.hasErrors())
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'plik uszkodzony. niepoprawna ilosc linii')))
+            self.assertFalse(fs.subtitlesExists())
+
+
+    def test_ifFetchesSingleCompressedFile(self):
+        """
+        Brief:
+        Verify if napi works for single media files in legacy mode (other)
+
+        Procedure:
+        1. Prepare subtitles media
+        2. Prepare video media
+        3. Program napi mock to respond with plain compressed subs HTTP
+        response for GET request
+        4. Call napi.sh in legacy mode with id = other
+
+        Expected Results:
+        napi.sh should perform a GET request to napi.sh using legacy API.
+        Subtitles file should exist afterwards.
+        """
+        media = None
+        subsMedia = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subsMedia = self.subtitlesAssets.prepareRandomMedia(sandbox)
+
+            # program napiprojekt mock
+            self.napiMock.programPlainRequest(
+                    napi.subtitles.CompressedSubtitles.fromFile(
+                        media['asset'], subsMedia['path']))
+
+            # call napi
+            self.napiScan('-i', 'other', media['path'])
+            fs = napi.fs.Filesystem(media)
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "GET")
+            self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            self.assertTrue(fs.subtitlesExists())
+
     def test_ifFetchesSingleMediaFile(self):
         """
         Brief:
+        Verify if napi works for single media files in legacy mode (pynapi)
+
         Procedure:
+        1. Prepare subtitles media
+        2. Prepare video media
+        3. Program napi mock to respond with plain subs HTTP response for GET
+        request
+        4. Call napi.sh in legacy mode with id = pynapi
+
         Expected Results:
+        napi.sh should perform a GET request to napi.sh using legacy API.
+        Subtitles file should exist afterwards.
         """
-        pass
+        media = None
+        subsMedia = None
+        with napi.sandbox.Sandbox() as sandbox:
+            # generate a media file
+            media = self.videoAssets.prepareRandomMedia(sandbox)
+            subsMedia = self.subtitlesAssets.prepareRandomMedia(sandbox)
 
-# # Brief:
-# #
-# # Verify if napi works for single media files in legacy mode
-# #
-# # Preconditions:
-# # - prepare a set of test files (one available one unavailable)
-# #
-# # Procedure:
-# # - For each prepared file call napi with it, and check if the script successfully processed it
-# #
-# # Expected results:
-# # - napi should download the subtitles for a file for which the're available and don't download
-# # for a testfile for which they for sure don't exist
-# #
-# # - subtitles files should be created afterwards
-#
-# # check with a single files
-# my @files = (
-# 		{
-# 			src => 'av1.dat',
-# 			dst  => 'available.avi',
-# 			res => 'available.txt',
-# 			pattern => 'OK',
-# 		},
-#
-# 		{
-# 			src => 'unav1.dat',
-# 			dst => 'unavailable.avi',
-# 			res => 0,
-# 			pattern => 'UNAV',
-# 	   	},
-# );
-#
-# foreach (@files) {
-# 	copy $NapiTest::assets . '/' . $_->{src},
-# 		 $NapiTest::testspace . '/' . $_->{dst};
-#
-# 	my $filename = $NapiTest::testspace . '/' . $_->{dst};
-# 	my $subs = $NapiTest::testspace . '/' . $_->{res};
-#
-# 	like ( scalar NapiTest::qx_napi($shell, " --id pynapi " . $filename),
-# 			qr/#\d+:\d+\s$_->{pattern}\s->\s/,
-# 			"Single File ($_->{dst}) test");
-#
-# 	is (-e $subs ? 1 : 0,
-# 			$_->{res} ? 1 : 0,
-# 			"Subtitles file ($_->{res}) presence test");
-#
-# 	unlink $NapiTest::testspace . '/' . $_->{dst};
-# 	unlink $NapiTest::testspace . '/' . $_->{res} if $_->{res};
-# }
+            # program napiprojekt mock
+            self.napiMock.programPlainRequest(
+                    napi.subtitles.Subtitles.fromFile(
+                        media['asset'], subsMedia['path']))
 
-    def test_ifScanWorksForFirectory(self):
+            # call napi
+            self.napiScan('-i', 'pynapi', media['path'])
+            fs = napi.fs.Filesystem(media)
+
+            # check assertions
+            req = self.napiMock.getRequest()
+            self.assertEquals(req.method, "GET")
+            self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+            self.assertTrue(self.output.stdoutContains(
+                re.compile(r'napisy pobrano pomyslnie')))
+
+            self.assertTrue(fs.subtitlesExists())
+
+    def test_ifScanWorksForDirectory(self):
         """
-        Brief:
+        Brief: Verify if napi works for specified media directory
         Procedure:
+        1. Prepare sandbox and media files with random names
+        2. Program napiprojekt mock to reply with success for some of the media
+        files and failure for the others.
+        3. Call napi with the path to the sandbox
+
         Expected Results:
+        Napi should successfully download subtitles for media files for which
+        napiprojekt mock has been programmed to return a successful result.
         """
-        pass
+        mediasAvailable = []
+        mediasUnavailable = []
+        with napi.sandbox.Sandbox() as sandbox:
 
+            nAvailable = 3
+            nUnavailable = 3
+            nTotal = nAvailable + nUnavailable
 
-# # Brief:
-# #
-# # Verify if napi works for specified media directory
-# #
-# # Preconditions:
-# # - prepare a set of test files and a test directory structure
-# #
-# # Procedure:
-# # - Call napi with the path to the pre-prepared media directory
-# #
-# # Expected results:
-# # - napi should download the subtitles for all files (for which they are available) and should
-# # traverse the whole directory tree - in search for media files
-# #
-# # - the processing results must be reflected in the napi summary correctly
-# #
-# prepare_assets();
-#
-# my %output = ();
-# my $output = NapiTest::qx_napi($shell, " --id pynapi --stats " . $NapiTest::testspace);
-#
-# %output = NapiTest::parse_summary($output);
-# is ($output{ok}, $total_available, "Total number downloaded");
-# is ($output{unav}, $total_unavailable, "Total number of unavailable");
-# is ($output{ok} + $output{unav}, $output{total}, "Total processed");
-# is ($output{total}, $total_available + $total_unavailable, "Total processed 2");
+            # prepare responses for available subs
+            for _ in xrange(nAvailable):
+                media = self.videoAssets.prepareRandomMedia(sandbox)
+                subsMedia = self.subtitlesAssets.prepareRandomMedia(sandbox)
+                mediasAvailable.append(media)
+
+                # program http mock
+                self.napiMock.programPlainRequest(
+                        napi.subtitles.Subtitles.fromFile(
+                            media['asset'], subsMedia['path']))
+
+            # prepare responses for unavailable subs
+            for _ in xrange(nUnavailable):
+                media = self.videoAssets.prepareRandomMedia(sandbox)
+                mediasUnavailable.append(media)
+                self.napiMock.programPlainRequest()
+
+            # call napi
+            self.isStderrExpected = True
+            self.napiScan('--stats', '-i', 'pynapi', sandbox.path)
+
+            # check assertions
+            for n in xrange(nTotal):
+                req = self.napiMock.getRequest(n)
+                self.assertEquals(req.method, "GET")
+                self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+            # check statistics
+            stats = self.output.parseNapiStats()
+            self.assertEquals(nAvailable, stats['ok'])
+            self.assertEquals(nUnavailable, stats['unav'])
+            self.assertEquals(nTotal, stats['total'])
+
+            allMedia = mediasAvailable + mediasUnavailable
+            self.assertEqual(nAvailable, sum([ 1 for m in allMedia
+                if napi.fs.Filesystem(m).subtitlesExists()]))
 
     def test_ifSkippingWorks(self):
         """
         Brief:
+        This test verifies if napi is skipping the subtitles download for media
+        files for which the subtitles file seems to already exist in the
+        filesystem.
+
         Procedure:
+        1. Prepare a set of media files.
+        2. Program napiprojekt.pl mock to respond with success response.
+        3. Call napi -s.
+        4. Call napi -s again.
+
         Expected Results:
+        Check if it skipped the download for media files for which subtitles
+        have been already obtained.
+
         """
-        pass
+        medias = []
+        with napi.sandbox.Sandbox() as sandbox:
+
+            nTotal = 4
+            nAttempts = 3
+
+            # prepare responses for available subs
+            for _ in xrange(nTotal):
+                media = self.videoAssets.prepareRandomMedia(sandbox)
+                subsMedia = self.subtitlesAssets.prepareRandomMedia(sandbox)
+                medias.append(media)
+
+                # program http mock
+                self.napiMock.programPlainRequest(
+                        napi.subtitles.CompressedSubtitles.fromFile(
+                            media['asset'], subsMedia['path']),
+                        200,
+                        nAttempts)
+
+            for attempt in xrange(nAttempts):
+                # call napi
+                self.napiScan('--stats', '-s', '-i', 'pynapi', sandbox.path)
+
+                stats = self.output.parseNapiStats()
+                if attempt == 0:
+                    for n in xrange(nTotal):
+                        req = self.napiMock.getRequest(n + nTotal*attempt)
+                        self.assertTrue(req)
+                        self.assertEquals(req.method, "GET")
+                        self.assertTrue(re.match(r'/unit_napisy/dl\.php\?', req.url))
+
+                    # check statistics
+                    self.assertEquals(nTotal, stats['ok'])
+                    self.assertEquals(0, stats['skip'])
+                    self.assertEquals(0, stats['unav'])
+                    self.assertEquals(nTotal, stats['total'])
+                else:
+                    for n in xrange(nTotal):
+                        req = self.napiMock.getRequest(n + nTotal*attempt)
+                        self.assertFalse(req)
+
+                    # check statistics
+                    self.assertEquals(0, stats['ok'])
+                    self.assertEquals(nTotal, stats['skip'])
+                    self.assertEquals(0, stats['unav'])
+                    self.assertEquals(nTotal, stats['total'])
+
+                self.assertEqual(nTotal, sum([ 1 for m in medias
+                    if napi.fs.Filesystem(m).subtitlesExists()]))
 
 # # Brief:
 # #
