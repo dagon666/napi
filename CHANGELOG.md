@@ -1,3 +1,15 @@
+# [version 2.0.0 (2017-08-13)](https://github.com/dagon666/napi/releases/tag/v2.0.0)
+- Complete functional decomposition into self contained libraries
+- Code clean-up, re-design and refactoring
+- New self-sustaining test environment with mocked HTTP napiprojekt.pl service
+based on docker
+- Unit test environment running in docker with code coverage support, shell
+functions and shell commands mocks
+- Functionality split into actions
+- New actions implemented: search, download, subtitles
+- Build system replaced with CMake
+- Removed most of brittle and clunky custom scripts
+
 # [version 1.3.5 (2015-06-07)](https://github.com/dagon666/napi/releases/tag/v1.3.5)
 - fix for MAC OS having both GNU & BSD stat installed
 - install.sh fixes for MAC OS
