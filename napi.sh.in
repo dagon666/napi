@@ -236,7 +236,7 @@ _main() {
     # shellcheck disable=SC2086
     [ $# -lt 1 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ] && {
         _usage
-        return $G_RETFAIL
+        return $G_RETOK
     }
 
     logging_msg $"wywolano o" "$(date)"
