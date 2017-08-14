@@ -17,7 +17,7 @@ Typical install procedure is very simple:
     $ cd bashnapi
     $ mkdir build && cd build
     $ cmake ..
-    # make && install
+    $ make && make install
 
 ### Installation on embedded devices
 
