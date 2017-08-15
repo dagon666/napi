@@ -7,7 +7,7 @@ video file.
 This script works on Linux & OS X systems. It has very limited requirements and
 is mostly depending on bash (it is proven to run from bash 2.04 - which makes
 it ideal for embedded devices) and `coreutils` (which should be available on most
-modern systems, no perl or python is required).
+modern systems, no Perl or Python is required).
 
 ## Installation
 
@@ -22,13 +22,13 @@ Typical install procedure is very simple:
 ### Installation on embedded devices
 
 In case you want to install **bashnapi** on a host which doesn't have
-cmake, the procedure is very similar. Just install to a local
+CMake, the procedure is very similar. Just install to a local
 directory and deploy that to your device. Below is an example:
 
     $ cd bashnapi
     $ mkdir build
     $ cmake -DCMAKE_INSTALL_PREFIX=napi_install -DNAPI_INSTALL_PREFIX=/opt/napi ..
-    $ make && install
+    $ make && make install
 
 **bashnapi** is now installed in the `napi_install` directory on your local
 machine. Just deploy that to your device (with `scp`, `ftp`, or whatever you
@@ -42,7 +42,7 @@ prefer) and add the path to a directory under `/opt/napi/bin` to your
     should be deployed
 
 You can use any directory names, `napi_install` and `/opt/napi` have been picked
-arbitrarilly without any strict reason.
+arbitrarily without any strict reason.
 
 ### Dockerized application
 
@@ -60,7 +60,7 @@ container and invokes `napi.sh` scan action in container's `/mnt`.
 
 ## Actions
 
-Script funcionality has been divided into actions. Each action implements a
+Script functionality has been divided into actions. Each action implements a
 specific request type. Available actions:
 
 - scan - scan a directory (or a single file) and download subtitles for all
@@ -120,7 +120,7 @@ files which are bigger than 100 MB:
 completely in **bash** & **awk**. To download subtitles for all supported video
 files and convert them to subrip format on the fly, just use the **-f** option:
 
-    $ napi.sh -f subrip *
+    $ napi.sh <action> -f subrip *
 
 ### download action (experimental)
 
@@ -202,7 +202,7 @@ for input/output.
 Examples:
 
 - Convert from microdvd 23.98 fps to subrip. Subrip is default output format so
-it doesnt have to be specified. The input frame rate is also equal to the
+it doesn't have to be specified. The input frame rate is also equal to the
 default one, so no addition specification in the command line has been made.
 
 
