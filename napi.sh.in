@@ -86,7 +86,7 @@ _usage() {
     echo $" -p | --pass <passwd> - napiprojekt haslo"
     echo $" -i | --id <pynapi,other,NapiProjekt,NapiProjektPython> - klient id"
     echo $" -L | --language <LNG> - jezyk napisow"
-    echo $" -l | --log <logfile> - drukuj output to pliku zamiast na konsole"
+    echo $" -l | --log <logfile> - drukuj wyjscie do pliku zamiast na konsole"
     echo $" -lo| --log-overwrite - jezeli plik loga juz istnieje - nadpisz go"
     echo $" -S | --script <script_path> - wywolaj skrypt po pobraniu napisow (sciezka do pliku z napisami, relatywna do argumentu napi.sh, bedzie przekazana jako argument)"
     echo $" -v | --verbosity <0..3> - poziom gadatliwosci 0 - cichy, 3 - debug"
