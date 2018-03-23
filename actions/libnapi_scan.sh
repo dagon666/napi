@@ -640,7 +640,9 @@ _scan_processFile() {
             fi
         }
 
-        hooks_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
+        [ "$status" -eq "$G_RETOK" ] && {
+            hooks_callHook_GV "${path}/${___g_pf[$fileNameIndex]}"
+        }
 
     else
         # unav counter
