@@ -307,6 +307,8 @@ and so on...
 
 EOF
 
+    dosData="$(echo "$dosData" | awk 'sub("$", "\r")')"
+
     result=$(echo "$dosData" | wrappers_dos2unix_SO)
 
     assertNotEquals "check if strings are initially different" \
