@@ -722,5 +722,26 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                 [ True if convAbbrevExt in s else False
                     for s in subsFiles ]))
 
+    def test_ifCallsExternalScript(self):
+        """
+        Brief:
+        Check if calls registered user provided scripts
+
+        Procedure:
+        1. Prepare media and subs files
+        2. Program napi mock
+        3. Perform a request for subtitles for media files. Request should
+        result in one download and a call to the provided user script/executable.
+
+        Expected Results:
+
+        1. Subtitles should be downloaded
+        2. User provided script should be called for each downloaded file
+        """
+        pass
+
+    def test_ifDoesntCallExternalScriptIfSkipped(self):
+        pass
+
 if __name__ == '__main__':
     napi.testcase.runTests()
