@@ -28,10 +28,10 @@ sub extractArchive {
 }
 
 sub install {
-    my ($srcPath, $dstPath, $installCmd) = @_;
+    my ($srcPath, $dstPath, $installCmd, $extraArgs) = @_;
     print "Building & installing...\n";
     if (chdir($srcPath)) {
-        $installCmd->($dstPath);
+        $installCmd->($dstPath, $extraArgs);
         chdir;
     }
 }
@@ -41,13 +41,16 @@ sub pythonInstall {
 }
 
 sub cmakeInstall {
-    system("mkdir build && cd build && cmake .. && make install");
+    system("mkdir build && cd build && cmake .. && make && make install");
 }
 
 sub automakeInstall {
     my $dstPath = shift // "";
+    my $extraArgs = shift // [];
     my $cmd = "./configure " .
-        (length($dstPath) ? "--prefix $dstPath " : "") .
+        (length($dstPath) ? "--prefix $dstPath ": "") .
+        "@{ $extraArgs } " .
+        "&& make " .
         "&& make install";
     system($cmd);
 }
@@ -55,7 +58,7 @@ sub automakeInstall {
 sub prepareTgz {
     my ($url, $workDir,
         $tgzPath, $srcPath,
-        $dstPath, $installCmd) = @_;
+        $dstPath, $installCmd, $extraArgs) = @_;
 
     getArchive($url, $tgzPath) ||
         die "Unable to download archive\n";
@@ -63,7 +66,7 @@ sub prepareTgz {
     extractArchive($tgzPath, $workDir) ||
         die "Unable to extract archive\n";
 
-    install($srcPath, $dstPath, $installCmd);
+    install($srcPath, $dstPath, $installCmd, $extraArgs);
 }
 
 1;

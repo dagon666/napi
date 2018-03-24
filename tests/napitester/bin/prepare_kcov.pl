@@ -4,7 +4,7 @@ use strict;
 use warnings;
 $|++;
 
-use lib qw(./napitester/lib/perl5);
+use lib qw(./common/lib/perl5);
 use GithubInstaller;
 use NetInstall;
 

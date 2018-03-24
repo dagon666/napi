@@ -10,6 +10,7 @@ RUN apt-get install -y \
         python-pip \
         python-setuptools
 
+ADD common $INSTALL_DIR/common
 ADD napiclient $INSTALL_DIR/napiclient
 ADD napiserver $INSTALL_DIR/napiserver
 
