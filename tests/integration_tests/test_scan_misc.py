@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import re
 import unittest
 import subprocess
@@ -9,6 +10,7 @@ import napi.fs
 import napi.sandbox
 import napi.subtitles
 import napi.testcase
+import napi.scpmocker
 
 class ScanActionMiscTest(napi.testcase.NapiTestCase):
 
@@ -722,6 +724,9 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
                 [ True if convAbbrevExt in s else False
                     for s in subsFiles ]))
 
+
+class ScanActionHooksTest(napi.testcase.NapiTestCase):
+
     def test_ifCallsExternalScript(self):
         """
         Brief:
@@ -738,10 +743,106 @@ class ScanActionMiscTest(napi.testcase.NapiTestCase):
         1. Subtitles should be downloaded
         2. User provided script should be called for each downloaded file
         """
-        pass
+        medias = []
+        nMedia = 3
+        scpMockerPath = '/usr/local/bin/scpmocker'
+
+        with napi.sandbox.Sandbox() as sandbox:
+
+            # prepare assets
+            for _ in xrange(nMedia):
+                media = self.videoAssets.prepareRandomMedia(sandbox)
+                medias.append(media)
+
+                # program http mock
+                self.napiMock.programXmlRequest(
+                        media,
+                        napi.subtitles.CompressedSubtitles.fromString(
+                            media['asset'], "test subtitles"))
+
+            # prepare the fake executable mock
+            with napi.scpmocker.ScpMocker(scpMockerPath, sandbox.path) as scpm:
+                # program command mock
+                toolName = 'myExternalTool'
+                scpm.program(toolName, "", 0, nMedia)
+                scpm.patchCmd(toolName)
+
+                # call napi
+                toolPath = scpm.getPath(toolName)
+                self.napiScan('--stats', sandbox.path, '-S', toolPath)
+
+                # verify external script mock calls
+                self.assertEquals(nMedia, scpm.getCallCount(toolName))
+
+                # constucts a list of subtitle file names without extension
+                callArgs = [
+                        os.path.splitext(scpm.getCallArgs(toolName, n + 1))[0]
+                        for n in xrange(nMedia) ]
+
+                # constructs a list of media file names without extension
+                mediaFiles = [
+                        os.path.splitext(m['path'])[0]
+                        for m in medias ]
+
+                # compare the results
+                self.assertEquals(sorted(callArgs), sorted(mediaFiles))
 
     def test_ifDoesntCallExternalScriptIfSkipped(self):
-        pass
+        """
+        Brief:
+        Check if calls registered user provided scripts only for media files
+        for which a download was not skipped.
+
+        Procedure:
+        1. Prepare media and subs files
+        2. Program napi mock
+        3. Perform a request for subtitles for media files.
+        4. Perform the request again with skipping.
+
+        Expected Results:
+
+        1. Subtitles should be downloaded
+        2. User provided script should not be called the second time napi is
+        invoked.
+        """
+        medias = []
+        nMedia = 3
+        scpMockerPath = '/usr/local/bin/scpmocker'
+
+        with napi.sandbox.Sandbox() as sandbox:
+
+            # prepare assets
+            for _ in xrange(nMedia):
+                media = self.videoAssets.prepareRandomMedia(sandbox)
+                medias.append(media)
+
+                # program http mock
+                self.napiMock.programXmlRequest(
+                        media,
+                        napi.subtitles.CompressedSubtitles.fromString(
+                            media['asset'], "test subtitles"))
+
+            # prepare the fake executable mock
+            with napi.scpmocker.ScpMocker(scpMockerPath, sandbox.path) as scpm:
+                # program command mock
+                toolName = 'myExternalTool'
+                scpm.program(toolName, "", 0, nMedia * 2)
+                scpm.patchCmd(toolName)
+
+                # call napi
+                toolPath = scpm.getPath(toolName)
+                self.napiScan('--stats', sandbox.path, '-S', toolPath)
+
+                # verify external script mock calls
+                self.assertEquals(nMedia, scpm.getCallCount(toolName))
+
+                # # call napi ... again
+                # toolPath = scpm.getPath(toolName)
+                self.napiScan('--stats', sandbox.path, '-s', '-S', toolPath)
+
+                # call count should remain unchanged
+                self.assertEquals(nMedia, scpm.getCallCount(toolName))
+
 
 if __name__ == '__main__':
     napi.testcase.runTests()
