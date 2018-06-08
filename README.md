@@ -1,3 +1,5 @@
+# This project has been permanently moved to [gitlab](https://gitlab.com/hesperos/napi). It will no longer be maintained here. Please, refer to [gitlab](https://gitlab.com/hesperos/napi) repository for updates and new releases.
+
 [![pipeline status](https://gitlab.com/hesperos/napi/badges/master/pipeline.svg)](https://gitlab.com/hesperos/napi/commits/master)
 [![coverage report](https://gitlab.com/hesperos/napi/badges/master/coverage.svg)](https://gitlab.com/hesperos/napi/commits/master)
 
