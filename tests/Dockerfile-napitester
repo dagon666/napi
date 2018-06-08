@@ -42,6 +42,9 @@ RUN apt-get install -y \
         zlib1g \
         zlib1g-dev
 
+RUN apt-get install -y \
+        jq
+
 # set-up environment
 ENV NAPITESTER_HOME /home/napitester
 ENV NAPITESTER_BIN $NAPITESTER_HOME/bin
