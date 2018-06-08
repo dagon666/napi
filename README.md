@@ -1,3 +1,5 @@
+[![pipeline status](https://gitlab.com/hesperos/napi/badges/master/pipeline.svg)](https://gitlab.com/hesperos/napi/commits/master)
+
 # Bashnapi - napiprojekt.pl client
 
 This script is a [NapiProjekt](napiprojekt.pl) client written in bash. It
