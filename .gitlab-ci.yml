@@ -7,6 +7,7 @@ stages:
     - build
     - test
     - deploy
+    - pages
 
 before_script:
     - docker version
@@ -30,7 +31,18 @@ test:
         paths:
             - tests/coverage/
 
-deploy:
+deployDocker:
     stage: deploy
     script:
         - echo "no deployment support yet!"
+
+pages:
+    stage: deploy
+    script:
+        - mv tests/coverage/ public/
+    artifacts:
+        paths:
+            - public
+        expire_in: 30 days
+    only:
+        - master
