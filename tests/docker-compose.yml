@@ -2,6 +2,7 @@ version: '2'
 
 services:
     napiserver:
+        image: registry.gitlab.com/hesperos/napi/napiserver:latest
         build:
             context: .
             dockerfile: Dockerfile-napiserver
@@ -12,6 +13,7 @@ services:
             - opt-napi:/opt/napi
 
     napitester:
+        image: registry.gitlab.com/hesperos/napi/napitester:latest
         build:
             context: .
             dockerfile: Dockerfile-napitester
@@ -26,6 +28,7 @@ services:
         working_dir: /mnt/tests/unit_tests
 
     napiclient:
+        image: registry.gitlab.com/hesperos/napi/napiclient:latest
         build:
             context: .
             dockerfile: Dockerfile-napiclient
