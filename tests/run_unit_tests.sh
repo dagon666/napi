@@ -3,6 +3,9 @@
 RESULT="failed"
 EXIT_STATUS=1
 AWK="awk"
+COVERAGE=0
+
+declare -r COVERAGE_JSON_PATH="coverage/kcov-merged/coverage.json"
 
 usage() {
     "./run_unit_tests.sh [ OPTIONS ] <unit_tests>"
@@ -56,6 +59,13 @@ docker-compose run \
     exit 0
 CMD_EOF
 EXIT_STATUS="$?"
+
+# obtain the coverage measurement
+[ -f "$COVERAGE_JSON_PATH" ] && [ 0 -eq "$EXIT_STATUS" ] &&
+    COVERAGE="$(jq -r .percent_covered "$COVERAGE_JSON_PATH")"
+
+# print the coverage measurement
+echo " ** total measured coverage: ${COVERAGE}%"
 
 # send notifications
 notify "${RESULT}"
