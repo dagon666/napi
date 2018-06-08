@@ -1,4 +1,5 @@
 [![pipeline status](https://gitlab.com/hesperos/napi/badges/master/pipeline.svg)](https://gitlab.com/hesperos/napi/commits/master)
+[![coverage report](https://gitlab.com/hesperos/napi/badges/master/coverage.svg)](https://gitlab.com/hesperos/napi/commits/master)
 
 # Bashnapi - napiprojekt.pl client
 
