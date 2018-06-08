@@ -26,6 +26,9 @@ test:
         - docker pull registry.gitlab.com/hesperos/napi/napitester
         - docker tag registry.gitlab.com/hesperos/napi/napitester napitester
         - cd tests && ./run_unit_tests.sh
+    artifacts:
+        paths:
+            - tests/coverage/
 
 deploy:
     stage: deploy
