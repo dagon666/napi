@@ -181,7 +181,7 @@ _fs_getFpsWithTool() {
     if [ -z "$t" ] ||
         [ "$t" = "none" ] ||
         [ "$t" = "unavailable" ] ||
-        ! tools_isDetected $t; then
+        ! tools_isDetected "$t"; then
         echo $fps
         # shellcheck disable=SC2086
         return $G_RETPARAM
